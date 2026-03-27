@@ -6,14 +6,11 @@
 <div data-role="content">
 <div style="display:flex;flex-direction:column;align-items:center;padding:24px 16px 48px;font-family:sans-serif;color:#fff;">
 
-  <!-- Header -->
   <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">🎵 JellyMoods</h2>
   <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel to match music to your mood</p>
 
-  <!-- Wheel wrapper — uses CSS gradient, no canvas needed -->
-  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
+  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;touch-action:none;">
 
-    <!-- The wheel itself: CSS conic+radial gradient circle -->
     <div id="jmWheel" style="
       width:100%;height:100%;
       border-radius:50%;
@@ -32,34 +29,29 @@
           #c83c3c 360deg
         );
       box-shadow:0 0 60px rgba(0,0,0,0.7),0 0 0 2px rgba(255,255,255,0.10);
-      cursor:crosshair;
       touch-action:none;
       user-select:none;
+      -webkit-user-select:none;
     "></div>
 
-    <!-- Axis labels -->
     <span style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Active</span>
     <span style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Passive</span>
     <span style="position:absolute;left:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Negative</span>
     <span style="position:absolute;right:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Positive</span>
 
-    <!-- Corner mood labels -->
     <span style="position:absolute;top:14px;left:18px;font-size:0.68em;font-weight:700;color:#ff7070;line-height:1.3;pointer-events:none;">Angry<br>Tense</span>
     <span style="position:absolute;top:14px;right:18px;font-size:0.68em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;">Happy<br>Excited</span>
     <span style="position:absolute;bottom:14px;left:18px;font-size:0.68em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;">Sad<br>Melancholic</span>
     <span style="position:absolute;bottom:14px;right:18px;font-size:0.68em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;">Calm<br>Relaxed</span>
 
-    <!-- Crosshair dot -->
-    <div id="moodDot" style="position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;transition:background 0.2s;"></div>
+    <div id="moodDot" style="position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;"></div>
   </div>
 
-  <!-- Mood info -->
   <div style="text-align:center;margin-top:36px;min-height:80px;">
     <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;">— How are you feeling? —</div>
     <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
   </div>
 
-  <!-- Play button -->
   <div style="margin-top:20px;text-align:center;">
     <button id="jmPlayBtn" style="display:none;padding:14px 44px;border:none;border-radius:30px;font-size:1em;font-weight:700;letter-spacing:0.06em;cursor:pointer;background:linear-gradient(135deg,#7c6fff,#4eb8d8);color:#fff;box-shadow:0 4px 20px rgba(78,184,216,0.4);">▶ Play This Mood</button>
     <div id="jmStatus" style="margin-top:12px;font-size:0.8em;color:#777;min-height:1.2em;"></div>
@@ -75,23 +67,22 @@
 'use strict';
 
 var MOODS = [
-  {vMin:-1,vMax:0,aMin:0,aMax:1,   name:'Angry / Tense',    desc:'High energy, dark intensity',         genres:['Metal','Punk','Hard Rock','Industrial','Hardcore'],       col:'#ff5a5a'},
-  {vMin:0,vMax:1,aMin:0,aMax:1,    name:'Happy / Excited',  desc:'Upbeat, euphoric, energising',         genres:['Pop','Dance','Electronic','Funk','House','Disco'],         col:'#ffe040'},
-  {vMin:-1,vMax:0,aMin:-1,aMax:0,  name:'Sad / Melancholic',desc:'Reflective, introspective, longing',   genres:['Blues','Soul','Folk','Indie','Singer-Songwriter'],         col:'#6090ff'},
-  {vMin:0,vMax:1,aMin:-1,aMax:0,   name:'Calm / Relaxed',   desc:'Peaceful, gentle, serene',             genres:['Jazz','Ambient','Classical','Acoustic','Chill','New Age'], col:'#40dfc0'},
-  {vMin:-0.2,vMax:0.2,aMin:0.6,aMax:1,  name:'Tense / Pumped',  desc:'Intense, driven, focused',        genres:['Metal','Punk','Electronic','Hard Rock'],                   col:'#ff9030'},
-  {vMin:-0.2,vMax:0.2,aMin:-1,aMax:-0.6,name:'Contemplative',   desc:'Quiet, thoughtful, drifting',     genres:['Ambient','Classical','Jazz','Folk'],                       col:'#70a0e8'},
-  {vMin:0.6,vMax:1,aMin:-0.2,aMax:0.2,  name:'Content',          desc:'Easy, comfortable, at ease',      genres:['Acoustic','Chill','Jazz','Bossa Nova'],                    col:'#60e8a0'},
-  {vMin:-1,vMax:-0.6,aMin:-0.2,aMax:0.2,name:'Frustrated',       desc:'Unsettled, uneasy, moody',        genres:['Blues','Punk','Soul','Indie'],                             col:'#d87060'},
+  {vMin:-1,vMax:0,aMin:0,aMax:1,    name:'Angry / Tense',    desc:'High energy, dark intensity',        genres:['Metal','Punk','Hard Rock','Industrial','Hardcore'],       col:'#ff5a5a'},
+  {vMin:0, vMax:1,aMin:0,aMax:1,    name:'Happy / Excited',  desc:'Upbeat, euphoric, energising',       genres:['Pop','Dance','Electronic','Funk','House','Disco'],         col:'#ffe040'},
+  {vMin:-1,vMax:0,aMin:-1,aMax:0,   name:'Sad / Melancholic',desc:'Reflective, introspective, longing', genres:['Blues','Soul','Folk','Indie','Singer-Songwriter'],         col:'#6090ff'},
+  {vMin:0, vMax:1,aMin:-1,aMax:0,   name:'Calm / Relaxed',   desc:'Peaceful, gentle, serene',           genres:['Jazz','Ambient','Classical','Acoustic','Chill','New Age'], col:'#40dfc0'},
+  {vMin:-0.2,vMax:0.2,aMin:0.6,aMax:1,   name:'Tense / Pumped', desc:'Intense, driven, focused',       genres:['Metal','Punk','Electronic','Hard Rock'],                   col:'#ff9030'},
+  {vMin:-0.2,vMax:0.2,aMin:-1,aMax:-0.6, name:'Contemplative', desc:'Quiet, thoughtful, drifting',     genres:['Ambient','Classical','Jazz','Folk'],                       col:'#70a0e8'},
+  {vMin:0.6,vMax:1,aMin:-0.2,aMax:0.2,   name:'Content',        desc:'Easy, comfortable, at ease',     genres:['Acoustic','Chill','Jazz','Bossa Nova'],                    col:'#60e8a0'},
+  {vMin:-1,vMax:-0.6,aMin:-0.2,aMax:0.2, name:'Frustrated',     desc:'Unsettled, uneasy, moody',       genres:['Blues','Punk','Soul','Indie'],                             col:'#d87060'},
 ];
 
 var selectedValence=0, selectedArousal=0, pendingItems=[];
 
 function posToMood(nx,ny){
-  // nx,ny are -1..1 from centre
   var valence=nx, arousal=-ny;
   var intensity=Math.min(1,Math.sqrt(valence*valence+arousal*arousal));
-  var best=MOODS[0],bestScore=-Infinity;
+  var best=MOODS[0], bestScore=-Infinity;
   for(var i=0;i<MOODS.length;i++){
     var m=MOODS[i];
     if(valence>=m.vMin&&valence<=m.vMax&&arousal>=m.aMin&&arousal<=m.aMax){
@@ -105,8 +96,8 @@ function posToMood(nx,ny){
 function getGenresForPosition(valence,arousal){
   var happy=Math.max(0,valence)*Math.max(0,arousal);
   var angry=Math.max(0,-valence)*Math.max(0,arousal);
-  var calm=Math.max(0,valence)*Math.max(0,-arousal);
-  var sad=Math.max(0,-valence)*Math.max(0,-arousal);
+  var calm =Math.max(0,valence)*Math.max(0,-arousal);
+  var sad  =Math.max(0,-valence)*Math.max(0,-arousal);
   var q=[
     {w:happy,genres:['Pop','Dance','Electronic','Funk','House','Disco','Party']},
     {w:angry,genres:['Metal','Punk','Hard Rock','Industrial','Hardcore','Thrash Metal']},
@@ -118,20 +109,18 @@ function getGenresForPosition(valence,arousal){
   return Object.keys(out);
 }
 
-function handleInteraction(clientX,clientY){
+function handleInteraction(clientX, clientY){
   var wheel=document.getElementById('jmWheel');
   var rect=wheel.getBoundingClientRect();
   var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
   var r=rect.width/2;
   var dx=clientX-cx, dy=clientY-cy;
-  var dist=Math.sqrt(dx*dx+dy*dy);
-  if(dist>r) return; // outside circle
+  if(Math.sqrt(dx*dx+dy*dy)>r) return;
 
-  var nx=dx/r, ny=dy/r; // normalised -1..1
+  var nx=dx/r, ny=dy/r;
   var res=posToMood(nx,ny);
   selectedValence=res.valence; selectedArousal=res.arousal;
 
-  // Move dot
   var dot=document.getElementById('moodDot');
   var wrap=document.getElementById('jmWheelWrap');
   var wRect=wrap.getBoundingClientRect();
@@ -144,42 +133,52 @@ function handleInteraction(clientX,clientY){
     setMoodName('— Neutral —','#ccc');
     setMoodDesc('Right in the middle — feeling balanced?');
   } else {
-    setMoodName(res.mood.name,res.mood.col);
+    setMoodName(res.mood.name, res.mood.col);
     setMoodDesc(res.mood.desc);
   }
+
   showPlayBtn(true); setStatus(''); setTrackCount(0); pendingItems=[];
 
   var genres=getGenresForPosition(res.valence,res.arousal);
-  fetchTracksByGenres(genres).then(function(items){
-    if(items.length===0) return fetchFallback();
-    return items;
-  }).then(function(items){
-    pendingItems=items; setTrackCount(items.length);
-    if(items.length===0) setStatus('No tracks found — check genre tags in your library.');
-  }).catch(function(){setStatus('Could not fetch tracks.');});
+  fetchTracksByGenres(genres)
+    .then(function(items){ return items.length>0 ? items : fetchFallback(); })
+    .then(function(items){ pendingItems=items; setTrackCount(items.length);
+      if(items.length===0) setStatus('No tracks found — check genre tags in your library.');
+    })
+    .catch(function(){ setStatus('Could not fetch tracks.'); });
 }
 
-// Mouse
-document.getElementById('jmWheel').addEventListener('click',function(e){
-  handleInteraction(e.clientX,e.clientY);
-});
+// ── Unified pointer handler (works for mouse AND touch on all browsers) ──
+var wheel = document.getElementById('jmWheel');
 
-// Touch
-document.getElementById('jmWheel').addEventListener('touchend',function(e){
-  e.preventDefault();
-  var t=e.changedTouches[0];
-  handleInteraction(t.clientX,t.clientY);
-},{passive:false});
+if(window.PointerEvent !== undefined){
+  // Modern: pointerdown fires for both mouse and touch
+  wheel.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    handleInteraction(e.clientX, e.clientY);
+  });
+} else {
+  // Fallback: separate mouse + touch
+  wheel.addEventListener('click', function(e){
+    e.preventDefault();
+    handleInteraction(e.clientX, e.clientY);
+  });
+  wheel.addEventListener('touchend', function(e){
+    e.preventDefault();
+    var t=e.changedTouches[0];
+    handleInteraction(t.clientX, t.clientY);
+  }, {passive:false});
+}
 
-document.getElementById('jmWheel').addEventListener('touchstart',function(e){
-  e.preventDefault(); // prevent scroll while touching wheel
-},{passive:false});
+// Prevent page scroll when touching wheel
+wheel.addEventListener('touchstart', function(e){ e.preventDefault(); }, {passive:false});
+wheel.addEventListener('touchmove',  function(e){ e.preventDefault(); }, {passive:false});
 
-function setStatus(t){document.getElementById('jmStatus').textContent=t;}
-function setMoodName(t,col){var el=document.getElementById('jmMoodName');el.textContent=t;el.style.color=col||'#fff';}
-function setMoodDesc(t){document.getElementById('jmMoodDesc').textContent=t;}
-function showPlayBtn(v){document.getElementById('jmPlayBtn').style.display=v?'inline-block':'none';}
-function setTrackCount(n){var el=document.getElementById('jmTrackCount');el.style.display=n>0?'block':'none';el.textContent=n>0?n+' tracks found':'';}
+function setStatus(t){ document.getElementById('jmStatus').textContent=t; }
+function setMoodName(t,col){ var el=document.getElementById('jmMoodName'); el.textContent=t; el.style.color=col||'#fff'; }
+function setMoodDesc(t){ document.getElementById('jmMoodDesc').textContent=t; }
+function showPlayBtn(v){ document.getElementById('jmPlayBtn').style.display=v?'inline-block':'none'; }
+function setTrackCount(n){ var el=document.getElementById('jmTrackCount'); el.style.display=n>0?'block':'none'; el.textContent=n>0?n+' tracks found':''; }
 
 function fetchTracksByGenres(genres){
   var api=window.ApiClient;
@@ -195,11 +194,13 @@ function fetchFallback(){
   var api=window.ApiClient;
   if(!api) return Promise.resolve([]);
   return api.getCurrentUser().then(function(user){
-    return api.getItems(user.Id,{IncludeItemTypes:'Audio',Recursive:true,SortBy:'Random',Limit:30}).then(function(r){return r.Items||[];});
+    return api.getItems(user.Id,{IncludeItemTypes:'Audio',Recursive:true,SortBy:'Random',Limit:30})
+      .then(function(r){return r.Items||[];});
   });
 }
 
-document.getElementById('jmPlayBtn').addEventListener('click',function(){
+document.getElementById('jmPlayBtn').addEventListener('pointerdown', function(e){
+  e.preventDefault();
   var play=function(items){
     if(!items||items.length===0){setStatus('No matching tracks found.');return;}
     setStatus('Starting playback…');
