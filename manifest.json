@@ -1,0 +1,12 @@
+[
+  {
+    "category": "Music",
+    "guid": "6c8a80b7-3e2f-4d5a-9b1c-f7e8d9a0b2c3",
+    "name": "JellyMoods",
+    "description": "Play music from your Jellyfin library by selecting a mood on a visual emotion wheel.",
+    "overview": "Click anywhere on the colour wheel to match music to how you feel. Maps energy (up/down) and positivity (left/right) to genres in your library.",
+    "owner": "ciantm",
+    "imageUrl": "https://raw.githubusercontent.com/ciantm/Jellymoods/main/assets/logo.png",
+    "versions": []
+  }
+]
