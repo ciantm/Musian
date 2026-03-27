@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj
+
+      - name: Build
+        run: dotnet build Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj --no-restore --configuration Release
+
+      - name: Check warnings
+        run: dotnet build Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj --no-restore --configuration Release 2>&1 | grep -i warning || true

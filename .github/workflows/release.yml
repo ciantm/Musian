@@ -1,0 +1,131 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*.*'   # triggers on e.g. v1.0.0.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create GitHub Releases
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Setup .NET ────────────────────────────────────────────────────────
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # ── Parse version from tag ────────────────────────────────────────────
+      - name: Parse version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. v1.0.0.0
+          VER="${TAG#v}"                    # strip leading 'v'
+          echo "tag=$TAG"   >> "$GITHUB_OUTPUT"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      # ── Build ─────────────────────────────────────────────────────────────
+      - name: Build
+        run: |
+          dotnet build \
+            Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.version }} \
+            --output ./build_output
+
+      # ── Package zip (DLL only — Jellyfin requirement) ────────────────────
+      - name: Package
+        run: |
+          ARTIFACT="Jellyfin.Plugin.JellyMoods_${{ steps.version.outputs.version }}.zip"
+          cd build_output
+          zip "../${ARTIFACT}" Jellyfin.Plugin.JellyMoods.dll
+          cd ..
+          echo "artifact=${ARTIFACT}" >> "$GITHUB_ENV"
+          echo "checksum=$(md5sum "${ARTIFACT}" | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      # ── Upload artifact for manifest job ─────────────────────────────────
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: ${{ env.artifact }}
+
+      # ── Create GitHub Release ─────────────────────────────────────────────
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: JellyMoods ${{ steps.version.outputs.version }}
+          body: |
+            ## JellyMoods ${{ steps.version.outputs.version }}
+
+            ### Install via Jellyfin
+            Add this manifest URL to Jellyfin → Dashboard → Plugins → Repositories:
+            ```
+            https://ciantm.github.io/Jellymoods/manifest.json
+            ```
+            Then search for **JellyMoods** in the plugin catalogue.
+
+            ### Manual install
+            Download `${{ env.artifact }}`, extract the DLL into your Jellyfin plugins folder and restart.
+
+            **MD5:** `${{ env.checksum }}`
+          files: ${{ env.artifact }}
+          fail_on_unmatched_files: true
+
+  # ── Update manifest.json on gh-pages ────────────────────────────────────
+  update-manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-zip
+
+      - name: Parse version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VER="${TAG#v}"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
+
+      - name: Compute checksum & timestamp
+        id: meta
+        run: |
+          ARTIFACT="Jellyfin.Plugin.JellyMoods_${{ steps.version.outputs.version }}.zip"
+          echo "checksum=$(md5sum "${ARTIFACT}" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"           >> "$GITHUB_OUTPUT"
+
+      - name: Update manifest.json
+        run: |
+          python3 update_manifest.py \
+            --version   "${{ steps.version.outputs.version }}" \
+            --tag       "${{ steps.version.outputs.tag }}" \
+            --checksum  "${{ steps.meta.outputs.checksum }}" \
+            --timestamp "${{ steps.meta.outputs.timestamp }}"
+
+      - name: Commit & push manifest
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore: update manifest for ${{ steps.version.outputs.tag }}" || echo "No changes"
+          git push

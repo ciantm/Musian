@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>JellyMoods</title>
+    <style>
+        /* ── Layout ─────────────────────────────────────────────────────────── */
+        #jellyMoodsPage .content-primary {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px 48px;
+        }
+
+        /* ── Header ─────────────────────────────────────────────────────────── */
+        .jm-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .jm-header h2 {
+            font-size: 1.8em;
+            font-weight: 300;
+            letter-spacing: 0.06em;
+            color: #fff;
+            margin: 0 0 6px;
+        }
+        .jm-header p {
+            font-size: 0.85em;
+            color: #888;
+            margin: 0;
+        }
+
+        /* ── Wheel wrapper ───────────────────────────────────────────────────── */
+        .jm-wheel-wrap {
+            position: relative;
+            width: 480px;
+            height: 480px;
+            margin: 0 auto;
+        }
+
+        #moodCanvas {
+            display: block;
+            border-radius: 50%;
+            cursor: crosshair;
+            box-shadow: 0 0 60px rgba(0,0,0,0.7), 0 0 0 2px rgba(255,255,255,0.08);
+            width: 480px;
+            height: 480px;
+        }
+
+        /* Axis labels */
+        .jm-label {
+            position: absolute;
+            font-size: 0.72em;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.55);
+            pointer-events: none;
+            user-select: none;
+        }
+        .jm-label-top    { top: -22px;  left: 50%; transform: translateX(-50%); }
+        .jm-label-bottom { bottom: -22px; left: 50%; transform: translateX(-50%); }
+        .jm-label-left   { left: -52px; top: 50%; transform: translateY(-50%); }
+        .jm-label-right  { right: -52px; top: 50%; transform: translateY(-50%); }
+
+        /* Corner labels */
+        .jm-corner {
+            position: absolute;
+            font-size: 0.68em;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            pointer-events: none;
+            user-select: none;
+            line-height: 1.35;
+            text-align: center;
+        }
+        .jm-corner-tl { top: 18px;  left: 22px;  color: #ff7070; }
+        .jm-corner-tr { top: 18px;  right: 22px; color: #ffe066; text-align: right; }
+        .jm-corner-bl { bottom: 18px; left: 22px;  color: #7ba3ff; }
+        .jm-corner-br { bottom: 18px; right: 22px; color: #5ee8cc; text-align: right; }
+
+        /* Crosshair dot */
+        #moodDot {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.95);
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.4), 0 0 12px rgba(255,255,255,0.6);
+            transform: translate(-50%,-50%);
+            pointer-events: none;
+            display: none;
+            transition: background 0.2s;
+        }
+
+        /* ── Info panel ──────────────────────────────────────────────────────── */
+        .jm-info {
+            text-align: center;
+            margin-top: 32px;
+            min-height: 72px;
+        }
+        .jm-mood-name {
+            font-size: 1.5em;
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            color: #fff;
+            min-height: 1.6em;
+            transition: color 0.3s;
+        }
+        .jm-mood-desc {
+            font-size: 0.82em;
+            color: #999;
+            margin-top: 4px;
+            min-height: 1.2em;
+        }
+
+        /* ── Play button ─────────────────────────────────────────────────────── */
+        .jm-play-wrap {
+            margin-top: 24px;
+            text-align: center;
+        }
+        #jmPlayBtn {
+            display: none;
+            padding: 12px 40px;
+            border: none;
+            border-radius: 28px;
+            font-size: 1em;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            background: linear-gradient(135deg, #7c6fff, #4eb8d8);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(78,184,216,0.35);
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        #jmPlayBtn:hover  { opacity: 0.88; transform: scale(1.04); }
+        #jmPlayBtn:active { transform: scale(0.97); }
+
+        #jmStatus {
+            margin-top: 12px;
+            font-size: 0.8em;
+            color: #666;
+            min-height: 1.2em;
+        }
+
+        /* ── Track count badge ───────────────────────────────────────────────── */
+        #jmTrackCount {
+            display: none;
+            margin-top: 8px;
+            font-size: 0.78em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+<div data-role="page" class="page" id="jellyMoodsPage">
+    <div data-role="content">
+        <div class="content-primary">
+
+            <div class="jm-header">
+                <h2>🎵 JellyMoods</h2>
+                <p>Click anywhere on the wheel to match music to your mood</p>
+            </div>
+
+            <div class="jm-wheel-wrap" id="jmWheelWrap">
+                <!-- Axis labels -->
+                <span class="jm-label jm-label-top">Active</span>
+                <span class="jm-label jm-label-bottom">Passive</span>
+                <span class="jm-label jm-label-left">Negative</span>
+                <span class="jm-label jm-label-right">Positive</span>
+
+                <!-- Corner mood labels -->
+                <span class="jm-corner jm-corner-tl">Angry<br>Tense</span>
+                <span class="jm-corner jm-corner-tr">Happy<br>Excited</span>
+                <span class="jm-corner jm-corner-bl">Sad<br>Melancholic</span>
+                <span class="jm-corner jm-corner-br">Calm<br>Relaxed</span>
+
+                <canvas id="moodCanvas" width="480" height="480"></canvas>
+
+                <!-- Crosshair dot overlay -->
+                <div id="moodDot"></div>
+            </div>
+
+            <div class="jm-info">
+                <div class="jm-mood-name" id="jmMoodName">— How are you feeling? —</div>
+                <div class="jm-mood-desc"  id="jmMoodDesc"></div>
+            </div>
+
+            <div class="jm-play-wrap">
+                <button id="jmPlayBtn">▶ Play This Mood</button>
+                <div id="jmStatus"></div>
+                <div id="jmTrackCount"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── Mood map: label, description, genres, dot colour ─────────────────── */
+    const MOODS = [
+        // [valMin, valMax, aroMin, aroMax, name, desc, genres[], colour]
+        { vMin:-1,  vMax: 0,  aMin: 0,  aMax: 1,  name:'Angry / Tense',      desc:'High energy, dark intensity',          genres:['Metal','Punk','Hard Rock','Industrial','Hardcore'],     col:'#ff5a5a' },
+        { vMin: 0,  vMax: 1,  aMin: 0,  aMax: 1,  name:'Happy / Excited',     desc:'Upbeat, euphoric, energising',          genres:['Pop','Dance','Electronic','Funk','House','Disco'],        col:'#ffe040' },
+        { vMin:-1,  vMax: 0,  aMin:-1,  aMax: 0,  name:'Sad / Melancholic',   desc:'Reflective, introspective, longing',    genres:['Blues','Soul','Folk','Indie','Singer-Songwriter'],       col:'#6090ff' },
+        { vMin: 0,  vMax: 1,  aMin:-1,  aMax: 0,  name:'Calm / Relaxed',      desc:'Peaceful, gentle, serene',              genres:['Jazz','Ambient','Classical','Acoustic','Chill','New Age'],col:'#40dfc0' },
+        // Blended / edge moods
+        { vMin:-0.2,vMax: 0.2,aMin: 0.6,aMax: 1,  name:'Tense / Pumped',      desc:'Intense, driven, focused',              genres:['Metal','Punk','Electronic','Hard Rock'],                 col:'#ff9030' },
+        { vMin:-0.2,vMax: 0.2,aMin:-1, aMax:-0.6, name:'Contemplative',       desc:'Quiet, thoughtful, drifting',           genres:['Ambient','Classical','Jazz','Folk'],                      col:'#70a0e8' },
+        { vMin: 0.6,vMax: 1,  aMin:-0.2,aMax: 0.2,name:'Content',             desc:'Easy, comfortable, at ease',            genres:['Acoustic','Chill','Jazz','Bossa Nova'],                   col:'#60e8a0' },
+        { vMin:-1,  vMax:-0.6,aMin:-0.2,aMax: 0.2,name:'Frustrated',          desc:'Unsettled, uneasy, moody',              genres:['Blues','Punk','Soul','Indie'],                            col:'#d87060' },
+    ];
+
+    /* ── Corner colours for the gradient ──────────────────────────────────── */
+    //  TL = Angry (red),  TR = Happy (yellow),  BL = Sad (blue),  BR = Calm (teal)
+    const C = {
+        tl: [230,  60,  60],
+        tr: [255, 210,  30],
+        bl: [ 55,  90, 200],
+        br: [ 30, 200, 170],
+    };
+
+    /* ── Draw mood wheel ───────────────────────────────────────────────────── */
+    function drawWheel() {
+        const canvas = document.getElementById('moodCanvas');
+        const ctx    = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        const cx = W / 2, cy = H / 2, r = W / 2;
+
+        // Circular clip
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.clip();
+
+        // Bilinear colour interpolation across canvas
+        const img = ctx.createImageData(W, H);
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                const tx = x / (W - 1);          // 0=left, 1=right
+                const ty = y / (H - 1);          // 0=top,  1=bottom
+
+                const lerp = (a, b, t) => a + (b - a) * t;
+
+                const r2 = lerp(lerp(C.tl[0], C.tr[0], tx), lerp(C.bl[0], C.br[0], tx), ty);
+                const g  = lerp(lerp(C.tl[1], C.tr[1], tx), lerp(C.bl[1], C.br[1], tx), ty);
+                const b  = lerp(lerp(C.tl[2], C.tr[2], tx), lerp(C.bl[2], C.br[2], tx), ty);
+
+                const i = (y * W + x) * 4;
+                img.data[i]     = r2;
+                img.data[i + 1] = g;
+                img.data[i + 2] = b;
+                img.data[i + 3] = 255;
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+
+        // Soft white radial fade at centre (neutral zone)
+        const radial = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.38);
+        radial.addColorStop(0,   'rgba(255,255,255,0.45)');
+        radial.addColorStop(1,   'rgba(255,255,255,0)');
+        ctx.fillStyle = radial;
+        ctx.fillRect(0, 0, W, H);
+
+        // Thin grey circle border
+        ctx.beginPath();
+        ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Faint crosshair axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 6]);
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    /* ── State ─────────────────────────────────────────────────────────────── */
+    let selectedValence = 0, selectedArousal = 0;
+    let pendingItems = [];
+
+    /* ── Canvas interaction ─────────────────────────────────────────────────── */
+    function canvasXY(canvas, evt) {
+        const rect = canvas.getBoundingClientRect();
+        // account for CSS scaling (canvas is 480px but might display differently)
+        const scaleX = canvas.width  / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (evt.clientX - rect.left) * scaleX;
+        const y = (evt.clientY - rect.top)  * scaleY;
+        return { x, y };
+    }
+
+    function posToMood(x, y, W, H) {
+        // valence: -1 (left) → +1 (right); arousal: -1 (bottom) → +1 (top)
+        const valence =  (x / W) * 2 - 1;
+        const arousal = -((y / H) * 2 - 1);
+
+        // Distance from centre — 0=neutral, 1=max intensity
+        const intensity = Math.min(1, Math.sqrt(valence * valence + arousal * arousal));
+
+        // Best matching mood
+        let best = MOODS[0], bestScore = -Infinity;
+        for (const m of MOODS) {
+            if (valence >= m.vMin && valence <= m.vMax &&
+                arousal >= m.aMin && arousal <= m.aMax) {
+                // Prefer tighter quadrants
+                const area = (m.vMax - m.vMin) * (m.aMax - m.aMin);
+                if (1 / area > bestScore) { bestScore = 1 / area; best = m; }
+            }
+        }
+
+        return { valence, arousal, intensity, mood: best };
+    }
+
+    function updateDot(canvas, x, y, col) {
+        const dot  = document.getElementById('moodDot');
+        const rect = canvas.getBoundingClientRect();
+        const wrap = document.getElementById('jmWheelWrap');
+        const wRect = wrap.getBoundingClientRect();
+
+        // Position dot relative to wrap
+        const scaleX = rect.width  / canvas.width;
+        const scaleY = rect.height / canvas.height;
+        dot.style.left   = (rect.left - wRect.left + x * scaleX) + 'px';
+        dot.style.top    = (rect.top  - wRect.top  + y * scaleY) + 'px';
+        dot.style.background = col || 'rgba(255,255,255,0.95)';
+        dot.style.display = 'block';
+    }
+
+    function isInsideCircle(x, y, W, H) {
+        const cx = W / 2, cy = H / 2, r = W / 2;
+        return (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+    }
+
+    /* ── Genre derivation from valence/arousal ─────────────────────────────── */
+    function getGenresForPosition(valence, arousal) {
+        // Quadrant weights (0→1 based on position)
+        const happy   = Math.max(0,  valence) * Math.max(0,  arousal);
+        const angry   = Math.max(0, -valence) * Math.max(0,  arousal);
+        const calm    = Math.max(0,  valence) * Math.max(0, -arousal);
+        const sad     = Math.max(0, -valence) * Math.max(0, -arousal);
+
+        const quadrants = [
+            { w: happy, genres: ['Pop','Dance','Electronic','Funk','House','Disco','Party'] },
+            { w: angry, genres: ['Metal','Punk','Hard Rock','Industrial','Hardcore','Thrash Metal'] },
+            { w: calm,  genres: ['Jazz','Ambient','Classical','Acoustic','Chill','New Age','Bossa Nova'] },
+            { w: sad,   genres: ['Blues','Soul','Folk','Indie','Singer-Songwriter','Slowcore'] },
+        ];
+
+        // Include genres from quadrants with weight > 0.2
+        const threshold = 0.2;
+        const genres = new Set();
+        for (const q of quadrants) {
+            if (q.w > threshold) q.genres.forEach(g => genres.add(g));
+        }
+        return [...genres];
+    }
+
+    /* ── Jellyfin API helpers ───────────────────────────────────────────────── */
+    async function getApiClient() {
+        return window.ApiClient;
+    }
+
+    async function fetchTracksByGenres(genres) {
+        const api = await getApiClient();
+        if (!api) throw new Error('Jellyfin API client not available');
+
+        const user = await api.getCurrentUser();
+        const params = {
+            IncludeItemTypes: 'Audio',
+            Recursive: true,
+            SortBy: 'Random',
+            Limit: 50,
+            Fields: 'Genres,MediaSources',
+        };
+        if (genres.length > 0) {
+            params.Genres = genres.join(',');
+        }
+
+        const result = await api.getItems(user.Id, params);
+        return result.Items || [];
+    }
+
+    async function fetchFallbackTracks() {
+        // If genre filtering returns 0 results, fall back to random audio
+        const api = await getApiClient();
+        const user = await api.getCurrentUser();
+        const result = await api.getItems(user.Id, {
+            IncludeItemTypes: 'Audio',
+            Recursive: true,
+            SortBy: 'Random',
+            Limit: 30,
+            Fields: 'Genres,MediaSources',
+        });
+        return result.Items || [];
+    }
+
+    async function playItems(items) {
+        if (!items || items.length === 0) return;
+
+        return new Promise((resolve, reject) => {
+            require(['playbackManager'], function (playbackManager) {
+                try {
+                    playbackManager.play({
+                        items: items,
+                        startIndex: 0,
+                        queryOptions: {}
+                    });
+                    resolve();
+                } catch (e) {
+                    reject(e);
+                }
+            }, reject);
+        });
+    }
+
+    /* ── UI helpers ─────────────────────────────────────────────────────────── */
+    function setStatus(msg)  { document.getElementById('jmStatus').textContent = msg; }
+    function setMoodName(t, col) {
+        const el = document.getElementById('jmMoodName');
+        el.textContent = t;
+        el.style.color = col || '#fff';
+    }
+    function setMoodDesc(t)  { document.getElementById('jmMoodDesc').textContent = t; }
+    function showPlayBtn(show) {
+        document.getElementById('jmPlayBtn').style.display = show ? 'inline-block' : 'none';
+    }
+    function setTrackCount(n) {
+        const el = document.getElementById('jmTrackCount');
+        el.style.display = n > 0 ? 'block' : 'none';
+        el.textContent = n > 0 ? `${n} tracks found` : '';
+    }
+
+    /* ── Main click handler ─────────────────────────────────────────────────── */
+    async function handleMoodSelect(x, y) {
+        const canvas = document.getElementById('moodCanvas');
+        const W = canvas.width, H = canvas.height;
+        if (!isInsideCircle(x, y, W, H)) return;
+
+        const { valence, arousal, intensity, mood } = posToMood(x, y, W, H);
+        selectedValence = valence;
+        selectedArousal = arousal;
+
+        // Update dot & labels
+        updateDot(canvas, x, y, mood.col);
+
+        if (intensity < 0.15) {
+            setMoodName('— Neutral —', '#ccc');
+            setMoodDesc('Right in the middle — feeling balanced?');
+        } else {
+            setMoodName(mood.name, mood.col);
+            setMoodDesc(mood.desc);
+        }
+
+        showPlayBtn(true);
+        setStatus('');
+        setTrackCount(0);
+        pendingItems = [];
+
+        // Pre-fetch in background
+        const genres = getGenresForPosition(valence, arousal);
+        try {
+            let items = await fetchTracksByGenres(genres);
+            if (items.length === 0) {
+                items = await fetchFallbackTracks();
+            }
+            pendingItems = items;
+            setTrackCount(items.length);
+            if (items.length === 0) {
+                setStatus('No tracks found — try adding more genres in plugin settings.');
+            }
+        } catch (e) {
+            console.warn('[JellyMoods] fetch error', e);
+            setStatus('Could not fetch tracks — check your Jellyfin connection.');
+        }
+    }
+
+    /* ── Play button ─────────────────────────────────────────────────────────── */
+    document.getElementById('jmPlayBtn').addEventListener('click', async function () {
+        if (pendingItems.length === 0) {
+            setStatus('Fetching tracks…');
+            const genres = getGenresForPosition(selectedValence, selectedArousal);
+            try {
+                let items = await fetchTracksByGenres(genres);
+                if (items.length === 0) items = await fetchFallbackTracks();
+                pendingItems = items;
+            } catch (e) {
+                setStatus('Could not fetch tracks.');
+                return;
+            }
+        }
+        if (pendingItems.length === 0) {
+            setStatus('No matching tracks found in your library.');
+            return;
+        }
+
+        setStatus('Starting playback…');
+        try {
+            await playItems(pendingItems);
+            setStatus(`Playing ${pendingItems.length} tracks`);
+        } catch (e) {
+            console.warn('[JellyMoods] playback error', e);
+            setStatus('Playback failed — please try from the Jellyfin home screen.');
+        }
+    });
+
+    /* ── Canvas events ───────────────────────────────────────────────────────── */
+    const canvas = document.getElementById('moodCanvas');
+
+    canvas.addEventListener('click', function (evt) {
+        const { x, y } = canvasXY(canvas, evt);
+        handleMoodSelect(x, y);
+    });
+
+    canvas.addEventListener('mousemove', function (evt) {
+        const { x, y } = canvasXY(canvas, evt);
+        const W = canvas.width, H = canvas.height;
+        if (!isInsideCircle(x, y, W, H)) return;
+        const { mood, intensity } = posToMood(x, y, W, H);
+        if (intensity < 0.15) {
+            canvas.title = 'Neutral';
+        } else {
+            canvas.title = mood.name + ' — ' + mood.desc;
+        }
+    });
+
+    /* ── Init ────────────────────────────────────────────────────────────────── */
+    drawWheel();
+
+})();
+</script>
+</body>
+</html>

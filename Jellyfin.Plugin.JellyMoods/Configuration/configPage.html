@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>JellyMoods Settings</title>
+    <style>
+        .jm-cfg { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+        .jm-cfg h2 { font-weight: 300; letter-spacing: 0.06em; margin-bottom: 6px; }
+        .jm-cfg p.subtitle { color: #888; font-size: 0.85em; margin-bottom: 32px; }
+
+        .jm-field { margin-bottom: 22px; }
+        .jm-field label {
+            display: block;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+        .jm-field label span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .jm-field input[type="text"],
+        .jm-field input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 6px;
+            color: #eee;
+            padding: 9px 12px;
+            font-size: 0.9em;
+        }
+        .jm-field input:focus {
+            outline: none;
+            border-color: rgba(100,180,255,0.5);
+        }
+        .jm-hint { font-size: 0.75em; color: #666; margin-top: 4px; }
+
+        .jm-row { display: flex; gap: 16px; }
+        .jm-row .jm-field { flex: 1; }
+
+        .jm-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+        .jm-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: #7c6fff; }
+        .jm-toggle label { font-size: 0.9em; color: #ccc; cursor: pointer; }
+
+        .jm-save-wrap { margin-top: 32px; }
+        #jmSaveBtn {
+            padding: 11px 36px;
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #7c6fff, #4eb8d8);
+            color: #fff;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.05em;
+        }
+        #jmSaveBtn:hover { opacity: 0.88; }
+        #jmSavedMsg { display: none; margin-top: 10px; font-size: 0.85em; color: #66cc88; }
+
+        .jm-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 28px 0; }
+    </style>
+</head>
+<body>
+<div data-role="page" class="page" id="jellyMoodsConfigPage">
+    <div data-role="content">
+        <div class="jm-cfg">
+            <h2>🎵 JellyMoods Settings</h2>
+            <p class="subtitle">Map mood quadrants to genres in your Jellyfin library.</p>
+
+            <!-- Quadrant genres -->
+            <div class="jm-field">
+                <label><span style="background:#ff5a5a;"></span>Top-left — Angry / Tense genres</label>
+                <input type="text" id="cfg_angryGenres" placeholder="Metal,Punk,Hard Rock,Industrial,Hardcore" />
+                <div class="jm-hint">Comma-separated genre names as they appear in your library</div>
+            </div>
+
+            <div class="jm-field">
+                <label><span style="background:#ffe040;"></span>Top-right — Happy / Excited genres</label>
+                <input type="text" id="cfg_happyGenres" placeholder="Pop,Dance,Electronic,Funk,House,Disco" />
+            </div>
+
+            <div class="jm-field">
+                <label><span style="background:#6090ff;"></span>Bottom-left — Sad / Melancholic genres</label>
+                <input type="text" id="cfg_sadGenres" placeholder="Blues,Soul,Folk,Indie,Singer-Songwriter" />
+            </div>
+
+            <div class="jm-field">
+                <label><span style="background:#40dfc0;"></span>Bottom-right — Calm / Relaxed genres</label>
+                <input type="text" id="cfg_calmGenres" placeholder="Jazz,Ambient,Classical,Acoustic,Chill,New Age" />
+            </div>
+
+            <hr class="jm-divider" />
+
+            <!-- Playback options -->
+            <div class="jm-row">
+                <div class="jm-field">
+                    <label>Playlist size (tracks)</label>
+                    <input type="number" id="cfg_playlistSize" min="5" max="200" value="30" />
+                </div>
+                <div class="jm-field">
+                    <label>Blend radius (0.0 – 1.0)</label>
+                    <input type="number" id="cfg_blendRadius" min="0" max="1" step="0.05" value="0.35" />
+                    <div class="jm-hint">Higher = more genre blending near quadrant edges</div>
+                </div>
+            </div>
+
+            <div class="jm-toggle">
+                <input type="checkbox" id="cfg_shuffle" checked />
+                <label for="cfg_shuffle">Shuffle playlist</label>
+            </div>
+
+            <div class="jm-save-wrap">
+                <button id="jmSaveBtn">Save Settings</button>
+                <div id="jmSavedMsg">✓ Settings saved</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    const API_URL = '/Plugins/jellymoodsconfig/Configuration';
+
+    async function loadConfig() {
+        try {
+            const resp = await fetch(API_URL, {
+                headers: { 'X-Emby-Authorization': window.ApiClient && window.ApiClient._currentUser ? `MediaBrowser Token="${window.ApiClient.accessToken()}"` : '' }
+            });
+            if (!resp.ok) return;
+            const cfg = await resp.json();
+            document.getElementById('cfg_angryGenres').value  = cfg.AngryTenseGenres   || '';
+            document.getElementById('cfg_happyGenres').value  = cfg.HappyExcitedGenres || '';
+            document.getElementById('cfg_sadGenres').value    = cfg.SadMelancholicGenres || '';
+            document.getElementById('cfg_calmGenres').value   = cfg.CalmRelaxedGenres  || '';
+            document.getElementById('cfg_playlistSize').value = cfg.PlaylistSize        || 30;
+            document.getElementById('cfg_blendRadius').value  = cfg.BlendRadius        || 0.35;
+            document.getElementById('cfg_shuffle').checked    = cfg.ShufflePlaylist !== false;
+        } catch (e) {
+            console.warn('[JellyMoods] config load error', e);
+        }
+    }
+
+    async function saveConfig() {
+        const cfg = {
+            AngryTenseGenres:    document.getElementById('cfg_angryGenres').value,
+            HappyExcitedGenres:  document.getElementById('cfg_happyGenres').value,
+            SadMelancholicGenres:document.getElementById('cfg_sadGenres').value,
+            CalmRelaxedGenres:   document.getElementById('cfg_calmGenres').value,
+            PlaylistSize:   parseInt(document.getElementById('cfg_playlistSize').value, 10) || 30,
+            BlendRadius:   parseFloat(document.getElementById('cfg_blendRadius').value) || 0.35,
+            ShufflePlaylist: document.getElementById('cfg_shuffle').checked,
+        };
+
+        try {
+            const resp = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cfg),
+            });
+            if (resp.ok) {
+                const msg = document.getElementById('jmSavedMsg');
+                msg.style.display = 'block';
+                setTimeout(() => { msg.style.display = 'none'; }, 3000);
+            }
+        } catch (e) {
+            console.warn('[JellyMoods] config save error', e);
+        }
+    }
+
+    document.getElementById('jmSaveBtn').addEventListener('click', saveConfig);
+    loadConfig();
+})();
+</script>
+</body>
+</html>
