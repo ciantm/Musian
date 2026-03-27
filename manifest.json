@@ -7,6 +7,15 @@
     "overview": "Click anywhere on the colour wheel to match music to how you feel. Maps energy (up/down) and positivity (left/right) to genres in your library.",
     "owner": "ciantm",
     "imageUrl": "https://raw.githubusercontent.com/ciantm/Jellymoods/main/assets/logo.png",
-    "versions": []
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "Release 1.0.0.0",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/ciantm/Jellymoods/releases/download/v1.0.0.0/Jellyfin.Plugin.JellyMoods_1.0.0.0.zip",
+        "checksum": "2699afdad2a51bcf44447a539bd4fae8",
+        "timestamp": "2026-03-27T16:00:38Z"
+      }
+    ]
   }
 ]
