@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>JellyMoods</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; }
+  #jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; }
+  #jmAuthError { display:none; text-align:center; padding:40px 20px; }
+  #jmAuthError h2 { color:#ff6060; margin-bottom:12px; }
+  #jmAuthError p { color:#888; font-size:0.9em; margin-bottom:16px; }
+  #jmAuthError a { color:#7c6fff; }
+</style>
+</head>
+<body>
+
+<!-- Auth error state -->
+<div id="jmAuthError">
+  <h2>Not logged in</h2>
+  <p>Please log into Jellyfin first, then come back to JellyMoods.</p>
+  <a href="/web/index.html">Go to Jellyfin</a>
+</div>
+
+<!-- Main app -->
+<div id="jmApp" style="display:none;">
+
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">&#127925; JellyMoods</h2>
+  <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel to match music to your mood</p>
+
+  <!-- SVG Wheel -->
+  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
+    <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
+         xmlns="http://www.w3.org/2000/svg"
+         style="display:block;cursor:crosshair;filter:drop-shadow(0 0 40px rgba(0,0,0,0.9));"
+         onclick="jmSvgClick(event)">
+      <defs>
+        <radialGradient id="gRed" cx="0%" cy="0%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ff1a00" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#ff1a00" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gYellow" cx="100%" cy="0%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ffe800" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#ffe800" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gTeal" cx="100%" cy="100%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#00e8c0" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#00e8c0" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gGlow" cx="50%" cy="50%" r="35%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="circClip"><circle cx="200" cy="200" r="196"/></clipPath>
+      </defs>
+      <circle cx="200" cy="200" r="196" fill="#000000"/>
+      <g clip-path="url(#circClip)">
+        <rect x="0" y="0" width="400" height="400" fill="url(#gRed)"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gYellow)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gTeal)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gGlow)" style="mix-blend-mode:screen"/>
+      </g>
+      <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+      <line x1="200" y1="4" x2="200" y2="396" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
+      <line x1="4" y1="200" x2="396" y2="200" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
+      <!-- Transparent hit circle catches all SVG clicks -->
+      <circle cx="200" cy="200" r="196" fill="transparent"/>
+    </svg>
+
+    <span style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Active</span>
+    <span style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Passive</span>
+    <span style="position:absolute;left:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Negative</span>
+    <span style="position:absolute;right:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Positive</span>
+    <span style="position:absolute;top:14px;left:18px;font-size:0.65em;font-weight:700;color:#ff7070;line-height:1.3;pointer-events:none;">Angry<br>Tense</span>
+    <span style="position:absolute;top:14px;right:18px;font-size:0.65em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;">Happy<br>Excited</span>
+    <span style="position:absolute;bottom:14px;left:18px;font-size:0.65em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;">Sad<br>Lonely</span>
+    <span style="position:absolute;bottom:14px;right:18px;font-size:0.65em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;">Calm<br>Serene</span>
+    <div id="moodDot" style="position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;transition:background 0.25s;"></div>
+  </div>
+
+  <!-- Mood info -->
+  <div style="text-align:center;margin-top:36px;min-height:80px;">
+    <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;">&#8212; How are you feeling? &#8212;</div>
+    <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
+  </div>
+
+  <!-- Play button -->
+  <div style="margin-top:20px;text-align:center;">
+    <button id="jmPlayBtn" type="button" style="display:none;padding:14px 44px;border:none;border-radius:30px;font-size:1em;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#7c6fff,#4eb8d8);color:#fff;box-shadow:0 4px 20px rgba(78,184,216,0.4);">&#9654; Play This Mood</button>
+    <div id="jmStatus" style="margin-top:12px;font-size:0.8em;color:#777;min-height:1.2em;"></div>
+    <div id="jmTrackCount" style="display:none;margin-top:6px;font-size:0.78em;color:#aaa;"></div>
+  </div>
+
+  <!-- Back link -->
+  <a href="/web/index.html" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back to Jellyfin</a>
+
+</div>
+
+<script>
+// ── Auth: read Jellyfin credentials from localStorage ─────────────────────
+var JM = (function(){
+  var server = window.location.origin;
+  var token = null, userId = null, serverId = null;
+
+  // Jellyfin stores auth in localStorage as JSON under key like "jellyfin_credentials"
+  // Try multiple known keys across versions
+  var keys = Object.keys(localStorage);
+  for(var i=0; i<keys.length; i++){
+    try{
+      var val = JSON.parse(localStorage.getItem(keys[i]));
+      if(val && val.Servers && val.Servers.length){
+        var srv = val.Servers[0];
+        token    = srv.AccessToken || null;
+        userId   = srv.UserId      || null;
+        serverId = srv.Id          || null;
+        if(token) break;
+      }
+    }catch(e){}
+  }
+
+  return {
+    server:   server,
+    token:    token,
+    userId:   userId,
+    serverId: serverId,
+    headers: function(){
+      return {
+        'X-Emby-Authorization': 'MediaBrowser Client="JellyMoods",Device="Browser",DeviceId="jm-app",Version="1.0",Token="'+token+'"'
+      };
+    }
+  };
+})();
+
+// Show auth error if not logged in
+if(!JM.token || !JM.userId){
+  document.getElementById('jmAuthError').style.display = 'block';
+} else {
+  document.getElementById('jmApp').style.display = 'flex';
+}
+
+// ── SVG click handler ──────────────────────────────────────────────────────
+window.jmSvgClick = function(e){
+  handleInteraction(e.clientX, e.clientY);
+};
+
+// ── Core mood logic ────────────────────────────────────────────────────────
+(function(){
+'use strict';
+
+var MOODS = [
+  // High arousal, negative valence (top-left)
+  { name:'Aggressive',  desc:'Raw, confrontational, intense',         x:0.08, y:0.95, col:'#ff3030', genres:['Metal','Hardcore','Thrash Metal','Punk','Noise'] },
+  { name:'Angry',       desc:'Hot, fierce, forceful',                 x:0.10, y:0.90, col:'#ff4040', genres:['Metal','Hard Rock','Punk','Hardcore','Industrial'] },
+  { name:'Frantic',     desc:'Frenzied, chaotic, uncontrolled',       x:0.12, y:0.92, col:'#ff3535', genres:['Grindcore','Noise','Speedcore','Thrash Metal'] },
+  { name:'Defiant',     desc:'Bold, rebellious, confrontational',     x:0.15, y:0.82, col:'#ff5030', genres:['Punk','Hard Rock','Rap Rock','Hardcore'] },
+  { name:'Intense',     desc:'Concentrated, powerful, overwhelming',  x:0.20, y:0.88, col:'#ff4535', genres:['Metal','Post-Rock','Drone','Dark Ambient'] },
+  { name:'Tense',       desc:'Edgy, uneasy, on-edge',                 x:0.18, y:0.85, col:'#ff5a3a', genres:['Industrial','Post-Punk','Dark Wave','Math Rock'] },
+  { name:'Anxious',     desc:'Nervous, unsettled, restless',          x:0.25, y:0.80, col:'#ff6a40', genres:['Post-Punk','Emo','Screamo','Noise Rock'] },
+  // Mid-left
+  { name:'Dark',        desc:'Shadowy, brooding, heavy atmosphere',   x:0.18, y:0.42, col:'#5055c0', genres:['Dark Ambient','Gothic','Post-Punk','Doom','Black Metal'] },
+  { name:'Mysterious',  desc:'Intriguing, shadowy, unknown depths',   x:0.38, y:0.52, col:'#8070c8', genres:['Dark Ambient','Post-Rock','Gothic','Cinematic'] },
+  { name:'Yearning',    desc:'Deep longing, desire unfulfilled',      x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Indie','Shoegaze','Dream Pop','Emo'] },
+  { name:'Nostalgic',   desc:'Wistful longing for the past',          x:0.42, y:0.28, col:'#6878b8', genres:['Classic Rock','Oldies','Folk','Indie','Dream Pop'] },
+  { name:'Bittersweet', desc:'Joy and sadness mixed, poignant',       x:0.45, y:0.30, col:'#7080b8', genres:['Indie','Singer-Songwriter','Folk','Sadcore'] },
+  { name:'Hypnotic',    desc:'Trance-like, mesmerising, repetitive',  x:0.48, y:0.48, col:'#7088d0', genres:['Ambient','Drone','Krautrock','Minimal Techno'] },
+  { name:'Sentimental', desc:'Tender feelings, emotionally moved',    x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Singer-Songwriter','Soft Rock','Soul'] },
+  { name:'Atmospheric', desc:'Spacious, immersive, enveloping',       x:0.55, y:0.38, col:'#5090c8', genres:['Ambient','Post-Rock','Shoegaze','Space Rock'] },
+  // Centre-right / high arousal positive
+  { name:'Passionate',  desc:'Fervent, deeply felt, expressive',      x:0.58, y:0.82, col:'#e89030', genres:['Rock','Soul','Opera','Flamenco','R&B'] },
+  { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.62, y:0.62, col:'#c8d840', genres:['Indie','Folk','Pop','Gospel','Acoustic'] },
+  { name:'Epic',        desc:'Grand, sweeping, larger than life',     x:0.62, y:0.80, col:'#d0a020', genres:['Orchestral','Soundtrack','Post-Rock','Power Metal','Prog'] },
+  { name:'Powerful',    desc:'Strong, commanding, forceful',          x:0.60, y:0.88, col:'#e8b030', genres:['Rock','Metal','Orchestral','Gospel','Hip-Hop'] },
+  { name:'Majestic',    desc:'Stately, grand, awe-inspiring',         x:0.65, y:0.72, col:'#c8a828', genres:['Classical','Orchestral','Celtic','Soundtrack'] },
+  { name:'Groovy',      desc:'Funky, rhythmic, in-the-pocket',        x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','R&B','Disco','Groove Metal'] },
+  { name:'Upbeat',      desc:'Lively, positive, feel-good',           x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Indie Pop'] },
+  // Top-right
+  { name:'Happy',         desc:'Cheerful, warm, contented joy',        x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Indie Pop','Soul','Funk','Reggae'] },
+  { name:'Celebratory',   desc:'Festive, joyful, party spirit',        x:0.85, y:0.82, col:'#ffdf38', genres:['Party','Pop','Dance','Reggaeton','Funk'] },
+  { name:'Triumphant',    desc:'Victorious, proud, unstoppable',       x:0.82, y:0.88, col:'#ffd840', genres:['Epic','Soundtrack','Power Metal','Orchestral'] },
+  { name:'Excited',       desc:'Thrilled, eager, buzzing with energy', x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Dance','Electronic','Electropop'] },
+  { name:'Energetic',     desc:'High-powered, vigorous, dynamic',      x:0.72, y:0.90, col:'#ffcc30', genres:['Dance','Electronic','Rock','Drum and Bass'] },
+  { name:'Ecstatic',      desc:'Overwhelmed with joy, rapturous',      x:0.92, y:0.92, col:'#ffea28', genres:['Trance','EDM','House','Euphoric Hardstyle'] },
+  { name:'Euphoric',      desc:'Blissful, elated, overjoyed',          x:0.95, y:0.95, col:'#ffee22', genres:['EDM','Trance','Happy Hardcore','Rave'] },
+  // Bottom-right (calm/positive)
+  { name:'Romantic',   desc:'Loving, tender, intimate warmth',         x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','R&B','Bossa Nova','Soft Rock'] },
+  { name:'Dreamy',     desc:'Floating, hazy, softly surreal',          x:0.62, y:0.22, col:'#60c8d8', genres:['Dream Pop','Shoegaze','Ambient','Chillwave'] },
+  { name:'Intimate',   desc:'Close, personal, quietly heartfelt',      x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Acoustic','Singer-Songwriter','Neo-Soul'] },
+  { name:'Tender',     desc:'Gentle, soft, affectionate',              x:0.70, y:0.28, col:'#55dca8', genres:['Acoustic','Singer-Songwriter','Folk','Ambient'] },
+  { name:'Content',    desc:'Satisfied, at ease, quietly pleased',     x:0.70, y:0.25, col:'#50dcc0', genres:['Acoustic','Folk','Jazz','Chill','Indie'] },
+  { name:'Relaxed',    desc:'Loose, at rest, free from tension',       x:0.78, y:0.18, col:'#40d8c0', genres:['Chill','Jazz','Reggae','Bossa Nova','Acoustic'] },
+  { name:'Calm',       desc:'Still, balanced, unhurried',              x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Ambient','Acoustic','Chill','Lo-fi'] },
+  { name:'Soothing',   desc:'Comforting, easing, gentle relief',       x:0.82, y:0.15, col:'#38dcc0', genres:['Ambient','New Age','Classical','Piano','Nature'] },
+  { name:'Serene',     desc:'Clear, composed, harmonious stillness',   x:0.85, y:0.08, col:'#30e8c8', genres:['Classical','Ambient','New Age','Meditation','Jazz'] },
+  { name:'Peaceful',   desc:'Tranquil, undisturbed, quiet',            x:0.88, y:0.10, col:'#35e8c0', genres:['Ambient','Classical','New Age','Acoustic','Nature'] },
+  // Bottom-left (sad/negative)
+  { name:'Wistful',    desc:'Wishing things were different, pensive',  x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Indie','Dream Pop','Singer-Songwriter'] },
+  { name:'Melancholic',desc:'Quietly sorrowful, reflective sadness',   x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Indie','Singer-Songwriter','Folk','Slowcore'] },
+  { name:'Somber',     desc:'Dark and serious, grave mood',            x:0.20, y:0.20, col:'#5070e8', genres:['Classical','Dark Ambient','Blues','Gothic'] },
+  { name:'Sad',        desc:'Unhappy, sorrowful, downcast',            x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Indie','Sad Rock'] },
+  { name:'Gloomy',     desc:'Overcast, cheerless, despairing',         x:0.15, y:0.20, col:'#4870e8', genres:['Post-Punk','Gothic','Dark Wave','Slowcore','Doom'] },
+  { name:'Lonely',     desc:'Isolated, alone, missing connection',     x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Indie','Singer-Songwriter','Slowcore','Ambient'] },
+  { name:'Mournful',   desc:'Grieving, lamenting, sorrowful',          x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Gospel','Folk','Requiem'] },
+  { name:'Depressed',  desc:'Heavy, hopeless, withdrawn',              x:0.08, y:0.08, col:'#3060e0', genres:['Slowcore','Sadcore','Dark Folk','Doom Metal','Ambient'] },
+];
+
+var selectedValence=0, selectedArousal=0, pendingItems=[];
+
+function getMoodAtPoint(vx, vy){
+  var best=MOODS[0], bestDist=Infinity;
+  for(var i=0;i<MOODS.length;i++){
+    var m=MOODS[i];
+    var d=Math.sqrt((vx-m.x)*(vx-m.x)+(vy-m.y)*(vy-m.y));
+    if(d<bestDist){bestDist=d;best=m;}
+  }
+  return best;
+}
+
+function getBlendedGenres(vx, vy){
+  var RADIUS=0.35, weighted=[];
+  for(var i=0;i<MOODS.length;i++){
+    var m=MOODS[i];
+    var d=Math.sqrt((vx-m.x)*(vx-m.x)+(vy-m.y)*(vy-m.y));
+    if(d<RADIUS) weighted.push({genres:m.genres, w:1/(d*d+0.01)});
+  }
+  weighted.sort(function(a,b){return b.w-a.w;});
+  var out={}, take=Math.min(3,weighted.length);
+  for(var j=0;j<take;j++) weighted[j].genres.forEach(function(g){out[g]=true;});
+  return Object.keys(out);
+}
+
+function handleInteraction(clientX, clientY){
+  var wrap=document.getElementById('jmWheelWrap');
+  var rect=wrap.getBoundingClientRect();
+  var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2, r=rect.width/2;
+  var dx=clientX-cx, dy=clientY-cy;
+  if(Math.sqrt(dx*dx+dy*dy)>r) return;
+
+  var valence=(dx/r)*0.5+0.5;
+  var arousal=(-dy/r)*0.5+0.5;
+  selectedValence=valence; selectedArousal=arousal;
+
+  var mood=getMoodAtPoint(valence,arousal);
+  var dot=document.getElementById('moodDot');
+  dot.style.left=(clientX-rect.left)+'px';
+  dot.style.top=(clientY-rect.top)+'px';
+  dot.style.background=mood.col;
+  dot.style.display='block';
+
+  setMoodName(mood.name, mood.col);
+  setMoodDesc(mood.desc);
+  showPlayBtn(true);
+  setStatus('Searching your library…');
+  setTrackCount(0);
+  pendingItems=[];
+
+  var genres=getBlendedGenres(valence,arousal);
+
+  // ── Debug panel ──────────────────────────────────────────────
+  var dbg=document.getElementById('jmDebug');
+  dbg.style.display='block';
+  document.getElementById('jmDebugCoords').textContent=
+    'Valence: '+valence.toFixed(2)+' | Arousal: '+arousal.toFixed(2);
+
+  // Show 5 nearest moods with distances
+  var dists=MOODS.map(function(m){
+    return {name:m.name,d:Math.sqrt((valence-m.x)*(valence-m.x)+(arousal-m.y)*(arousal-m.y))};
+  }).sort(function(a,b){return a.d-b.d;}).slice(0,5);
+  document.getElementById('jmDebugMoods').innerHTML=dists.map(function(m){
+    var pct=Math.round((1-Math.min(m.d,1))*100);
+    return '<span style="color:#fff;">'+m.name+'</span> <span style="color:#666;">('+pct+'% match)</span>';
+  }).join(' &nbsp;·&nbsp; ');
+
+  document.getElementById('jmDebugGenres').textContent=genres.join(', ');
+  document.getElementById('jmDebugApi').textContent='Calling Jellyfin API…';
+  // ── End debug ────────────────────────────────────────────────
+
+  fetchTracksByGenres(genres)
+    .then(function(items){return items.length>0?items:fetchFallback();})
+    .then(function(items){
+      pendingItems=items; setTrackCount(items.length);
+      setStatus(items.length>0?'':'No tracks found — check genre tags in your library.');
+      document.getElementById('jmDebugApi').textContent=
+        items.length>0 ? '✓ Got '+items.length+' tracks' : '✗ 0 tracks returned — genre tags may not match';
+    })
+    .catch(function(e){
+      console.error('[JellyMoods]',e);
+      setStatus('Could not fetch tracks.');
+      document.getElementById('jmDebugApi').textContent='✗ API error: '+e.message;
+    });
+}
+
+// ── Button click — universally fired by all browsers and frameworks ──
+document.getElementById('jmWheel').onclick = function(e){
+  handleInteraction(e.clientX, e.clientY);
+};
+
+// ── UI helpers ────────────────────────────────────────────────
+function setStatus(t){document.getElementById('jmStatus').textContent=t;}
+function setMoodName(t,col){var el=document.getElementById('jmMoodName');el.textContent=t;el.style.color=col||'#fff';}
+function setMoodDesc(t){document.getElementById('jmMoodDesc').textContent=t;}
+function showPlayBtn(v){document.getElementById('jmPlayBtn').style.display=v?'inline-block':'none';}
+function setTrackCount(n){var el=document.getElementById('jmTrackCount');el.style.display=n>0?'block':'none';el.textContent=n>0?n+' tracks found':'';}
+
+// ── API ───────────────────────────────────────────────────────
+function fetchTracksByGenres(genres){
+  if(!JM.token||!JM.userId) return Promise.resolve([]);
+  var params=new URLSearchParams({IncludeItemTypes:'Audio',Recursive:'true',SortBy:'Random',Limit:'50',Fields:'Genres,MediaSources'});
+  if(genres.length>0) params.set('Genres',genres.join(','));
+  return fetch(JM.server+'/Users/'+JM.userId+'/Items?'+params,{headers:JM.headers()})
+    .then(function(r){return r.json();})
+    .then(function(d){return d.Items||[];});
+}
+function fetchFallback(){
+  if(!JM.token||!JM.userId) return Promise.resolve([]);
+  var params=new URLSearchParams({IncludeItemTypes:'Audio',Recursive:'true',SortBy:'Random',Limit:'30'});
+  return fetch(JM.server+'/Users/'+JM.userId+'/Items?'+params,{headers:JM.headers()})
+    .then(function(r){return r.json();})
+    .then(function(d){return d.Items||[];});
+}
+
+// ── Play button ───────────────────────────────────────────────
+document.getElementById('jmPlayBtn').onclick=function(){
+  var play=function(items){
+    if(!items||!items.length){setStatus('No matching tracks found.');return;}
+    // Send items to Jellyfin's main player via postMessage then redirect
+    var ids=items.map(function(i){return i.Id;}).join(',');
+    var url=JM.server+'/web/index.html#!/queue?ids='+ids;
+    // Store queue in sessionStorage for Jellyfin's player to pick up
+    try{
+      sessionStorage.setItem('jmQueue',JSON.stringify(items.map(function(i){return i.Id;})));
+    }catch(e){}
+    // Open in Jellyfin's own player context
+    window.location.href=JM.server+'/web/index.html#!/nowplaying?serverId='+JM.serverId+'&id='+items[0].Id;
+    setStatus('Opening in Jellyfin player ♪');
+  };
+  if(pendingItems.length>0){play(pendingItems);return;}
+  setStatus('Fetching tracks…');
+  fetchTracksByGenres(getBlendedGenres(selectedValence,selectedArousal))
+    .then(function(items){return items.length>0?items:fetchFallback();})
+    .then(play)
+    .catch(function(){setStatus('Could not fetch tracks.');});
+};
+
+})();
+
+
+})();
+</script>
+</body>
+</html>
