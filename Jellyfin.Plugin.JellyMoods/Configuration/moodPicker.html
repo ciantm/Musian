@@ -9,51 +9,47 @@
   <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">🎵 JellyMoods</h2>
   <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel to match music to your mood</p>
 
-  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;touch-action:none;">
+  <!-- Wheel wrapper -->
+  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
 
-    <div id="jmWheel" style="
+    <!-- Gradient wheel -->
+    <div style="
       width:100%;height:100%;
       border-radius:50%;
       background:
         radial-gradient(circle at center, rgba(255,255,255,0.35) 0%, transparent 38%),
-        conic-gradient(
-          from 135deg,
-          #3c5fc8 0deg,
-          #5a3fa0 45deg,
-          #c83c3c 90deg,
-          #d4960a 135deg,
-          #2ec8a0 180deg,
-          #2080c8 225deg,
-          #3c5fc8 270deg,
-          #5a3fa0 315deg,
-          #c83c3c 360deg
-        );
+        conic-gradient(from 135deg,#3c5fc8 0deg,#5a3fa0 45deg,#c83c3c 90deg,#d4960a 135deg,#2ec8a0 180deg,#2080c8 225deg,#3c5fc8 270deg,#5a3fa0 315deg,#c83c3c 360deg);
       box-shadow:0 0 60px rgba(0,0,0,0.7),0 0 0 2px rgba(255,255,255,0.10);
-      touch-action:none;
-      user-select:none;
-      -webkit-user-select:none;
     "></div>
 
+    <!-- Axis labels -->
     <span style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Active</span>
     <span style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Passive</span>
     <span style="position:absolute;left:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Negative</span>
     <span style="position:absolute;right:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Positive</span>
 
+    <!-- Corner mood labels -->
     <span style="position:absolute;top:14px;left:18px;font-size:0.68em;font-weight:700;color:#ff7070;line-height:1.3;pointer-events:none;">Angry<br>Tense</span>
     <span style="position:absolute;top:14px;right:18px;font-size:0.68em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;">Happy<br>Excited</span>
     <span style="position:absolute;bottom:14px;left:18px;font-size:0.68em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;">Sad<br>Melancholic</span>
     <span style="position:absolute;bottom:14px;right:18px;font-size:0.68em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;">Calm<br>Relaxed</span>
 
+    <!-- Crosshair dot -->
     <div id="moodDot" style="position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;"></div>
+
+    <!-- Transparent tap-capture overlay — sits on top of everything, catches all input -->
+    <div id="jmOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;cursor:crosshair;-webkit-tap-highlight-color:transparent;"></div>
   </div>
 
+  <!-- Mood info -->
   <div style="text-align:center;margin-top:36px;min-height:80px;">
     <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;">— How are you feeling? —</div>
     <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
   </div>
 
+  <!-- Play button -->
   <div style="margin-top:20px;text-align:center;">
-    <button id="jmPlayBtn" style="display:none;padding:14px 44px;border:none;border-radius:30px;font-size:1em;font-weight:700;letter-spacing:0.06em;cursor:pointer;background:linear-gradient(135deg,#7c6fff,#4eb8d8);color:#fff;box-shadow:0 4px 20px rgba(78,184,216,0.4);">▶ Play This Mood</button>
+    <button id="jmPlayBtn" style="display:none;padding:14px 44px;border:none;border-radius:30px;font-size:1em;font-weight:700;letter-spacing:0.06em;cursor:pointer;background:linear-gradient(135deg,#7c6fff,#4eb8d8);color:#fff;box-shadow:0 4px 20px rgba(78,184,216,0.4);-webkit-tap-highlight-color:transparent;">▶ Play This Mood</button>
     <div id="jmStatus" style="margin-top:12px;font-size:0.8em;color:#777;min-height:1.2em;"></div>
     <div id="jmTrackCount" style="display:none;margin-top:6px;font-size:0.78em;color:#aaa;"></div>
   </div>
@@ -71,10 +67,10 @@ var MOODS = [
   {vMin:0, vMax:1,aMin:0,aMax:1,    name:'Happy / Excited',  desc:'Upbeat, euphoric, energising',       genres:['Pop','Dance','Electronic','Funk','House','Disco'],         col:'#ffe040'},
   {vMin:-1,vMax:0,aMin:-1,aMax:0,   name:'Sad / Melancholic',desc:'Reflective, introspective, longing', genres:['Blues','Soul','Folk','Indie','Singer-Songwriter'],         col:'#6090ff'},
   {vMin:0, vMax:1,aMin:-1,aMax:0,   name:'Calm / Relaxed',   desc:'Peaceful, gentle, serene',           genres:['Jazz','Ambient','Classical','Acoustic','Chill','New Age'], col:'#40dfc0'},
-  {vMin:-0.2,vMax:0.2,aMin:0.6,aMax:1,   name:'Tense / Pumped', desc:'Intense, driven, focused',       genres:['Metal','Punk','Electronic','Hard Rock'],                   col:'#ff9030'},
-  {vMin:-0.2,vMax:0.2,aMin:-1,aMax:-0.6, name:'Contemplative', desc:'Quiet, thoughtful, drifting',     genres:['Ambient','Classical','Jazz','Folk'],                       col:'#70a0e8'},
-  {vMin:0.6,vMax:1,aMin:-0.2,aMax:0.2,   name:'Content',        desc:'Easy, comfortable, at ease',     genres:['Acoustic','Chill','Jazz','Bossa Nova'],                    col:'#60e8a0'},
-  {vMin:-1,vMax:-0.6,aMin:-0.2,aMax:0.2, name:'Frustrated',     desc:'Unsettled, uneasy, moody',       genres:['Blues','Punk','Soul','Indie'],                             col:'#d87060'},
+  {vMin:-0.2,vMax:0.2,aMin:0.6,aMax:1,    name:'Tense / Pumped',  desc:'Intense, driven, focused',      genres:['Metal','Punk','Electronic','Hard Rock'],  col:'#ff9030'},
+  {vMin:-0.2,vMax:0.2,aMin:-1,aMax:-0.6,  name:'Contemplative',   desc:'Quiet, thoughtful, drifting',  genres:['Ambient','Classical','Jazz','Folk'],       col:'#70a0e8'},
+  {vMin:0.6,vMax:1,aMin:-0.2,aMax:0.2,    name:'Content',         desc:'Easy, comfortable, at ease',   genres:['Acoustic','Chill','Jazz','Bossa Nova'],    col:'#60e8a0'},
+  {vMin:-1,vMax:-0.6,aMin:-0.2,aMax:0.2,  name:'Frustrated',      desc:'Unsettled, uneasy, moody',     genres:['Blues','Punk','Soul','Indie'],             col:'#d87060'},
 ];
 
 var selectedValence=0, selectedArousal=0, pendingItems=[];
@@ -110,22 +106,22 @@ function getGenresForPosition(valence,arousal){
 }
 
 function handleInteraction(clientX, clientY){
-  var wheel=document.getElementById('jmWheel');
-  var rect=wheel.getBoundingClientRect();
+  var wrap=document.getElementById('jmWheelWrap');
+  var rect=wrap.getBoundingClientRect();
   var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
   var r=rect.width/2;
   var dx=clientX-cx, dy=clientY-cy;
-  if(Math.sqrt(dx*dx+dy*dy)>r) return;
+  var dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist>r) return;
 
   var nx=dx/r, ny=dy/r;
   var res=posToMood(nx,ny);
   selectedValence=res.valence; selectedArousal=res.arousal;
 
+  // Move dot
   var dot=document.getElementById('moodDot');
-  var wrap=document.getElementById('jmWheelWrap');
-  var wRect=wrap.getBoundingClientRect();
-  dot.style.left=(clientX-wRect.left)+'px';
-  dot.style.top=(clientY-wRect.top)+'px';
+  dot.style.left=(clientX-rect.left)+'px';
+  dot.style.top=(clientY-rect.top)+'px';
   dot.style.background=res.mood.col;
   dot.style.display='block';
 
@@ -133,53 +129,45 @@ function handleInteraction(clientX, clientY){
     setMoodName('— Neutral —','#ccc');
     setMoodDesc('Right in the middle — feeling balanced?');
   } else {
-    setMoodName(res.mood.name, res.mood.col);
+    setMoodName(res.mood.name,res.mood.col);
     setMoodDesc(res.mood.desc);
   }
 
-  showPlayBtn(true); setStatus(''); setTrackCount(0); pendingItems=[];
+  showPlayBtn(true); setStatus('Searching your library…'); setTrackCount(0); pendingItems=[];
 
   var genres=getGenresForPosition(res.valence,res.arousal);
   fetchTracksByGenres(genres)
-    .then(function(items){ return items.length>0 ? items : fetchFallback(); })
-    .then(function(items){ pendingItems=items; setTrackCount(items.length);
-      if(items.length===0) setStatus('No tracks found — check genre tags in your library.');
+    .then(function(items){ return items.length>0?items:fetchFallback(); })
+    .then(function(items){
+      pendingItems=items; setTrackCount(items.length);
+      setStatus(items.length>0?'':'No tracks found — check genre tags in your library.');
     })
-    .catch(function(){ setStatus('Could not fetch tracks.'); });
+    .catch(function(e){ console.error('[JellyMoods]',e); setStatus('Could not fetch tracks.'); });
 }
 
-// ── Unified pointer handler (works for mouse AND touch on all browsers) ──
-var wheel = document.getElementById('jmWheel');
+// ── Event binding on the transparent overlay ──────────────────────────────
+var overlay=document.getElementById('jmOverlay');
 
-if(window.PointerEvent !== undefined){
-  // Modern: pointerdown fires for both mouse and touch
-  wheel.addEventListener('pointerdown', function(e){
-    e.preventDefault();
-    handleInteraction(e.clientX, e.clientY);
-  });
-} else {
-  // Fallback: separate mouse + touch
-  wheel.addEventListener('click', function(e){
-    e.preventDefault();
-    handleInteraction(e.clientX, e.clientY);
-  });
-  wheel.addEventListener('touchend', function(e){
-    e.preventDefault();
-    var t=e.changedTouches[0];
-    handleInteraction(t.clientX, t.clientY);
-  }, {passive:false});
-}
+// 1. onclick — works everywhere
+overlay.onclick=function(e){
+  handleInteraction(e.clientX,e.clientY);
+};
 
-// Prevent page scroll when touching wheel
-wheel.addEventListener('touchstart', function(e){ e.preventDefault(); }, {passive:false});
-wheel.addEventListener('touchmove',  function(e){ e.preventDefault(); }, {passive:false});
+// 2. touchstart — Android WebView primary path (fires before click)
+overlay.addEventListener('touchstart',function(e){
+  e.preventDefault(); // stops ghost click + scroll
+  var t=e.touches[0];
+  handleInteraction(t.clientX,t.clientY);
+},{passive:false});
 
-function setStatus(t){ document.getElementById('jmStatus').textContent=t; }
-function setMoodName(t,col){ var el=document.getElementById('jmMoodName'); el.textContent=t; el.style.color=col||'#fff'; }
-function setMoodDesc(t){ document.getElementById('jmMoodDesc').textContent=t; }
-function showPlayBtn(v){ document.getElementById('jmPlayBtn').style.display=v?'inline-block':'none'; }
-function setTrackCount(n){ var el=document.getElementById('jmTrackCount'); el.style.display=n>0?'block':'none'; el.textContent=n>0?n+' tracks found':''; }
+// ── UI helpers ────────────────────────────────────────────────────────────
+function setStatus(t){document.getElementById('jmStatus').textContent=t;}
+function setMoodName(t,col){var el=document.getElementById('jmMoodName');el.textContent=t;el.style.color=col||'#fff';}
+function setMoodDesc(t){document.getElementById('jmMoodDesc').textContent=t;}
+function showPlayBtn(v){document.getElementById('jmPlayBtn').style.display=v?'inline-block':'none';}
+function setTrackCount(n){var el=document.getElementById('jmTrackCount');el.style.display=n>0?'block':'none';el.textContent=n>0?n+' tracks found':'';}
 
+// ── API ───────────────────────────────────────────────────────────────────
 function fetchTracksByGenres(genres){
   var api=window.ApiClient;
   if(!api) return Promise.resolve([]);
@@ -189,7 +177,6 @@ function fetchTracksByGenres(genres){
     return api.getItems(user.Id,p).then(function(r){return r.Items||[];});
   });
 }
-
 function fetchFallback(){
   var api=window.ApiClient;
   if(!api) return Promise.resolve([]);
@@ -199,10 +186,10 @@ function fetchFallback(){
   });
 }
 
-document.getElementById('jmPlayBtn').addEventListener('pointerdown', function(e){
-  e.preventDefault();
+// ── Play button ───────────────────────────────────────────────────────────
+document.getElementById('jmPlayBtn').onclick=function(){
   var play=function(items){
-    if(!items||items.length===0){setStatus('No matching tracks found.');return;}
+    if(!items||!items.length){setStatus('No matching tracks found.');return;}
     setStatus('Starting playback…');
     require(['playbackManager'],function(pm){
       pm.play({items:items,startIndex:0,queryOptions:{}});
@@ -215,10 +202,9 @@ document.getElementById('jmPlayBtn').addEventListener('pointerdown', function(e)
     .then(function(items){return items.length>0?items:fetchFallback();})
     .then(play)
     .catch(function(){setStatus('Could not fetch tracks.');});
-});
+};
 
 })();
 </script>
 </body>
 </html>
-<!-- v1.0.3.0 - pointerdown touch fix -->
