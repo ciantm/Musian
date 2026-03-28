@@ -55,7 +55,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 EmbeddedResourcePath = $"{ns}.Configuration.moodPicker.html",
                 EnableInMainMenu     = true,   // shows in sidebar for ALL users
                 MenuIcon             = "music_note",
-                MenuSection          = "library", // places it alongside Music/Movies/TV in sidebar
+                MenuSection          = "",
             },
 
             // ── Admin settings page (Dashboard → Plugins → JellyMoods Settings) ──

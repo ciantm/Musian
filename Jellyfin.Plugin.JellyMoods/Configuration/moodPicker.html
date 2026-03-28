@@ -1,209 +1,229 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"/><title>JellyMoods</title></head>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>JellyMoods</title>
+<style>
+  body{margin:0;background:#000;font-family:sans-serif;color:#fff;}
+  #jmWrap{display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px;}
+  h2{font-size:1.5em;font-weight:300;margin:0 0 4px;}
+  #jmSub{font-size:0.82em;color:#888;margin:0 0 28px;}
+  #jmWheelOuter{position:relative;width:min(78vw,400px);height:min(78vw,400px);}
+  #jmSvg{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;display:block;}
+  .ax{position:absolute;font-size:0.6em;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;white-space:nowrap;}
+  .ax-t{top:-22px;left:50%;transform:translateX(-50%);}
+  .ax-b{bottom:-22px;left:50%;transform:translateX(-50%);}
+  .ax-l{left:-58px;top:50%;transform:translateY(-50%);}
+  .ax-r{right:-58px;top:50%;transform:translateY(-50%);}
+  .co{position:absolute;font-size:0.66em;font-weight:700;line-height:1.3;pointer-events:none;}
+  .co-tl{top:14px;left:14px;color:#ff6060;}
+  .co-tr{top:14px;right:14px;color:#ffe040;text-align:right;}
+  .co-bl{bottom:14px;left:14px;color:#5577cc;}
+  .co-br{bottom:14px;right:14px;color:#cc4422;text-align:right;}
+  #jmDot{position:absolute;width:20px;height:20px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 0 3px rgba(0,0,0,0.6),0 0 12px rgba(255,255,255,0.6);display:none;}
+  #jmBtn{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;border:none;background:transparent;cursor:crosshair;padding:0;margin:0;-webkit-tap-highlight-color:transparent;outline:none;appearance:none;-webkit-appearance:none;touch-action:manipulation;z-index:10;}
+  #jmInfo{text-align:center;margin-top:32px;min-height:70px;}
+  #jmMoodName{font-size:1.35em;font-weight:300;letter-spacing:.07em;}
+  #jmMoodDesc{font-size:0.8em;color:#888;margin-top:5px;}
+  #jmPlayBtn{display:none;margin-top:18px;padding:13px 42px;border:none;border-radius:28px;font-size:1em;font-weight:700;cursor:pointer;color:#fff;background:linear-gradient(135deg,#7c6fff,#4eb8d8);box-shadow:0 4px 18px rgba(78,184,216,0.4);-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  #jmStatus{margin-top:10px;font-size:0.78em;color:#666;min-height:1.1em;}
+  #jmCount{margin-top:5px;font-size:0.75em;color:#aaa;}
+</style>
+</head>
 <body>
-<div data-role="page" class="page" id="jellyMoodsPage">
-<div data-role="content">
-<div style="display:flex;flex-direction:column;align-items:center;padding:24px 16px 48px;font-family:sans-serif;color:#fff;">
-
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">🎵 JellyMoods</h2>
-  <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel to match music to your mood</p>
-
-  <!-- Wheel wrapper -->
-  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
-
-    <!-- Gradient wheel -->
-    <div style="
-      width:100%;height:100%;
-      border-radius:50%;
-      background:
-        radial-gradient(circle at center, rgba(255,255,255,0.35) 0%, transparent 38%),
-        conic-gradient(from 135deg,#3c5fc8 0deg,#5a3fa0 45deg,#c83c3c 90deg,#d4960a 135deg,#2ec8a0 180deg,#2080c8 225deg,#3c5fc8 270deg,#5a3fa0 315deg,#c83c3c 360deg);
-      box-shadow:0 0 60px rgba(0,0,0,0.7),0 0 0 2px rgba(255,255,255,0.10);
-    "></div>
-
-    <!-- Axis labels -->
-    <span style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Active</span>
-    <span style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Passive</span>
-    <span style="position:absolute;left:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Negative</span>
-    <span style="position:absolute;right:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);pointer-events:none;">Positive</span>
-
-    <!-- Corner mood labels -->
-    <span style="position:absolute;top:14px;left:18px;font-size:0.68em;font-weight:700;color:#ff7070;line-height:1.3;pointer-events:none;">Angry<br>Tense</span>
-    <span style="position:absolute;top:14px;right:18px;font-size:0.68em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;">Happy<br>Excited</span>
-    <span style="position:absolute;bottom:14px;left:18px;font-size:0.68em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;">Sad<br>Melancholic</span>
-    <span style="position:absolute;bottom:14px;right:18px;font-size:0.68em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;">Calm<br>Relaxed</span>
-
-    <!-- Crosshair dot -->
-    <div id="moodDot" style="position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;"></div>
-
-    <!-- Transparent tap-capture overlay — sits on top of everything, catches all input -->
-    <div id="jmOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;cursor:crosshair;-webkit-tap-highlight-color:transparent;"></div>
+<div id="jmWrap">
+  <h2>&#127925; JellyMoods</h2>
+  <p id="jmSub">Tap the wheel to match music to your mood</p>
+  <div id="jmWheelOuter">
+    <svg id="jmSvg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gH" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#110000"/>
+          <stop offset="100%" stop-color="#996600"/>
+        </linearGradient>
+        <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ff2200" stop-opacity="0.8"/>
+          <stop offset="50%" stop-color="#330000" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.75"/>
+        </linearGradient>
+        <radialGradient id="gTR" cx="88%" cy="12%" r="52%">
+          <stop offset="0%" stop-color="#ffee00" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="#ffee00" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gTL" cx="12%" cy="12%" r="50%">
+          <stop offset="0%" stop-color="#ff1100" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#ff1100" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gBL" cx="12%" cy="88%" r="52%">
+          <stop offset="0%" stop-color="#0022bb" stop-opacity="0.9"/>
+          <stop offset="60%" stop-color="#001133" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gBR" cx="88%" cy="88%" r="52%">
+          <stop offset="0%" stop-color="#cc2200" stop-opacity="0.85"/>
+          <stop offset="100%" stop-color="#cc2200" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gC" cx="50%" cy="50%" r="30%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="circ"><circle cx="100" cy="100" r="100"/></clipPath>
+      </defs>
+      <g clip-path="url(#circ)">
+        <rect width="200" height="200" fill="url(#gH)"/>
+        <rect width="200" height="200" fill="url(#gV)"/>
+        <rect width="200" height="200" fill="url(#gTR)"/>
+        <rect width="200" height="200" fill="url(#gTL)"/>
+        <rect width="200" height="200" fill="url(#gBL)"/>
+        <rect width="200" height="200" fill="url(#gBR)"/>
+        <rect width="200" height="200" fill="url(#gC)"/>
+        <line x1="100" y1="0" x2="100" y2="200" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,5"/>
+        <line x1="0" y1="100" x2="200" y2="100" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,5"/>
+        <circle cx="100" cy="100" r="99" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <span class="ax ax-t">Active</span>
+    <span class="ax ax-b">Passive</span>
+    <span class="ax ax-l">Negative</span>
+    <span class="ax ax-r">Positive</span>
+    <span class="co co-tl">Angry<br>Tense</span>
+    <span class="co co-tr">Happy<br>Excited</span>
+    <span class="co co-bl">Sad<br>Melancholic</span>
+    <span class="co co-br">Calm<br>Relaxed</span>
+    <div id="jmDot"></div>
+    <button id="jmBtn" aria-label="Select mood"></button>
   </div>
-
-  <!-- Mood info -->
-  <div style="text-align:center;margin-top:36px;min-height:80px;">
-    <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;">— How are you feeling? —</div>
-    <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
+  <div id="jmInfo">
+    <div id="jmMoodName" style="color:#fff;">&#8212; How are you feeling? &#8212;</div>
+    <div id="jmMoodDesc"></div>
   </div>
-
-  <!-- Play button -->
-  <div style="margin-top:20px;text-align:center;">
-    <button id="jmPlayBtn" style="display:none;padding:14px 44px;border:none;border-radius:30px;font-size:1em;font-weight:700;letter-spacing:0.06em;cursor:pointer;background:linear-gradient(135deg,#7c6fff,#4eb8d8);color:#fff;box-shadow:0 4px 20px rgba(78,184,216,0.4);-webkit-tap-highlight-color:transparent;">▶ Play This Mood</button>
-    <div id="jmStatus" style="margin-top:12px;font-size:0.8em;color:#777;min-height:1.2em;"></div>
-    <div id="jmTrackCount" style="display:none;margin-top:6px;font-size:0.78em;color:#aaa;"></div>
-  </div>
-
+  <button id="jmPlayBtn" aria-label="Play this mood">&#9654; Play This Mood</button>
+  <div id="jmStatus"></div>
+  <div id="jmCount"></div>
 </div>
-</div>
-</div>
-
 <script>
 (function(){
-'use strict';
-
-var MOODS = [
-  {vMin:-1,vMax:0,aMin:0,aMax:1,    name:'Angry / Tense',    desc:'High energy, dark intensity',        genres:['Metal','Punk','Hard Rock','Industrial','Hardcore'],       col:'#ff5a5a'},
-  {vMin:0, vMax:1,aMin:0,aMax:1,    name:'Happy / Excited',  desc:'Upbeat, euphoric, energising',       genres:['Pop','Dance','Electronic','Funk','House','Disco'],         col:'#ffe040'},
-  {vMin:-1,vMax:0,aMin:-1,aMax:0,   name:'Sad / Melancholic',desc:'Reflective, introspective, longing', genres:['Blues','Soul','Folk','Indie','Singer-Songwriter'],         col:'#6090ff'},
-  {vMin:0, vMax:1,aMin:-1,aMax:0,   name:'Calm / Relaxed',   desc:'Peaceful, gentle, serene',           genres:['Jazz','Ambient','Classical','Acoustic','Chill','New Age'], col:'#40dfc0'},
-  {vMin:-0.2,vMax:0.2,aMin:0.6,aMax:1,    name:'Tense / Pumped',  desc:'Intense, driven, focused',      genres:['Metal','Punk','Electronic','Hard Rock'],  col:'#ff9030'},
-  {vMin:-0.2,vMax:0.2,aMin:-1,aMax:-0.6,  name:'Contemplative',   desc:'Quiet, thoughtful, drifting',  genres:['Ambient','Classical','Jazz','Folk'],       col:'#70a0e8'},
-  {vMin:0.6,vMax:1,aMin:-0.2,aMax:0.2,    name:'Content',         desc:'Easy, comfortable, at ease',   genres:['Acoustic','Chill','Jazz','Bossa Nova'],    col:'#60e8a0'},
-  {vMin:-1,vMax:-0.6,aMin:-0.2,aMax:0.2,  name:'Frustrated',      desc:'Unsettled, uneasy, moody',     genres:['Blues','Punk','Soul','Indie'],             col:'#d87060'},
+var MOODS=[
+  {vMin:-1,vMax:0,aMin:0,aMax:1,   name:'Angry / Tense',    desc:'High energy, dark intensity',        col:'#ff5050',g:['Metal','Punk','Hard Rock','Industrial','Hardcore']},
+  {vMin:0,vMax:1,aMin:0,aMax:1,    name:'Happy / Excited',  desc:'Upbeat, euphoric, energising',       col:'#ffe040',g:['Pop','Dance','Electronic','Funk','House','Disco']},
+  {vMin:-1,vMax:0,aMin:-1,aMax:0,  name:'Sad / Melancholic',desc:'Reflective, introspective, longing', col:'#5577cc',g:['Blues','Soul','Folk','Indie','Singer-Songwriter']},
+  {vMin:0,vMax:1,aMin:-1,aMax:0,   name:'Calm / Relaxed',   desc:'Peaceful, warm, serene',             col:'#cc6633',g:['Jazz','Ambient','Classical','Acoustic','Chill','New Age']},
+  {vMin:-0.2,vMax:0.2,aMin:0.6,aMax:1,   name:'Pumped Up',     desc:'Driven, focused, intense',    col:'#ff7722',g:['Metal','Punk','Electronic','Hard Rock']},
+  {vMin:-0.2,vMax:0.2,aMin:-1,aMax:-0.6, name:'Contemplative', desc:'Quiet, drifting, thoughtful', col:'#6677aa',g:['Ambient','Classical','Jazz','Folk']},
+  {vMin:0.6,vMax:1,aMin:-0.2,aMax:0.2,   name:'Content',       desc:'Easy, warm, at ease',         col:'#cc8833',g:['Acoustic','Chill','Jazz','Bossa Nova']},
+  {vMin:-1,vMax:-0.6,aMin:-0.2,aMax:0.2, name:'Frustrated',    desc:'Unsettled, brooding',         col:'#882211',g:['Blues','Punk','Soul','Indie']},
 ];
-
-var selectedValence=0, selectedArousal=0, pendingItems=[];
+var selV=0,selA=0,pending=[],lastTouch=0;
 
 function posToMood(nx,ny){
-  var valence=nx, arousal=-ny;
-  var intensity=Math.min(1,Math.sqrt(valence*valence+arousal*arousal));
-  var best=MOODS[0], bestScore=-Infinity;
+  var v=nx,a=-ny,intensity=Math.min(1,Math.sqrt(v*v+a*a)),best=MOODS[0],bs=-Infinity;
   for(var i=0;i<MOODS.length;i++){
     var m=MOODS[i];
-    if(valence>=m.vMin&&valence<=m.vMax&&arousal>=m.aMin&&arousal<=m.aMax){
-      var area=(m.vMax-m.vMin)*(m.aMax-m.aMin);
-      if(1/area>bestScore){bestScore=1/area;best=m;}
+    if(v>=m.vMin&&v<=m.vMax&&a>=m.aMin&&a<=m.aMax){
+      var sc=1/((m.vMax-m.vMin)*(m.aMax-m.aMin));
+      if(sc>bs){bs=sc;best=m;}
     }
   }
-  return {valence:valence,arousal:arousal,intensity:intensity,mood:best};
+  return{valence:v,arousal:a,intensity:intensity,mood:best};
 }
 
-function getGenresForPosition(valence,arousal){
-  var happy=Math.max(0,valence)*Math.max(0,arousal);
-  var angry=Math.max(0,-valence)*Math.max(0,arousal);
-  var calm =Math.max(0,valence)*Math.max(0,-arousal);
-  var sad  =Math.max(0,-valence)*Math.max(0,-arousal);
+function getGenres(v,a){
   var q=[
-    {w:happy,genres:['Pop','Dance','Electronic','Funk','House','Disco','Party']},
-    {w:angry,genres:['Metal','Punk','Hard Rock','Industrial','Hardcore','Thrash Metal']},
-    {w:calm, genres:['Jazz','Ambient','Classical','Acoustic','Chill','New Age','Bossa Nova']},
-    {w:sad,  genres:['Blues','Soul','Folk','Indie','Singer-Songwriter','Slowcore']},
+    {w:Math.max(0,v)*Math.max(0,a),  g:['Pop','Dance','Electronic','Funk','House','Disco','Party']},
+    {w:Math.max(0,-v)*Math.max(0,a), g:['Metal','Punk','Hard Rock','Industrial','Hardcore']},
+    {w:Math.max(0,v)*Math.max(0,-a), g:['Jazz','Ambient','Classical','Acoustic','Chill','New Age']},
+    {w:Math.max(0,-v)*Math.max(0,-a),g:['Blues','Soul','Folk','Indie','Singer-Songwriter']},
   ];
   var out={};
-  for(var i=0;i<q.length;i++){if(q[i].w>0.2)q[i].genres.forEach(function(g){out[g]=true;});}
+  q.forEach(function(x){if(x.w>0.15)x.g.forEach(function(g){out[g]=1;});});
   return Object.keys(out);
 }
 
-function handleInteraction(clientX, clientY){
-  var wrap=document.getElementById('jmWheelWrap');
-  var rect=wrap.getBoundingClientRect();
-  var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-  var r=rect.width/2;
-  var dx=clientX-cx, dy=clientY-cy;
-  var dist=Math.sqrt(dx*dx+dy*dy);
-  if(dist>r) return;
-
-  var nx=dx/r, ny=dy/r;
-  var res=posToMood(nx,ny);
-  selectedValence=res.valence; selectedArousal=res.arousal;
-
-  // Move dot
-  var dot=document.getElementById('moodDot');
-  dot.style.left=(clientX-rect.left)+'px';
-  dot.style.top=(clientY-rect.top)+'px';
+function handleXY(cx,cy){
+  var el=document.getElementById('jmWheelOuter');
+  var r=el.getBoundingClientRect();
+  var mx=r.left+r.width/2,my=r.top+r.height/2,radius=r.width/2;
+  var dx=cx-mx,dy=cy-my;
+  if(Math.sqrt(dx*dx+dy*dy)>radius+10) return;
+  var res=posToMood(dx/radius,dy/radius);
+  selV=res.valence;selA=res.arousal;
+  var dot=document.getElementById('jmDot');
+  dot.style.left=(cx-r.left)+'px';
+  dot.style.top=(cy-r.top)+'px';
   dot.style.background=res.mood.col;
   dot.style.display='block';
-
-  if(res.intensity<0.15){
-    setMoodName('— Neutral —','#ccc');
-    setMoodDesc('Right in the middle — feeling balanced?');
-  } else {
-    setMoodName(res.mood.name,res.mood.col);
-    setMoodDesc(res.mood.desc);
-  }
-
-  showPlayBtn(true); setStatus('Searching your library…'); setTrackCount(0); pendingItems=[];
-
-  var genres=getGenresForPosition(res.valence,res.arousal);
-  fetchTracksByGenres(genres)
-    .then(function(items){ return items.length>0?items:fetchFallback(); })
-    .then(function(items){
-      pendingItems=items; setTrackCount(items.length);
-      setStatus(items.length>0?'':'No tracks found — check genre tags in your library.');
-    })
-    .catch(function(e){ console.error('[JellyMoods]',e); setStatus('Could not fetch tracks.'); });
+  var mn=document.getElementById('jmMoodName'),md=document.getElementById('jmMoodDesc');
+  if(res.intensity<0.12){mn.textContent='Neutral';mn.style.color='#aaa';md.textContent='Right in the middle';}
+  else{mn.textContent=res.mood.name;mn.style.color=res.mood.col;md.textContent=res.mood.desc;}
+  document.getElementById('jmPlayBtn').style.display='inline-block';
+  document.getElementById('jmStatus').textContent='Searching your library...';
+  document.getElementById('jmCount').textContent='';
+  pending=[];
+  fetchG(getGenres(selV,selA))
+    .then(function(i){return i.length?i:fetchAny();})
+    .then(function(i){
+      pending=i;
+      document.getElementById('jmCount').textContent=i.length?i.length+' tracks found':'';
+      document.getElementById('jmStatus').textContent=i.length?'':'No tracks found - check genre tags.';
+    }).catch(function(){document.getElementById('jmStatus').textContent='Could not load tracks.';});
 }
 
-// ── Event binding on the transparent overlay ──────────────────────────────
-var overlay=document.getElementById('jmOverlay');
+var btn=document.getElementById('jmBtn');
+function onTS(e){
+  try{e.stopPropagation();e.preventDefault();}catch(x){}
+  lastTouch=Date.now();
+  var t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);
+  if(t)handleXY(t.clientX,t.clientY);
+  return false;
+}
+function onTE(e){try{e.stopPropagation();e.preventDefault();}catch(x){}return false;}
+function onCL(e){if(Date.now()-lastTouch<800)return;handleXY(e.clientX,e.clientY);}
 
-// 1. onclick — works everywhere
-overlay.onclick=function(e){
-  handleInteraction(e.clientX,e.clientY);
-};
+btn.addEventListener('touchstart',onTS,{passive:false,capture:true});
+btn.addEventListener('touchend',onTE,{passive:false,capture:true});
+btn.addEventListener('click',onCL,{capture:true});
+btn.ontouchstart=onTS;
+btn.ontouchend=onTE;
+btn.onclick=onCL;
 
-// 2. touchstart — Android WebView primary path (fires before click)
-overlay.addEventListener('touchstart',function(e){
-  e.preventDefault(); // stops ghost click + scroll
-  var t=e.touches[0];
-  handleInteraction(t.clientX,t.clientY);
-},{passive:false});
+function jmPlay(){
+  var play=function(items){
+    if(!items||!items.length){document.getElementById('jmStatus').textContent='No matching tracks.';return;}
+    document.getElementById('jmStatus').textContent='Starting playback...';
+    require(['playbackManager'],function(pm){
+      pm.play({items:items,startIndex:0,queryOptions:{}});
+      document.getElementById('jmStatus').textContent='Playing '+items.length+' tracks';
+    });
+  };
+  if(pending.length){play(pending);return;}
+  document.getElementById('jmStatus').textContent='Fetching...';
+  fetchG(getGenres(selV,selA)).then(function(i){return i.length?i:fetchAny();}).then(play)
+    .catch(function(){document.getElementById('jmStatus').textContent='Could not load tracks.';});
+}
+var pb=document.getElementById('jmPlayBtn');
+function pbTS(e){try{e.stopPropagation();e.preventDefault();}catch(x){}jmPlay();return false;}
+pb.addEventListener('touchstart',pbTS,{passive:false,capture:true});
+pb.addEventListener('click',function(e){if(Date.now()-lastTouch>800)jmPlay();},{capture:true});
+pb.ontouchstart=pbTS;
 
-// ── UI helpers ────────────────────────────────────────────────────────────
-function setStatus(t){document.getElementById('jmStatus').textContent=t;}
-function setMoodName(t,col){var el=document.getElementById('jmMoodName');el.textContent=t;el.style.color=col||'#fff';}
-function setMoodDesc(t){document.getElementById('jmMoodDesc').textContent=t;}
-function showPlayBtn(v){document.getElementById('jmPlayBtn').style.display=v?'inline-block':'none';}
-function setTrackCount(n){var el=document.getElementById('jmTrackCount');el.style.display=n>0?'block':'none';el.textContent=n>0?n+' tracks found':'';}
-
-// ── API ───────────────────────────────────────────────────────────────────
-function fetchTracksByGenres(genres){
+function fetchG(genres){
   var api=window.ApiClient;
-  if(!api) return Promise.resolve([]);
-  return api.getCurrentUser().then(function(user){
+  if(!api)return Promise.resolve([]);
+  return api.getCurrentUser().then(function(u){
     var p={IncludeItemTypes:'Audio',Recursive:true,SortBy:'Random',Limit:50,Fields:'Genres,MediaSources'};
-    if(genres.length>0) p.Genres=genres.join(',');
-    return api.getItems(user.Id,p).then(function(r){return r.Items||[];});
+    if(genres.length)p.Genres=genres.join(',');
+    return api.getItems(u.Id,p).then(function(r){return r.Items||[];});
   });
 }
-function fetchFallback(){
+function fetchAny(){
   var api=window.ApiClient;
-  if(!api) return Promise.resolve([]);
-  return api.getCurrentUser().then(function(user){
-    return api.getItems(user.Id,{IncludeItemTypes:'Audio',Recursive:true,SortBy:'Random',Limit:30})
+  if(!api)return Promise.resolve([]);
+  return api.getCurrentUser().then(function(u){
+    return api.getItems(u.Id,{IncludeItemTypes:'Audio',Recursive:true,SortBy:'Random',Limit:30})
       .then(function(r){return r.Items||[];});
   });
 }
-
-// ── Play button ───────────────────────────────────────────────────────────
-document.getElementById('jmPlayBtn').onclick=function(){
-  var play=function(items){
-    if(!items||!items.length){setStatus('No matching tracks found.');return;}
-    setStatus('Starting playback…');
-    require(['playbackManager'],function(pm){
-      pm.play({items:items,startIndex:0,queryOptions:{}});
-      setStatus('Playing '+items.length+' tracks ♪');
-    });
-  };
-  if(pendingItems.length>0){play(pendingItems);return;}
-  setStatus('Fetching tracks…');
-  fetchTracksByGenres(getGenresForPosition(selectedValence,selectedArousal))
-    .then(function(items){return items.length>0?items:fetchFallback();})
-    .then(play)
-    .catch(function(){setStatus('Could not fetch tracks.');});
-};
-
 })();
 </script>
 </body>
