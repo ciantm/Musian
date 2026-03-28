@@ -6,8 +6,9 @@
 <title>JellyMoods</title>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
-body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; }
-#jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; }
+body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; overflow-x:hidden; }
+#jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
+#jmWheelWrap { position:relative; width:80vw; max-width:420px; height:80vw; max-height:420px; margin:0 auto 8px; }
 </style>
 </head>
 <body>
@@ -15,11 +16,11 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; }
   <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">&#127925; JellyMoods</h2>
   <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel to match music to your mood</p>
 
-  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
+  <div id="jmWheelWrap">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
          xmlns="http://www.w3.org/2000/svg"
-         style="display:block;cursor:crosshair;filter:drop-shadow(0 0 40px rgba(0,0,0,0.9));"
-         onclick="jmSvgClick(event)">
+         style="display:block;cursor:crosshair;filter:drop-shadow(0 0 40px rgba(0,0,0,0.9));touch-action:none;"
+         onclick="jmSvgClick(event)" ontouchend="jmSvgTouch(event)">
       <defs>
         <radialGradient id="gRed" cx="0%" cy="0%" r="100%" gradientUnits="objectBoundingBox">
           <stop offset="0%" stop-color="#ff1a00" stop-opacity="1"/>
@@ -75,7 +76,6 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; }
 </div>
 
 <script>
-// Auth - lazy, non-blocking
 var JM = {
   server: window.location.origin,
   token: null,
@@ -113,16 +113,18 @@ var JM = {
 };
 JM.init();
 
-// SVG click
 window.jmSvgClick = function(e) {
   handleInteraction(e.clientX, e.clientY);
 };
+window.jmSvgTouch = function(e) {
+  e.preventDefault();
+  var t = e.changedTouches[0];
+  handleInteraction(t.clientX, t.clientY);
+};
 
-// Core logic
 (function(){
 'use strict';
 var MOODS = [
-  // High arousal, negative valence (top-left)
   { name:'Aggressive',  desc:'Raw, confrontational, intense',         x:0.08, y:0.95, col:'#ff3030', genres:['Metal','Hardcore','Thrash Metal','Punk','Noise'] },
   { name:'Angry',       desc:'Hot, fierce, forceful',                 x:0.10, y:0.90, col:'#ff4040', genres:['Metal','Hard Rock','Punk','Hardcore','Industrial'] },
   { name:'Frantic',     desc:'Frenzied, chaotic, uncontrolled',       x:0.12, y:0.92, col:'#ff3535', genres:['Grindcore','Noise','Speedcore','Thrash Metal'] },
@@ -130,7 +132,6 @@ var MOODS = [
   { name:'Intense',     desc:'Concentrated, powerful, overwhelming',  x:0.20, y:0.88, col:'#ff4535', genres:['Metal','Post-Rock','Drone','Dark Ambient'] },
   { name:'Tense',       desc:'Edgy, uneasy, on-edge',                 x:0.18, y:0.85, col:'#ff5a3a', genres:['Industrial','Post-Punk','Dark Wave','Math Rock'] },
   { name:'Anxious',     desc:'Nervous, unsettled, restless',          x:0.25, y:0.80, col:'#ff6a40', genres:['Post-Punk','Emo','Screamo','Noise Rock'] },
-  // Mid-left
   { name:'Dark',        desc:'Shadowy, brooding, heavy atmosphere',   x:0.18, y:0.42, col:'#5055c0', genres:['Dark Ambient','Gothic','Post-Punk','Doom','Black Metal'] },
   { name:'Mysterious',  desc:'Intriguing, shadowy, unknown depths',   x:0.38, y:0.52, col:'#8070c8', genres:['Dark Ambient','Post-Rock','Gothic','Cinematic'] },
   { name:'Yearning',    desc:'Deep longing, desire unfulfilled',      x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Indie','Shoegaze','Dream Pop','Emo'] },
@@ -139,7 +140,6 @@ var MOODS = [
   { name:'Hypnotic',    desc:'Trance-like, mesmerising, repetitive',  x:0.48, y:0.48, col:'#7088d0', genres:['Ambient','Drone','Krautrock','Minimal Techno'] },
   { name:'Sentimental', desc:'Tender feelings, emotionally moved',    x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Singer-Songwriter','Soft Rock','Soul'] },
   { name:'Atmospheric', desc:'Spacious, immersive, enveloping',       x:0.55, y:0.38, col:'#5090c8', genres:['Ambient','Post-Rock','Shoegaze','Space Rock'] },
-  // Centre-right / high arousal positive
   { name:'Passionate',  desc:'Fervent, deeply felt, expressive',      x:0.58, y:0.82, col:'#e89030', genres:['Rock','Soul','Opera','Flamenco','R&B'] },
   { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.62, y:0.62, col:'#c8d840', genres:['Indie','Folk','Pop','Gospel','Acoustic'] },
   { name:'Epic',        desc:'Grand, sweeping, larger than life',     x:0.62, y:0.80, col:'#d0a020', genres:['Orchestral','Soundtrack','Post-Rock','Power Metal','Prog'] },
@@ -147,34 +147,31 @@ var MOODS = [
   { name:'Majestic',    desc:'Stately, grand, awe-inspiring',         x:0.65, y:0.72, col:'#c8a828', genres:['Classical','Orchestral','Celtic','Soundtrack'] },
   { name:'Groovy',      desc:'Funky, rhythmic, in-the-pocket',        x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','R&B','Disco','Groove Metal'] },
   { name:'Upbeat',      desc:'Lively, positive, feel-good',           x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Indie Pop'] },
-  // Top-right
-  { name:'Happy',         desc:'Cheerful, warm, contented joy',        x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Indie Pop','Soul','Funk','Reggae'] },
-  { name:'Celebratory',   desc:'Festive, joyful, party spirit',        x:0.85, y:0.82, col:'#ffdf38', genres:['Party','Pop','Dance','Reggaeton','Funk'] },
-  { name:'Triumphant',    desc:'Victorious, proud, unstoppable',       x:0.82, y:0.88, col:'#ffd840', genres:['Epic','Soundtrack','Power Metal','Orchestral'] },
-  { name:'Excited',       desc:'Thrilled, eager, buzzing with energy', x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Dance','Electronic','Electropop'] },
-  { name:'Energetic',     desc:'High-powered, vigorous, dynamic',      x:0.72, y:0.90, col:'#ffcc30', genres:['Dance','Electronic','Rock','Drum and Bass'] },
-  { name:'Ecstatic',      desc:'Overwhelmed with joy, rapturous',      x:0.92, y:0.92, col:'#ffea28', genres:['Trance','EDM','House','Euphoric Hardstyle'] },
-  { name:'Euphoric',      desc:'Blissful, elated, overjoyed',          x:0.95, y:0.95, col:'#ffee22', genres:['EDM','Trance','Happy Hardcore','Rave'] },
-  // Bottom-right (calm/positive)
-  { name:'Romantic',   desc:'Loving, tender, intimate warmth',         x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','R&B','Bossa Nova','Soft Rock'] },
-  { name:'Dreamy',     desc:'Floating, hazy, softly surreal',          x:0.62, y:0.22, col:'#60c8d8', genres:['Dream Pop','Shoegaze','Ambient','Chillwave'] },
-  { name:'Intimate',   desc:'Close, personal, quietly heartfelt',      x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Acoustic','Singer-Songwriter','Neo-Soul'] },
-  { name:'Tender',     desc:'Gentle, soft, affectionate',              x:0.70, y:0.28, col:'#55dca8', genres:['Acoustic','Singer-Songwriter','Folk','Ambient'] },
-  { name:'Content',    desc:'Satisfied, at ease, quietly pleased',     x:0.70, y:0.25, col:'#50dcc0', genres:['Acoustic','Folk','Jazz','Chill','Indie'] },
-  { name:'Relaxed',    desc:'Loose, at rest, free from tension',       x:0.78, y:0.18, col:'#40d8c0', genres:['Chill','Jazz','Reggae','Bossa Nova','Acoustic'] },
-  { name:'Calm',       desc:'Still, balanced, unhurried',              x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Ambient','Acoustic','Chill','Lo-fi'] },
-  { name:'Soothing',   desc:'Comforting, easing, gentle relief',       x:0.82, y:0.15, col:'#38dcc0', genres:['Ambient','New Age','Classical','Piano','Nature'] },
-  { name:'Serene',     desc:'Clear, composed, harmonious stillness',   x:0.85, y:0.08, col:'#30e8c8', genres:['Classical','Ambient','New Age','Meditation','Jazz'] },
-  { name:'Peaceful',   desc:'Tranquil, undisturbed, quiet',            x:0.88, y:0.10, col:'#35e8c0', genres:['Ambient','Classical','New Age','Acoustic','Nature'] },
-  // Bottom-left (sad/negative)
-  { name:'Wistful',    desc:'Wishing things were different, pensive',  x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Indie','Dream Pop','Singer-Songwriter'] },
-  { name:'Melancholic',desc:'Quietly sorrowful, reflective sadness',   x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Indie','Singer-Songwriter','Folk','Slowcore'] },
-  { name:'Somber',     desc:'Dark and serious, grave mood',            x:0.20, y:0.20, col:'#5070e8', genres:['Classical','Dark Ambient','Blues','Gothic'] },
-  { name:'Sad',        desc:'Unhappy, sorrowful, downcast',            x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Indie','Sad Rock'] },
-  { name:'Gloomy',     desc:'Overcast, cheerless, despairing',         x:0.15, y:0.20, col:'#4870e8', genres:['Post-Punk','Gothic','Dark Wave','Slowcore','Doom'] },
-  { name:'Lonely',     desc:'Isolated, alone, missing connection',     x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Indie','Singer-Songwriter','Slowcore','Ambient'] },
-  { name:'Mournful',   desc:'Grieving, lamenting, sorrowful',          x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Gospel','Folk','Requiem'] },
-  { name:'Depressed',  desc:'Heavy, hopeless, withdrawn',              x:0.08, y:0.08, col:'#3060e0', genres:['Slowcore','Sadcore','Dark Folk','Doom Metal','Ambient'] },
+  { name:'Happy',       desc:'Cheerful, warm, contented joy',         x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Indie Pop','Soul','Funk','Reggae'] },
+  { name:'Celebratory', desc:'Festive, joyful, party spirit',         x:0.85, y:0.82, col:'#ffdf38', genres:['Party','Pop','Dance','Reggaeton','Funk'] },
+  { name:'Triumphant',  desc:'Victorious, proud, unstoppable',        x:0.82, y:0.88, col:'#ffd840', genres:['Epic','Soundtrack','Power Metal','Orchestral'] },
+  { name:'Excited',     desc:'Thrilled, eager, buzzing with energy',  x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Dance','Electronic','Electropop'] },
+  { name:'Energetic',   desc:'High-powered, vigorous, dynamic',       x:0.72, y:0.90, col:'#ffcc30', genres:['Dance','Electronic','Rock','Drum and Bass'] },
+  { name:'Ecstatic',    desc:'Overwhelmed with joy, rapturous',       x:0.92, y:0.92, col:'#ffea28', genres:['Trance','EDM','House','Euphoric Hardstyle'] },
+  { name:'Euphoric',    desc:'Blissful, elated, overjoyed',           x:0.95, y:0.95, col:'#ffee22', genres:['EDM','Trance','Happy Hardcore','Rave'] },
+  { name:'Romantic',    desc:'Loving, tender, intimate warmth',       x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','R&B','Bossa Nova','Soft Rock'] },
+  { name:'Dreamy',      desc:'Floating, hazy, softly surreal',        x:0.62, y:0.22, col:'#60c8d8', genres:['Dream Pop','Shoegaze','Ambient','Chillwave'] },
+  { name:'Intimate',    desc:'Close, personal, quietly heartfelt',    x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Acoustic','Singer-Songwriter','Neo-Soul'] },
+  { name:'Tender',      desc:'Gentle, soft, affectionate',            x:0.70, y:0.28, col:'#55dca8', genres:['Acoustic','Singer-Songwriter','Folk','Ambient'] },
+  { name:'Content',     desc:'Satisfied, at ease, quietly pleased',   x:0.70, y:0.25, col:'#50dcc0', genres:['Acoustic','Folk','Jazz','Chill','Indie'] },
+  { name:'Relaxed',     desc:'Loose, at rest, free from tension',     x:0.78, y:0.18, col:'#40d8c0', genres:['Chill','Jazz','Reggae','Bossa Nova','Acoustic'] },
+  { name:'Calm',        desc:'Still, balanced, unhurried',            x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Ambient','Acoustic','Chill','Lo-fi'] },
+  { name:'Soothing',    desc:'Comforting, easing, gentle relief',     x:0.82, y:0.15, col:'#38dcc0', genres:['Ambient','New Age','Classical','Piano','Nature'] },
+  { name:'Serene',      desc:'Clear, composed, harmonious stillness', x:0.85, y:0.08, col:'#30e8c8', genres:['Classical','Ambient','New Age','Meditation','Jazz'] },
+  { name:'Peaceful',    desc:'Tranquil, undisturbed, quiet',          x:0.88, y:0.10, col:'#35e8c0', genres:['Ambient','Classical','New Age','Acoustic','Nature'] },
+  { name:'Wistful',     desc:'Wishing things were different, pensive',x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Indie','Dream Pop','Singer-Songwriter'] },
+  { name:'Melancholic', desc:'Quietly sorrowful, reflective sadness', x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Indie','Singer-Songwriter','Folk','Slowcore'] },
+  { name:'Somber',      desc:'Dark and serious, grave mood',          x:0.20, y:0.20, col:'#5070e8', genres:['Classical','Dark Ambient','Blues','Gothic'] },
+  { name:'Sad',         desc:'Unhappy, sorrowful, downcast',          x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Indie','Sad Rock'] },
+  { name:'Gloomy',      desc:'Overcast, cheerless, despairing',       x:0.15, y:0.20, col:'#4870e8', genres:['Post-Punk','Gothic','Dark Wave','Slowcore','Doom'] },
+  { name:'Lonely',      desc:'Isolated, alone, missing connection',   x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Indie','Singer-Songwriter','Slowcore','Ambient'] },
+  { name:'Mournful',    desc:'Grieving, lamenting, sorrowful',        x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Gospel','Folk','Requiem'] },
+  { name:'Depressed',   desc:'Heavy, hopeless, withdrawn',            x:0.08, y:0.08, col:'#3060e0', genres:['Slowcore','Sadcore','Dark Folk','Doom Metal','Ambient'] },
 ];
 
 var selectedValence=0, selectedArousal=0, pendingItems=[];
@@ -235,7 +232,6 @@ function handleInteraction(clientX, clientY){
     .then(function(items){
       pendingItems=items; setTrackCount(items.length);
       setStatus(items.length>0?'':'No tracks found — check genre tags in your library.');
-      console.log('[JellyMoods]',items.length>0?'Got '+items.length+' tracks':'0 tracks — genre tags may not match');
     })
     .catch(function(e){
       console.error('[JellyMoods]',e);
@@ -243,14 +239,12 @@ function handleInteraction(clientX, clientY){
     });
 }
 
-// ── UI helpers ────────────────────────────────────────────────
 function setStatus(t){document.getElementById('jmStatus').textContent=t;}
 function setMoodName(t,col){var el=document.getElementById('jmMoodName');el.textContent=t;el.style.color=col||'#fff';}
 function setMoodDesc(t){document.getElementById('jmMoodDesc').textContent=t;}
 function showPlayBtn(v){document.getElementById('jmPlayBtn').style.display=v?'inline-block':'none';}
-function setTrackCount(n){var el=document.getElementById('jmTrackCount');el.style.display=n>0?'block':'none';el.textContent=n>0?n+' tracks found':'';}
+function setTrackCount(n){var el=document.getElementById('jmTrackCount');el.style.display=n>0?'block':'none';el.textContent=n>0?n+' tracks found':''}
 
-// ── API ───────────────────────────────────────────────────────
 function fetchTracksByGenres(genres){
   if(!JM.token||!JM.userId) return Promise.resolve([]);
   var params=new URLSearchParams({IncludeItemTypes:'Audio',Recursive:'true',SortBy:'Random',Limit:'50',Fields:'Genres,MediaSources'});
@@ -267,7 +261,6 @@ function fetchFallback(){
     .then(function(d){return d.Items||[];});
 }
 
-// ── Play button ───────────────────────────────────────────────
 function playItems(items){
   if(!items||!items.length){setStatus('No matching tracks found.');return;}
   if(!JM.token||!JM.userId){setStatus('Not logged in — open via Jellyfin.');return;}
@@ -277,12 +270,12 @@ function playItems(items){
     .then(function(r){return r.json();})
     .then(function(sessions){
       var session=sessions.filter(function(s){return s.UserId===JM.userId;})[0];
-      if(!session){setStatus('No active Jellyfin session found — open the web player first.');return;}
+      if(!session){setStatus('No active session — open the web player first.');return;}
       return fetch(JM.server+'/Sessions/'+session.Id+'/Playing',{
         method:'POST',
         headers:Object.assign({'Content-Type':'application/json'},JM.headers()),
         body:JSON.stringify({PlayCommand:'PlayNow',ItemIds:ids,StartIndex:0})
-      }).then(function(){setStatus('Playing '+items.length+' tracks \u266a');});
+      }).then(function(){setStatus('Playing '+items.length+' tracks ♪');});
     })
     .catch(function(e){console.error('[JellyMoods]',e);setStatus('Playback error: '+e.message);});
 }

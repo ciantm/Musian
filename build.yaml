@@ -1,5 +1,5 @@
 ---
-version: "3.0.0.0"
+version: "3.0.1.0"
 
 dotnetVersion: "net8.0"
 
@@ -7,5 +7,3 @@ artifactDir: "artifacts"
 
 projects:
   - Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj
-
-# trigger release
