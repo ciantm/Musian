@@ -15,17 +15,12 @@
     <!-- Red  top-left = angry/aggressive -->
     <!-- Yellow top-right = happy/euphoric -->
     <!-- Teal  bottom-right = calm/serene -->
-    <div style="position:relative;width:100%;height:100%;border-radius:50%;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,0.8),0 0 0 2px rgba(255,255,255,0.10);">
-      <!-- Black base layer (bottom-left = seething dark) -->
-      <div style="position:absolute;inset:0;border-radius:50%;background:#000;"></div>
-      <!-- Red from top-left (angry/aggressive) -->
-      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 130% 130% at 0% 0%, #ff1a00 0%, transparent 70%);mix-blend-mode:screen;"></div>
-      <!-- Yellow from top-right (happy/euphoric) -->
-      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 130% 130% at 100% 0%, #ffe800 0%, transparent 70%);mix-blend-mode:screen;"></div>
-      <!-- Teal from bottom-right (calm/serene) -->
-      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 130% 130% at 100% 100%, #00e8c0 0%, transparent 70%);mix-blend-mode:screen;"></div>
-      <!-- Subtle white glow at centre (neutral zone) -->
-      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.18) 0%, transparent 35%);mix-blend-mode:screen;"></div>
+    <div id="jmWheel" style="position:absolute;inset:0;border-radius:50%;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,0.8),0 0 0 2px rgba(255,255,255,0.10);cursor:crosshair;-webkit-tap-highlight-color:transparent;">
+      <div style="position:absolute;inset:0;background:#000;"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 130% 130% at 0% 0%, #ff1a00 0%, transparent 70%);mix-blend-mode:screen;pointer-events:none;"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 130% 130% at 100% 0%, #ffe800 0%, transparent 70%);mix-blend-mode:screen;pointer-events:none;"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 130% 130% at 100% 100%, #00e8c0 0%, transparent 70%);mix-blend-mode:screen;pointer-events:none;"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.18) 0%, transparent 35%);mix-blend-mode:screen;pointer-events:none;"></div>
     </div>
 
     <span style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Active</span>
@@ -39,7 +34,6 @@
     <span style="position:absolute;bottom:14px;right:18px;font-size:0.65em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;">Calm<br>Serene</span>
 
     <div id="moodDot" style="position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;transition:background 0.25s;"></div>
-    <div id="jmOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;cursor:crosshair;-webkit-tap-highlight-color:transparent;"></div>
   </div>
 
   <div style="text-align:center;margin-top:36px;min-height:80px;">
@@ -250,14 +244,17 @@ function handleInteraction(clientX, clientY){
     .catch(function(e){console.error('[JellyMoods]',e);setStatus('Could not fetch tracks.');});
 }
 
-// ── Event binding ─────────────────────────────────────────────
-var overlay=document.getElementById('jmOverlay');
-overlay.addEventListener('touchstart',function(e){
-  e.preventDefault();
+// ── Event binding — directly on the wheel div ─────────────────
+var jmWheel=document.getElementById('jmWheel');
+jmWheel.addEventListener('mousedown',function(e){
+  e.stopPropagation(); e.preventDefault();
+  handleInteraction(e.clientX,e.clientY);
+});
+jmWheel.addEventListener('touchstart',function(e){
+  e.stopPropagation(); e.preventDefault();
   var t=e.touches[0];
   handleInteraction(t.clientX,t.clientY);
 },{passive:false});
-overlay.onclick=function(e){ handleInteraction(e.clientX,e.clientY); };
 
 // ── UI helpers ────────────────────────────────────────────────
 function setStatus(t){document.getElementById('jmStatus').textContent=t;}
