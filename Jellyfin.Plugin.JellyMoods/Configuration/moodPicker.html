@@ -2,26 +2,64 @@
 <html>
 <head><meta charset="utf-8"/><title>JellyMoods</title>
 <style>
-.jm-wrap { display:flex;flex-direction:column;align-items:center;padding:24px 16px 48px;font-family:sans-serif;color:#fff; }
-.jm-grid { display:grid;grid-template-columns:repeat(10,1fr);gap:2px;width:min(80vw,420px);height:min(80vw,420px);border-radius:50%;overflow:hidden; box-shadow:0 0 60px rgba(0,0,0,0.8); }
-.jm-cell { border:none;padding:0;margin:0;cursor:pointer;background-size:min(80vw,420px) min(80vw,420px);-webkit-tap-highlight-color:transparent;transition:opacity 0.15s; }
-.jm-cell:hover { opacity:0.8; }
-.jm-cell:active { opacity:0.6; }
+.jm-wrap { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; font-family:sans-serif; color:#fff; }
+#jmSvgWheel { cursor:crosshair; display:block; filter:drop-shadow(0 0 40px rgba(0,0,0,0.9)); }
 </style>
 </head>
 <body>
 <div data-role="page" class="page" id="jellyMoodsPage">
 <div data-role="content">
-<div class="jm-wrap">
+<div class="jm-wrap" style="padding-top:70px;">
 
+  <!-- CLICK TEST button -->
   <button type="button" style="padding:12px 24px;background:#7c6fff;color:#fff;border:none;border-radius:8px;font-size:1em;cursor:pointer;margin-bottom:16px;" onclick="this.textContent='✓ CLICK WORKS!';this.style.background='#00cc66';">Test Click Here</button>
 
   <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">&#127925; JellyMoods</h2>
   <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel to match music to your mood</p>
 
-  <div style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
-    <!-- 10x10 grid of buttons, each showing a cutout of the disc gradient -->
-    <div class="jm-grid" id="jmGrid"></div>
+  <!-- Wheel wrapper -->
+  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
+
+    <!-- SVG wheel — SVG onclick fires independently of DOM event system -->
+    <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
+         xmlns="http://www.w3.org/2000/svg"
+         onclick="jmSvgClick(event)">
+      <defs>
+        <radialGradient id="gRed" cx="0%" cy="0%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ff1a00" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#ff1a00" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gYellow" cx="100%" cy="0%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ffe800" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#ffe800" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gTeal" cx="100%" cy="100%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#00e8c0" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#00e8c0" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gGlow" cx="50%" cy="50%" r="35%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="circClip"><circle cx="200" cy="200" r="196"/></clipPath>
+      </defs>
+      <!-- Black base -->
+      <circle cx="200" cy="200" r="196" fill="#000000"/>
+      <!-- Colour layers -->
+      <g clip-path="url(#circClip)">
+        <rect x="0" y="0" width="400" height="400" fill="url(#gRed)"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gYellow)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gTeal)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gGlow)" style="mix-blend-mode:screen"/>
+      </g>
+      <!-- Border ring -->
+      <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+      <!-- Axis lines -->
+      <line x1="200" y1="4" x2="200" y2="396" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
+      <line x1="4" y1="200" x2="396" y2="200" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
+      <!-- Transparent hit circle on top — catches all SVG pointer events -->
+      <circle cx="200" cy="200" r="196" fill="transparent" style="cursor:crosshair;"/>
+    </svg>
 
     <!-- Axis labels -->
     <span style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Active</span>
@@ -32,28 +70,38 @@
     <span style="position:absolute;top:14px;right:18px;font-size:0.65em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;">Happy<br>Excited</span>
     <span style="position:absolute;bottom:14px;left:18px;font-size:0.65em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;">Sad<br>Lonely</span>
     <span style="position:absolute;bottom:14px;right:18px;font-size:0.65em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;">Calm<br>Serene</span>
-    <div id="moodDot" style="position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;"></div>
+    <div id="moodDot" style="position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);transform:translate(-50%,-50%);pointer-events:none;display:none;transition:background 0.25s;"></div>
   </div>
 
+  <!-- Mood info -->
   <div style="text-align:center;margin-top:36px;min-height:80px;">
-    <div id="jmMoodName" style="font-size:1.4em;font-weight:300;color:#fff;min-height:1.6em;">&#8212; How are you feeling? &#8212;</div>
-    <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;"></div>
+    <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;">&#8212; How are you feeling? &#8212;</div>
+    <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
   </div>
+
+  <!-- Play button -->
   <div style="margin-top:20px;text-align:center;">
-    <button id="jmPlayBtn" type="button" style="display:none;padding:14px 44px;border:none;border-radius:30px;font-size:1em;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#7c6fff,#4eb8d8);color:#fff;">&#9654; Play This Mood</button>
+    <button id="jmPlayBtn" type="button" style="display:none;padding:14px 44px;border:none;border-radius:30px;font-size:1em;font-weight:700;letter-spacing:0.06em;cursor:pointer;background:linear-gradient(135deg,#7c6fff,#4eb8d8);color:#fff;">&#9654; Play This Mood</button>
     <div id="jmStatus" style="margin-top:12px;font-size:0.8em;color:#777;min-height:1.2em;"></div>
     <div id="jmTrackCount" style="display:none;margin-top:6px;font-size:0.78em;color:#aaa;"></div>
   </div>
+
+  <!-- Debug panel -->
   <div id="jmDebug" style="display:none;margin-top:20px;width:min(80vw,420px);background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:12px;font-size:0.78em;color:#aaa;">
     <div style="color:#7c6fff;font-weight:700;margin-bottom:6px;">&#10003; Click received</div>
     <div id="jmDebugCoords" style="margin-bottom:8px;color:#888;"></div>
+    <div style="color:#ccc;margin-bottom:4px;">Nearest moods:</div>
     <div id="jmDebugMoods"></div>
-    <div id="jmDebugGenres" style="color:#888;margin-top:4px;"></div>
-    <div id="jmDebugApi" style="color:#888;margin-top:4px;"></div>
+    <div style="color:#ccc;margin-top:8px;margin-bottom:4px;">Genres:</div>
+    <div id="jmDebugGenres" style="color:#888;"></div>
+    <div style="color:#ccc;margin-top:8px;margin-bottom:4px;">API:</div>
+    <div id="jmDebugApi" style="color:#888;"></div>
   </div>
+
 </div>
 </div>
 </div>
+
 <script>
 (function(){
 'use strict';
@@ -252,96 +300,15 @@ document.getElementById('jmPlayBtn').onclick=function(){
 })();
 
 
-// Build 10x10 grid of buttons
-(function buildGrid(){
-  var grid = document.getElementById('jmGrid');
-  var size = 10;
-  for(var row=0; row<size; row++){
-    for(var col=0; col<size; col++){
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      // Each cell shows a cutout of the gradient via background
-      // Compute the colour for this cell based on mood position
-      var vx = col / (size-1); // 0=left, 1=right
-      var vy = row / (size-1); // 0=top, 1=bottom (arousal inverted)
-      var arousal = 1 - vy;    // top=active=1
-      
-      // Bilinear colour blend: black(BL), red(TL), yellow(TR), teal(BR)
-      // black = (0,0): weight = (1-vx)*(1-arousal)
-      // red   = (0,1): weight = (1-vx)*arousal
-      // yellow= (1,1): weight = vx*arousal
-      // teal  = (1,0): weight = vx*(1-arousal)
-      var wBlack  = (1-vx)*(1-arousal);
-      var wRed    = (1-vx)*arousal;
-      var wYellow = vx*arousal;
-      var wTeal   = vx*(1-arousal);
-      
-      var r = Math.round(255*wRed + 255*wYellow*0.9 + 0*wTeal + 0*wBlack);
-      var g = Math.round(0*wRed + 232*wYellow*0.9 + 232*wTeal*0.9 + 0*wBlack);
-      var b = Math.round(0*wRed + 0*wYellow + 192*wTeal*0.9 + 0*wBlack);
-      
-      // Check if inside circle
-      var cx = col + 0.5, cy = row + 0.5;
-      var dist = Math.sqrt((cx-5)*(cx-5) + (cy-5)*(cy-5));
-      if(dist > 5) {
-        btn.style.cssText = 'background:#111;border:none;padding:0;cursor:default;';
-      } else {
-        btn.style.cssText = 'background:rgb('+r+','+g+','+b+');border:none;padding:0;cursor:crosshair;';
-        // Store position data
-        btn.dataset.vx = vx;
-        btn.dataset.vy = arousal;
-        btn.onclick = function(e){
-          var bvx = parseFloat(this.dataset.vx);
-          var bvy = parseFloat(this.dataset.vy);
-          var wrap = document.getElementById('jmGrid');
-          var rect = wrap.getBoundingClientRect();
-          handleInteractionDirect(bvx, bvy, e.clientX, e.clientY, rect);
-        };
-      }
-      grid.appendChild(btn);
-    }
-  }
-})();
-
-function handleInteractionDirect(valence, arousal, clientX, clientY, wrapRect){
-  var mood = getMoodAtPoint(valence, arousal);
-  
-  var dot = document.getElementById('moodDot');
-  dot.style.left = (clientX - wrapRect.left + wrapRect.left - document.getElementById('jmGrid').getBoundingClientRect().left) + 'px';
-  dot.style.top  = (clientY - wrapRect.top) + 'px';
-  dot.style.background = mood.col;
-  dot.style.display = 'block';
-
-  selectedValence = valence;
-  selectedArousal = arousal;
-
-  document.getElementById('jmMoodName').textContent = mood.name;
-  document.getElementById('jmMoodName').style.color = mood.col;
-  document.getElementById('jmMoodDesc').textContent = mood.desc;
-  document.getElementById('jmPlayBtn').style.display = 'inline-block';
-
-  var genres = getBlendedGenres(valence, arousal);
-  var dbg = document.getElementById('jmDebug');
-  dbg.style.display = 'block';
-  document.getElementById('jmDebugCoords').textContent = 'Valence:'+valence.toFixed(2)+' Arousal:'+arousal.toFixed(2);
-  document.getElementById('jmDebugGenres').textContent = 'Genres: '+genres.join(', ');
-  document.getElementById('jmDebugApi').textContent = 'Searching…';
-
-  setStatus('Searching your library…');
-  setTrackCount(0);
-  pendingItems = [];
-
-  fetchTracksByGenres(genres)
-    .then(function(items){ return items.length>0?items:fetchFallback(); })
-    .then(function(items){
-      pendingItems=items; setTrackCount(items.length);
-      setStatus(items.length>0?'':'No tracks found.');
-      document.getElementById('jmDebugApi').textContent = items.length>0 ? '✓ Got '+items.length+' tracks' : '✗ 0 tracks';
-    })
-    .catch(function(e){ setStatus('Error: '+e.message); document.getElementById('jmDebugApi').textContent='✗ '+e.message; });
-}
-
-})();
+// SVG click handler
+window.jmSvgClick = function(e) {
+  e.stopPropagation();
+  var clientX = e.clientX;
+  var clientY = e.clientY;
+  document.getElementById('jmDebug').style.display = 'block';
+  document.getElementById('jmDebugCoords').textContent = 'SVG click at ' + Math.round(clientX) + ',' + Math.round(clientY);
+  handleInteraction(clientX, clientY);
+};
 </script>
 </body>
 </html>
