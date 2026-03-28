@@ -4,8 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Common.Configuration;
-using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
 using Microsoft.Extensions.Logging;
 
@@ -21,21 +19,14 @@ public class ServerEntryPoint : IServerEntryPoint
     private const string ScriptSrc  = "/JellyMoods/sidebar.js";
     private const string ScriptType = "module";
 
-    private readonly IServerApplicationHost _appHost;
-    private readonly IApplicationPaths      _appPaths;
     private readonly ILogger<ServerEntryPoint> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ServerEntryPoint"/> class.
     /// </summary>
-    public ServerEntryPoint(
-        IServerApplicationHost appHost,
-        IApplicationPaths appPaths,
-        ILogger<ServerEntryPoint> logger)
+    public ServerEntryPoint(ILogger<ServerEntryPoint> logger)
     {
-        _appHost  = appHost;
-        _appPaths = appPaths;
-        _logger   = logger;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -55,22 +46,18 @@ public class ServerEntryPoint : IServerEntryPoint
 
     private void PatchWebConfig()
     {
-        // Jellyfin serves its web client from {WebPath}/
-        var webPath = _appHost.WebUrl is not null
-            ? Path.Combine(_appPaths.ProgramDataPath, "web")
-            : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "jellyfin-web");
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
-        // Try common locations
-        string? configPath = null;
         var candidates = new[]
         {
-            Path.Combine(webPath, "config.json"),
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "jellyfin-web", "config.json"),
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", "config.json"),
+            Path.Combine(baseDir, "jellyfin-web", "config.json"),
+            Path.Combine(baseDir, "web", "config.json"),
             "/usr/share/jellyfin/web/config.json",
             "/usr/lib/jellyfin/bin/jellyfin-web/config.json",
+            "/usr/share/jellyfin-web/config.json",
         };
 
+        string? configPath = null;
         foreach (var c in candidates)
         {
             if (File.Exists(c))
@@ -91,14 +78,12 @@ public class ServerEntryPoint : IServerEntryPoint
         var raw  = File.ReadAllText(configPath);
         var json = JsonNode.Parse(raw) as JsonObject ?? new JsonObject();
 
-        // Ensure "plugins" array exists
         if (json["plugins"] is not JsonArray plugins)
         {
             plugins = new JsonArray();
             json["plugins"] = plugins;
         }
 
-        // Check if our script is already registered
         foreach (var node in plugins)
         {
             if (node is JsonObject obj && obj["src"]?.GetValue<string>() == ScriptSrc)
@@ -108,7 +93,6 @@ public class ServerEntryPoint : IServerEntryPoint
             }
         }
 
-        // Add our entry
         plugins.Add(new JsonObject
         {
             ["src"]  = ScriptSrc,
@@ -117,7 +101,7 @@ public class ServerEntryPoint : IServerEntryPoint
 
         var opts = new JsonSerializerOptions { WriteIndented = true };
         File.WriteAllText(configPath, json.ToJsonString(opts));
-        _logger.LogInformation("[JellyMoods] sidebar.js registered — restart Jellyfin web client to take effect");
+        _logger.LogInformation("[JellyMoods] sidebar.js registered successfully");
     }
 
     /// <inheritdoc />
