@@ -1,5 +1,4 @@
 name: Build & Release
-run-name: "Release ${{ github.ref_type == 'tag' && github.ref_name || 'v' }}${{ github.ref_type != 'tag' && '' || '' }}"
 
 on:
   push:
@@ -7,9 +6,6 @@ on:
       - main
     paths:
       - 'build.yaml'
-  push:
-    tags:
-      - 'v*.*.*.*'
 
 jobs:
   build:
@@ -33,23 +29,17 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Parse version
+      - name: Parse version from build.yaml
         id: version
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            TAG="${GITHUB_REF_NAME}"
-            VER="${TAG#v}"
-          else
-            VER=$(grep '^version:' build.yaml | sed 's/version: *"\(.*\)"/\1/')
-            TAG="v${VER}"
-          fi
+          VER=$(grep '^version:' build.yaml | sed 's/version: *"\(.*\)"/\1/')
+          TAG="v${VER}"
           ARTIFACT="Jellyfin.Plugin.JellyMoods_${VER}.zip"
           echo "tag=$TAG"           >> "$GITHUB_OUTPUT"
           echo "version=$VER"       >> "$GITHUB_OUTPUT"
           echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
-        if: startsWith(github.ref, 'refs/heads/')
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -71,10 +61,7 @@ jobs:
           cd build_output
           zip "../${ARTIFACT}" Jellyfin.Plugin.JellyMoods.dll
           cd ..
-          CHECKSUM=$(md5sum "${ARTIFACT}" | awk '{print $1}')
-          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
-          echo "artifact=${ARTIFACT}" >> "$GITHUB_ENV"
-          echo "checksum=${CHECKSUM}" >> "$GITHUB_ENV"
+          echo "checksum=$(md5sum "${ARTIFACT}" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
