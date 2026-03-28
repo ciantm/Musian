@@ -1,4 +1,5 @@
 name: Build & Release
+run-name: "Release ${{ github.ref_type == 'tag' && github.ref_name || 'v' }}${{ github.ref_type != 'tag' && '' || '' }}"
 
 on:
   push:
@@ -6,44 +7,55 @@ on:
       - main
     paths:
       - 'build.yaml'
+  push:
+    tags:
+      - 'v*.*.*.*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      artifact: ${{ steps.version.outputs.artifact }}
+      checksum: ${{ steps.pkg.outputs.checksum }}
 
     steps:
-      # ── Checkout ──────────────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ── Setup .NET ────────────────────────────────────────────────────────
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      # ── Parse version from build.yaml ──────────────────────────────────
       - name: Parse version
         id: version
         run: |
-          VER=$(grep '^version:' build.yaml | sed 's/version: *"\(.*\)"/\1/')
-          TAG="v${VER}"
-          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            VER="${TAG#v}"
+          else
+            VER=$(grep '^version:' build.yaml | sed 's/version: *"\(.*\)"/\1/')
+            TAG="v${VER}"
+          fi
+          ARTIFACT="Jellyfin.Plugin.JellyMoods_${VER}.zip"
+          echo "tag=$TAG"           >> "$GITHUB_OUTPUT"
+          echo "version=$VER"       >> "$GITHUB_OUTPUT"
+          echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
 
-      # ── Create and push tag ───────────────────────────────────────────────
       - name: Create and push tag
+        if: startsWith(github.ref, 'refs/heads/')
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag ${{ steps.version.outputs.tag }} || echo "Tag already exists"
           git push origin ${{ steps.version.outputs.tag }} || echo "Tag already pushed"
 
-      # ── Build ─────────────────────────────────────────────────────────────
       - name: Build
         run: |
           dotnet build \
@@ -52,24 +64,24 @@ jobs:
             -p:Version=${{ steps.version.outputs.version }} \
             --output ./build_output
 
-      # ── Package zip ──────────────────────────────────────────────────────
       - name: Package
+        id: pkg
         run: |
-          ARTIFACT="Jellyfin.Plugin.JellyMoods_${{ steps.version.outputs.version }}.zip"
+          ARTIFACT="${{ steps.version.outputs.artifact }}"
           cd build_output
           zip "../${ARTIFACT}" Jellyfin.Plugin.JellyMoods.dll
           cd ..
+          CHECKSUM=$(md5sum "${ARTIFACT}" | awk '{print $1}')
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
           echo "artifact=${ARTIFACT}" >> "$GITHUB_ENV"
-          echo "checksum=$(md5sum "${ARTIFACT}" | awk '{print $1}')" >> "$GITHUB_ENV"
+          echo "checksum=${CHECKSUM}" >> "$GITHUB_ENV"
 
-      # ── Upload artifact ───────────────────────────────────────────────────
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: plugin-zip
-          path: ${{ env.artifact }}
+          path: ${{ steps.version.outputs.artifact }}
 
-      # ── Create GitHub Release ─────────────────────────────────────────────
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -86,13 +98,12 @@ jobs:
             Then search for **JellyMoods** in the plugin catalogue.
 
             ### Manual install
-            Download `${{ env.artifact }}`, extract the DLL into your Jellyfin plugins folder and restart.
+            Download `${{ steps.version.outputs.artifact }}`, extract the DLL into your Jellyfin plugins folder and restart.
 
-            **MD5:** `${{ env.checksum }}`
-          files: ${{ env.artifact }}
+            **MD5:** `${{ steps.pkg.outputs.checksum }}`
+          files: ${{ steps.version.outputs.artifact }}
           fail_on_unmatched_files: true
 
-  # ── Update manifest.json on gh-pages ────────────────────────────────────
   update-manifest:
     needs: build
     runs-on: ubuntu-latest
@@ -111,32 +122,17 @@ jobs:
         with:
           name: plugin-zip
 
-      - name: Parse version
-        id: version
-        run: |
-          VER=$(grep '^version:' build.yaml | sed 's/version: *"\(.*\)"/\1/' 2>/dev/null || echo "")
-          if [ -z "$VER" ]; then
-            TAG="${GITHUB_REF_NAME}"
-            VER="${TAG#v}"
-          else
-            TAG="v${VER}"
-          fi
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
-
-      - name: Compute checksum & timestamp
+      - name: Compute timestamp
         id: meta
         run: |
-          ARTIFACT="Jellyfin.Plugin.JellyMoods_${{ steps.version.outputs.version }}.zip"
-          echo "checksum=$(md5sum "${ARTIFACT}" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
-          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"           >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Update manifest.json
         run: |
           python3 update_manifest.py \
-            --version   "${{ steps.version.outputs.version }}" \
-            --tag       "${{ steps.version.outputs.tag }}" \
-            --checksum  "${{ steps.meta.outputs.checksum }}" \
+            --version   "${{ needs.build.outputs.version }}" \
+            --tag       "${{ needs.build.outputs.tag }}" \
+            --checksum  "${{ needs.build.outputs.checksum }}" \
             --timestamp "${{ steps.meta.outputs.timestamp }}"
 
       - name: Commit & push manifest
@@ -144,5 +140,5 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add manifest.json
-          git commit -m "chore: update manifest for ${{ steps.version.outputs.tag }}" || echo "No changes"
+          git commit -m "chore: update manifest for ${{ needs.build.outputs.tag }}" || echo "No changes"
           git push
