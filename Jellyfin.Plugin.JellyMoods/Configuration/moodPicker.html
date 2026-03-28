@@ -15,7 +15,7 @@
     <!-- Red  top-left = angry/aggressive -->
     <!-- Yellow top-right = happy/euphoric -->
     <!-- Teal  bottom-right = calm/serene -->
-    <div id="jmWheel" style="position:absolute;inset:0;border-radius:50%;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,0.8),0 0 0 2px rgba(255,255,255,0.10);cursor:crosshair;-webkit-tap-highlight-color:transparent;">
+    <div id="jmWheel" onclick="jmHandleClick(event)" ontouchstart="jmHandleTouch(event)" style="position:absolute;inset:0;border-radius:50%;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,0.8),0 0 0 2px rgba(255,255,255,0.10);cursor:crosshair;-webkit-tap-highlight-color:transparent;">
       <div style="position:absolute;inset:0;background:#000;"></div>
       <div style="position:absolute;inset:0;background:radial-gradient(ellipse 130% 130% at 0% 0%, #ff1a00 0%, transparent 70%);mix-blend-mode:screen;pointer-events:none;"></div>
       <div style="position:absolute;inset:0;background:radial-gradient(ellipse 130% 130% at 100% 0%, #ffe800 0%, transparent 70%);mix-blend-mode:screen;pointer-events:none;"></div>
@@ -244,17 +244,15 @@ function handleInteraction(clientX, clientY){
     .catch(function(e){console.error('[JellyMoods]',e);setStatus('Could not fetch tracks.');});
 }
 
-// ── Event binding — directly on the wheel div ─────────────────
-var jmWheel=document.getElementById('jmWheel');
-jmWheel.addEventListener('mousedown',function(e){
-  e.stopPropagation(); e.preventDefault();
+// ── Global handlers on wheel div (inline attrs bypass framework interceptors) ──
+window.jmHandleClick=function(e){
   handleInteraction(e.clientX,e.clientY);
-});
-jmWheel.addEventListener('touchstart',function(e){
-  e.stopPropagation(); e.preventDefault();
+};
+window.jmHandleTouch=function(e){
+  e.preventDefault();
   var t=e.touches[0];
   handleInteraction(t.clientX,t.clientY);
-},{passive:false});
+};
 
 // ── UI helpers ────────────────────────────────────────────────
 function setStatus(t){document.getElementById('jmStatus').textContent=t;}
