@@ -183,9 +183,18 @@ var MOODS = [
 ];
 
 // ── Player ──────────────────────────────────────────────────────────────
-var jmPlaylist = [];
-var jmPlayIdx  = 0;
-var jmAudio    = document.getElementById('jmAudio');
+var jmPlaylist  = [];
+var jmPlayIdx   = 0;
+var jmAdvancing = false;
+var jmAudio     = document.getElementById('jmAudio');
+
+function jmAdvance() {
+  if (jmAdvancing) return;
+  jmAdvancing = true;
+  jmPlayIdx++;
+  jmAdvancing = false;
+  jmPlayTrack(jmPlayIdx);
+}
 
 function jmPlayTrack(idx) {
   if (idx >= jmPlaylist.length) {
@@ -195,7 +204,8 @@ function jmPlayTrack(idx) {
   }
   var item = jmPlaylist[idx];
   jmAudio.src = JM.streamUrl(item.Id);
-  jmAudio.play().catch(function() { jmPlayTrack(idx + 1); });
+  jmAudio.load();
+  jmAudio.play().catch(function() {});
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   document.getElementById('jmTrackName').textContent =
     (artist ? artist + ' \u2014 ' : '') + item.Name;
@@ -203,8 +213,8 @@ function jmPlayTrack(idx) {
   setStatus('Playing ' + jmPlaylist.length + ' tracks \u266a');
 }
 
-jmAudio.addEventListener('ended', function() { jmPlayIdx++; jmPlayTrack(jmPlayIdx); });
-jmAudio.addEventListener('error', function() { jmPlayIdx++; jmPlayTrack(jmPlayIdx); });
+jmAudio.addEventListener('ended', jmAdvance);
+jmAudio.addEventListener('error', jmAdvance);
 
 document.getElementById('jmSkipBtn').addEventListener('click', function() {
   jmPlayIdx++; jmPlayTrack(jmPlayIdx);
@@ -261,6 +271,10 @@ function handleInteraction(clientX, clientY) {
   setMoodDesc(nearest1.desc);
   setStatus('Searching your library\u2026');
   setTrackCount(0);
+
+  // Unlock browser autoplay policy while still inside the user gesture
+  jmAudio.src = '';
+  jmAudio.play().catch(function() {});
 
   // Combine genres from the 3 nearest moods
   var genreMap = {};
