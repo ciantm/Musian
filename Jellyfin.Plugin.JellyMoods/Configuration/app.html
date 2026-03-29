@@ -8,12 +8,17 @@
 * { box-sizing:border-box; margin:0; padding:0; }
 body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; overflow-x:hidden; }
 #jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
+#jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
+#jmTrackName { font-size:0.85em; color:#ccc; margin-bottom:10px; min-height:1.2em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.jm-btn { padding:10px 28px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:#fff; }
+#jmSkipBtn { background:rgba(255,255,255,0.12); margin-right:8px; }
+#jmStopBtn { background:rgba(255,255,255,0.08); }
 </style>
 </head>
 <body>
 <div id="jmApp">
   <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">&#127925; JellyMoods</h2>
-  <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel — up to 4 points to blend moods</p>
+  <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Tap the wheel — plays the 3 nearest moods instantly</p>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -64,10 +69,19 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;">&#8212; How are you feeling? &#8212;</div>
     <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
   </div>
-  <div style="margin-top:20px;text-align:center;">
+
+  <div style="margin-top:16px;text-align:center;">
     <div id="jmStatus" style="font-size:0.8em;color:#777;min-height:1.2em;"></div>
-    <div id="jmTrackCount" style="display:none;margin-top:6px;font-size:0.78em;color:#aaa;"></div>
+    <div id="jmTrackCount" style="display:none;margin-top:4px;font-size:0.78em;color:#aaa;"></div>
   </div>
+
+  <div id="jmPlayer" style="display:none;">
+    <audio id="jmAudio"></audio>
+    <div id="jmTrackName"></div>
+    <button id="jmSkipBtn" class="jm-btn">&#9197; Skip</button>
+    <button id="jmStopBtn" class="jm-btn">&#9209; Stop</button>
+  </div>
+
   <a href="/web/index.html" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back to Jellyfin</a>
 </div>
 
@@ -105,6 +119,13 @@ var JM = {
     return { 'X-Emby-Authorization':
       'MediaBrowser Client="JellyMoods",Device="Browser",DeviceId="jm1",Version="1.0"' +
       (this.token ? ',Token="' + this.token + '"' : '') };
+  },
+  streamUrl: function(itemId) {
+    return this.server + '/Audio/' + itemId + '/universal' +
+      '?UserId=' + this.userId +
+      '&DeviceId=jm1' +
+      '&MaxStreamingBitrate=140000000' +
+      '&api_key=' + this.token;
   }
 };
 JM.init();
@@ -161,43 +182,53 @@ var MOODS = [
   { name:'Depressed',   desc:'Heavy, hopeless, withdrawn',            x:0.08, y:0.08, col:'#3060e0', genres:['Slowcore','Sadcore','Dark Folk','Doom Metal','Ambient'] },
 ];
 
-var MAX_SELECTIONS = 4;
-var SELECTION_RADIUS = 0.08; // 8% of wheel radius — captures 1-3 nearest moods per tap
-var selections = []; // { valence, arousal, col, name, px, py, genres[] }
+// ── Player ──────────────────────────────────────────────────────────────
+var jmPlaylist = [];
+var jmPlayIdx  = 0;
+var jmAudio    = document.getElementById('jmAudio');
 
-function getMoodAtPoint(vx, vy) {
-  var best = MOODS[0], bestDist = Infinity;
-  for (var i = 0; i < MOODS.length; i++) {
-    var d = Math.sqrt((vx-MOODS[i].x)*(vx-MOODS[i].x) + (vy-MOODS[i].y)*(vy-MOODS[i].y));
-    if (d < bestDist) { bestDist = d; best = MOODS[i]; }
+function jmPlayTrack(idx) {
+  if (idx >= jmPlaylist.length) {
+    setStatus('Playlist ended — tap the wheel to play again.');
+    document.getElementById('jmPlayer').style.display = 'none';
+    return;
   }
-  return best;
+  var item = jmPlaylist[idx];
+  jmAudio.src = JM.streamUrl(item.Id);
+  jmAudio.play().catch(function() { jmPlayTrack(idx + 1); });
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  document.getElementById('jmTrackName').textContent =
+    (artist ? artist + ' \u2014 ' : '') + item.Name;
+  document.getElementById('jmPlayer').style.display = 'block';
+  setStatus('Playing ' + jmPlaylist.length + ' tracks \u266a');
 }
 
-function getMoodsInRadius(vx, vy, radius) {
-  var found = [];
-  for (var i = 0; i < MOODS.length; i++) {
-    var d = Math.sqrt((vx-MOODS[i].x)*(vx-MOODS[i].x) + (vy-MOODS[i].y)*(vy-MOODS[i].y));
-    if (d <= radius) found.push(MOODS[i]);
-  }
-  return found;
+jmAudio.addEventListener('ended', function() { jmPlayIdx++; jmPlayTrack(jmPlayIdx); });
+jmAudio.addEventListener('error', function() { jmPlayIdx++; jmPlayTrack(jmPlayIdx); });
+
+document.getElementById('jmSkipBtn').addEventListener('click', function() {
+  jmPlayIdx++; jmPlayTrack(jmPlayIdx);
+});
+document.getElementById('jmStopBtn').addEventListener('click', function() {
+  jmAudio.pause(); jmAudio.src = '';
+  jmPlaylist = [];
+  document.getElementById('jmPlayer').style.display = 'none';
+  setStatus(''); setTrackCount(0);
+});
+
+function startPlayback(items) {
+  jmAudio.pause();
+  jmPlaylist = items; jmPlayIdx = 0;
+  jmPlayTrack(0);
 }
 
-function renderDots() {
-  var wrap = document.getElementById('jmWheelWrap');
-  var old = wrap.querySelectorAll('.jm-dot');
-  for (var i = 0; i < old.length; i++) wrap.removeChild(old[i]);
-  selections.forEach(function(s) {
-    var dot = document.createElement('div');
-    dot.className = 'jm-dot';
-    dot.style.cssText = 'position:absolute;width:22px;height:22px;border-radius:50%;' +
-      'transform:translate(-50%,-50%);pointer-events:none;transition:background 0.25s;' +
-      'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);';
-    dot.style.background = s.col;
-    dot.style.left = s.px + 'px';
-    dot.style.top  = s.py + 'px';
-    wrap.appendChild(dot);
-  });
+// ── Mood logic ───────────────────────────────────────────────────────────
+function getNearestMoods(vx, vy, count) {
+  return MOODS.slice().sort(function(a, b) {
+    var da = (vx-a.x)*(vx-a.x) + (vy-a.y)*(vy-a.y);
+    var db = (vx-b.x)*(vx-b.x) + (vy-b.y)*(vy-b.y);
+    return da - db;
+  }).slice(0, count);
 }
 
 function handleInteraction(clientX, clientY) {
@@ -210,42 +241,38 @@ function handleInteraction(clientX, clientY) {
   var valence = (dx/r)*0.5 + 0.5;
   var arousal  = (-dy/r)*0.5 + 0.5;
 
-  // 5th tap resets; otherwise accumulate up to 4
-  if (selections.length >= MAX_SELECTIONS) selections = [];
+  var nearest = getNearestMoods(valence, arousal, 3);
+  var nearest1 = nearest[0];
 
-  var nearest = getMoodAtPoint(valence, arousal);
-  var nearby  = getMoodsInRadius(valence, arousal, SELECTION_RADIUS);
-  if (nearby.length === 0) nearby = [nearest];
+  // Show dot
+  var old = wrap.querySelectorAll('.jm-dot');
+  for (var i = 0; i < old.length; i++) wrap.removeChild(old[i]);
+  var dot = document.createElement('div');
+  dot.className = 'jm-dot';
+  dot.style.cssText = 'position:absolute;width:22px;height:22px;border-radius:50%;' +
+    'transform:translate(-50%,-50%);pointer-events:none;' +
+    'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);';
+  dot.style.background = nearest1.col;
+  dot.style.left = (clientX - rect.left) + 'px';
+  dot.style.top  = (clientY - rect.top)  + 'px';
+  wrap.appendChild(dot);
 
-  var genreMap = {};
-  nearby.forEach(function(m) { m.genres.forEach(function(g) { genreMap[g] = true; }); });
-
-  selections.push({
-    valence: valence, arousal: arousal,
-    col: nearest.col, name: nearest.name,
-    px: clientX - rect.left, py: clientY - rect.top,
-    genres: Object.keys(genreMap)
-  });
-
-  renderDots();
-
-  var names = selections.map(function(s) { return s.name; }).join(' + ');
-  setMoodName(names, nearest.col);
-  setMoodDesc(nearest.desc);
+  setMoodName(nearest.map(function(m) { return m.name; }).join(' + '), nearest1.col);
+  setMoodDesc(nearest1.desc);
   setStatus('Searching your library\u2026');
   setTrackCount(0);
 
-  // Combine genres across all selection points
-  var allGenres = {};
-  selections.forEach(function(s) { s.genres.forEach(function(g) { allGenres[g] = true; }); });
-  var genres = Object.keys(allGenres);
+  // Combine genres from the 3 nearest moods
+  var genreMap = {};
+  nearest.forEach(function(m) { m.genres.forEach(function(g) { genreMap[g] = true; }); });
+  var genres = Object.keys(genreMap);
 
   fetchTracksByGenres(genres)
     .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
     .then(function(items) {
       setTrackCount(items.length);
       if (!items.length) { setStatus('No tracks found — check genre tags in your library.'); return; }
-      playItems(items);
+      startPlayback(items);
     })
     .catch(function(e) {
       console.error('[JellyMoods]', e);
@@ -254,23 +281,19 @@ function handleInteraction(clientX, clientY) {
 }
 
 var svg = document.getElementById('jmSvgWheel');
-svg.addEventListener('click', function(e) {
-  handleInteraction(e.clientX, e.clientY);
-});
-svg.addEventListener('touchend', function(e) {
-  e.preventDefault();
-  var t = e.changedTouches[0];
-  handleInteraction(t.clientX, t.clientY);
-});
+svg.addEventListener('click',    function(e) { handleInteraction(e.clientX, e.clientY); });
+svg.addEventListener('touchend', function(e) { e.preventDefault(); var t = e.changedTouches[0]; handleInteraction(t.clientX, t.clientY); });
 
+// ── UI helpers ────────────────────────────────────────────────────────────
 function setStatus(t)    { document.getElementById('jmStatus').textContent = t; }
 function setMoodName(t, col) { var el = document.getElementById('jmMoodName'); el.textContent = t; el.style.color = col || '#fff'; }
 function setMoodDesc(t)  { document.getElementById('jmMoodDesc').textContent = t; }
 function setTrackCount(n){ var el = document.getElementById('jmTrackCount'); el.style.display = n > 0 ? 'block' : 'none'; el.textContent = n > 0 ? n + ' tracks found' : ''; }
 
+// ── API ───────────────────────────────────────────────────────────────────
 function fetchTracksByGenres(genres) {
   if (!JM.token || !JM.userId) return Promise.resolve([]);
-  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'50', Fields:'Genres,MediaSources'});
+  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'100', Fields:'Genres,MediaSources'});
   if (genres.length > 0) params.set('Genres', genres.join(','));
   return fetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
@@ -279,29 +302,11 @@ function fetchTracksByGenres(genres) {
 
 function fetchFallback() {
   if (!JM.token || !JM.userId) return Promise.resolve([]);
-  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'30'});
-  return fetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
+  return fetch(JM.server + '/Users/' + JM.userId + '/Items?' +
+    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'30'}),
+    {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { return d.Items || []; });
-}
-
-function playItems(items) {
-  if (!items || !items.length) { setStatus('No matching tracks found.'); return; }
-  if (!JM.token || !JM.userId) { setStatus('Not logged in — open via Jellyfin.'); return; }
-  setStatus('Starting playback\u2026');
-  var ids = items.map(function(i) { return i.Id; });
-  fetch(JM.server + '/Sessions?ControllableByUserId=' + JM.userId, {headers: JM.headers()})
-    .then(function(r) { return r.json(); })
-    .then(function(sessions) {
-      var session = sessions.filter(function(s) { return s.UserId === JM.userId; })[0];
-      if (!session) { setStatus('No active session — open the web player first.'); return; }
-      return fetch(JM.server + '/Sessions/' + session.Id + '/Playing', {
-        method: 'POST',
-        headers: Object.assign({'Content-Type':'application/json'}, JM.headers()),
-        body: JSON.stringify({PlayCommand:'PlayNow', ItemIds:ids, StartIndex:0})
-      }).then(function() { setStatus('Playing ' + items.length + ' tracks \u266a'); });
-    })
-    .catch(function(e) { console.error('[JellyMoods]', e); setStatus('Playback error: ' + e.message); });
 }
 
 })();
