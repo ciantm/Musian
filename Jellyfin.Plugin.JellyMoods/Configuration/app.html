@@ -112,15 +112,6 @@ var JM = {
 };
 JM.init();
 
-window.jmSvgClick = function(e) {
-  handleInteraction(e.clientX, e.clientY);
-};
-window.jmSvgTouch = function(e) {
-  e.preventDefault();
-  var t = e.changedTouches[0];
-  handleInteraction(t.clientX, t.clientY);
-};
-
 (function(){
 'use strict';
 var MOODS = [
@@ -237,6 +228,15 @@ function handleInteraction(clientX, clientY){
       setStatus('Could not fetch tracks.');
     });
 }
+
+window.jmSvgClick = function(e) {
+  handleInteraction(e.clientX, e.clientY);
+};
+window.jmSvgTouch = function(e) {
+  e.preventDefault();
+  var t = e.changedTouches[0];
+  handleInteraction(t.clientX, t.clientY);
+};
 
 function setStatus(t){document.getElementById('jmStatus').textContent=t;}
 function setMoodName(t,col){var el=document.getElementById('jmMoodName');el.textContent=t;el.style.color=col||'#fff';}
