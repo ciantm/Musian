@@ -125,6 +125,10 @@ var JM = {
       '?UserId=' + this.userId +
       '&DeviceId=jm1' +
       '&MaxStreamingBitrate=140000000' +
+      '&Container=mp3,aac,m4a,flac,ogg,opus,webma,webm,wav' +
+      '&AudioCodec=aac,mp3,flac,opus,vorbis' +
+      '&TranscodingContainer=mp3' +
+      '&TranscodingProtocol=http' +
       '&api_key=' + this.token;
   }
 };
@@ -215,9 +219,15 @@ function jmPlayTrack(idx, gen) {
 }
 
 function attachPlayerListeners(gen) {
-  var advance = jmAdvance(gen);
-  jmAudio.addEventListener('ended', advance);
-  jmAudio.addEventListener('error', advance);
+  jmAudio.addEventListener('ended', jmAdvance(gen));
+  jmAudio.addEventListener('error', function() {
+    if (gen !== jmGeneration) return;
+    var code = jmAudio.error ? jmAudio.error.code : '?';
+    var msg  = jmAudio.error ? jmAudio.error.message : '';
+    setStatus('Track error (code ' + code + (msg ? ': ' + msg : '') + ') — skipping\u2026');
+    jmPlayIdx++;
+    jmPlayTrack(jmPlayIdx, gen);
+  });
 }
 
 document.getElementById('jmSkipBtn').addEventListener('click', function() {
