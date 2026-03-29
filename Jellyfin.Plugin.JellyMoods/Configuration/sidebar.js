@@ -39,19 +39,17 @@ define([], function () {
   }
 
   function inject() {
-    if (document.getElementById(ITEM_ID)) return;
-
     var container = document.querySelector('.libraryMenuOptions');
     if (!container) return;
 
     var musicEl = findMusicItem(container);
-    var item    = buildItem();
+    if (!musicEl) return; // Music not rendered yet — wait for next mutation
 
-    if (musicEl) {
-      musicEl.parentNode.insertBefore(item, musicEl.nextSibling);
-    } else {
-      container.appendChild(item);
-    }
+    var existing = document.getElementById(ITEM_ID);
+    if (existing && existing.previousElementSibling === musicEl) return; // already correct
+
+    if (existing) existing.parentNode.removeChild(existing);
+    musicEl.parentNode.insertBefore(buildItem(), musicEl.nextSibling);
   }
 
   if (document.readyState === 'loading') {
