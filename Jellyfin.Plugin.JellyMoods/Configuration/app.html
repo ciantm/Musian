@@ -227,8 +227,8 @@ var ERAS = [
     var idx  = Math.floor(rel * n);
     idx = Math.max(0, Math.min(n - 1, idx));
 
-    var lo = Math.max(0, idx - 2);
-    var hi = Math.min(n - 1, idx + 2);
+    var lo = Math.max(0, idx - 1);
+    var hi = Math.min(n - 1, idx + 1);
     var selected = ERAS.slice(lo, hi + 1);
 
     // Position highlight over selected range
