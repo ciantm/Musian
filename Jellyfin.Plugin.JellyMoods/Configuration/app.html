@@ -420,10 +420,17 @@ function handleInteraction(clientX, clientY) {
   var genres = Object.keys(genreMap);
 
   // If a genre zone is selected, use it as the search filter (overrides mood genres)
+  var moodGenres = genres;
   if (jmEraGenres !== null) genres = jmEraGenres;
 
   fetchTracksByGenres(genres)
-    .then(function(items) { return (items.length > 0 || jmEraGenres !== null) ? items : fetchFallback(); })
+    .then(function(items) {
+      if (items.length > 0) return items;
+      // Era zone selected but no matches — fall back to mood genres
+      if (jmEraGenres !== null && moodGenres.length > 0) return fetchTracksByGenres(moodGenres);
+      // No era zone — fall back to random
+      return fetchFallback();
+    })
     .then(function(items) {
       setTrackCount(items.length);
       if (!items.length) { setStatus('No tracks found — check genre tags in your library.'); return; }
