@@ -10,7 +10,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
 #jmEraArea { width:100%; max-width:420px; margin-top:18px; }
 #jmEraWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
-#jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a6080,#6a7840,#b040a0,#c06820,#c03010,#604080,#a00020,#806000,#1a0010); }
+#jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
 #jmEraHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
 #jmEraLabelsTop, #jmEraLabels { display:flex; width:100%; }
 #jmEraLabelsTop { margin-bottom:4px; }
@@ -100,7 +100,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </div>
 
   <a href="/web/index.html" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back to Jellyfin</a>
-  <div style="margin-top:12px;font-size:0.65em;color:#444;">v3.0.30.0</div>
+  <div style="margin-top:12px;font-size:0.65em;color:#444;">v3.0.31.0</div>
 </div>
 
 <script>
@@ -228,16 +228,14 @@ var MOODS = [
 
 // ── Eras ─────────────────────────────────────────────────────────────────
 var ERAS = [
-  { name:'Classical',    genres:['Classical','Classical Music','Opera','Symphony','Baroque','Orchestral','Chamber Music','Film Score','Contemporary Classical Music'] },
-  { name:'Jazz & Blues', genres:['Jazz','Jazz Fusion','Jazz-Funk','Blues','Electric Blues','Soul','Rhythm And Blues','Contemporary R&B'] },
-  { name:'Folk',         genres:['Folk','Folk Rock','Country Music','Country Rock','Western','Music Of Ireland','Ballad','Ska','Reggae'] },
-  { name:'Pop',          genres:['Pop','Pop Music','Pop Rock','Funk','Funk Rock','Music Of Latin America'] },
-  { name:'Rock',         genres:['Rock','Rock Music','Classic Rock','Psychedelic Rock','Space Rock','Rockabilly','Art Rock','Proto-Prog','Southern Rock','Latin Rock','Rock En Español','Chicano Rock'] },
-  { name:'Hard Rock',    genres:['Hard Rock','Blues Rock','Garage Rock','Progressive Rock','Acid Rock','Experimental Rock'] },
-  { name:'Grunge',       genres:['Grunge','Alternative Rock','Indie Rock','Post-Hardcore'] },
-  { name:'Punk',         genres:['Punk Rock','Hardcore','Oi','Street Punk'] },
-  { name:'Rap',          genres:['Rap','Rap Rock','Hip-Hop','Hip Hop'] },
-  { name:'Metal',        genres:['Heavy Metal','Alternative Metal','Traditional Heavy Metal','Metalcore','Funk Metal','Thrash Metal','Death Metal','Black Metal'] },
+  { name:'Classical',       genres:['Classical','Classical Music','Opera','Symphony','Baroque','Orchestral','Chamber Music','Film Score','Contemporary Classical Music'] },
+  { name:'Jazz & Blues',    genres:['Jazz','Jazz Fusion','Jazz-Funk','Blues','Electric Blues','Soul','Rhythm And Blues'] },
+  { name:'Folk & Country',  genres:['Folk','Folk Rock','Country Music','Country Rock','Western','Music Of Ireland','Ballad','Ska','Reggae'] },
+  { name:'Pop & Soul',      genres:['Pop','Pop Music','Pop Rock','Funk','Funk Rock','Contemporary R&B','Music Of Latin America','Latin Rock','Rock En Español','Chicano Rock'] },
+  { name:'Rock',            genres:['Rock','Rock Music','Classic Rock','Psychedelic Rock','Space Rock','Rockabilly','Art Rock','Proto-Prog','Southern Rock','Indie Rock','Alternative Rock','Grunge','Experimental Rock','Garage Rock','Acid Rock'] },
+  { name:'Hard Rock & Punk',genres:['Hard Rock','Blues Rock','Progressive Rock','Punk Rock','Post-Hardcore','Hardcore','Funk Metal'] },
+  { name:'Rap',             genres:['Rap','Rap Rock','Hip-Hop','Hip Hop'] },
+  { name:'Metal',           genres:['Heavy Metal','Alternative Metal','Traditional Heavy Metal','Metalcore','Thrash Metal','Death Metal','Black Metal'] },
 ];
 var jmEraGenres = null; // null = no era filter active
 
