@@ -200,11 +200,32 @@ function jmAdvance(gen) {
   };
 }
 
+function jmUpdateMediaSession(item) {
+  if (!('mediaSession' in navigator)) return;
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title:  item.Name  || 'JellyMoods',
+    artist: artist,
+    album:  item.Album || '',
+  });
+  navigator.mediaSession.setActionHandler('nexttrack', function() {
+    jmPlayIdx++; jmPlayTrack(jmPlayIdx, jmGeneration);
+  });
+  navigator.mediaSession.setActionHandler('previoustrack', function() {
+    jmPlayIdx = Math.max(0, jmPlayIdx - 1);
+    jmPlayTrack(jmPlayIdx, jmGeneration);
+  });
+  navigator.mediaSession.setActionHandler('stop', function() {
+    document.getElementById('jmStopBtn').click();
+  });
+}
+
 function jmPlayTrack(idx, gen) {
   if (gen !== jmGeneration) return;
   if (idx >= jmPlaylist.length) {
     setStatus('Playlist ended — tap the wheel to play again.');
     document.getElementById('jmPlayer').style.display = 'none';
+    if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
     return;
   }
   var item = jmPlaylist[idx];
@@ -216,6 +237,7 @@ function jmPlayTrack(idx, gen) {
     (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmPlayer').style.display = 'block';
   setStatus('Playing ' + jmPlaylist.length + ' tracks \u266a');
+  jmUpdateMediaSession(item);
 }
 
 function attachPlayerListeners(gen) {
@@ -240,6 +262,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmPlaylist = [];
   document.getElementById('jmPlayer').style.display = 'none';
   setStatus(''); setTrackCount(0);
+  if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
 });
 
 function startPlayback(items) {
