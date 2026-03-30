@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/ciantm/Jellymoods/main/assets/logo.png",
     "versions": [
       {
+        "version": "3.0.32.0",
+        "changelog": "Release 3.0.32.0",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/ciantm/Jellymoods/releases/download/v3.0.32.0/Jellyfin.Plugin.JellyMoods_3.0.32.0.zip",
+        "checksum": "897f072ee3620817555a96de80e22288",
+        "timestamp": "2026-03-30T09:34:40Z"
+      },
+      {
         "version": "3.0.31.0",
         "changelog": "Release 3.0.31.0",
         "targetAbi": "10.8.0.0",
