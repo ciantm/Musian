@@ -9,7 +9,7 @@
 body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; overflow-x:hidden; }
 #jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
 #jmEraWrap { position:relative; width:100%; max-width:420px; margin-top:18px; touch-action:none; cursor:pointer; }
-#jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8a030,#1a6080,#1a4090,#c03010,#800820,#2a1a2a,#000000); }
+#jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8a030,#1a6080,#1a4090,#c03010,#800820,#502080,#2a1a2a,#000000); }
 #jmEraHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
 #jmEraLabels { display:flex; width:100%; margin-top:5px; }
 #jmEraLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
@@ -199,14 +199,16 @@ var MOODS = [
 
 // ── Eras ─────────────────────────────────────────────────────────────────
 var ERAS = [
-  { name:'Classical', genres:['Classical','Baroque','Opera','Chamber Music','Orchestral','Requiem','Choral','Romantic','Impressionist'] },
-  { name:'Jazz & Blues', genres:['Jazz','Swing','Big Band','Bebop','Bossa Nova','Blues','Electric Blues','R&B','Soul','Gospel','Ragtime'] },
-  { name:'Folk',      genres:['Folk','Country','Bluegrass','Acoustic','Singer-Songwriter','Americana'] },
+  { name:'Classical',   genres:['Classical','Baroque','Opera','Chamber Music','Orchestral','Requiem','Choral','Romantic','Impressionist'] },
+  { name:'Jazz & Blues',genres:['Jazz','Swing','Big Band','Bebop','Bossa Nova','Blues','Electric Blues','R&B','Soul','Gospel','Ragtime'] },
+  { name:'Folk',        genres:['Folk','Country','Bluegrass','Acoustic','Singer-Songwriter','Americana'] },
   { name:'Rock n Roll', genres:['Rock n Roll','Rockabilly','Doo-Wop','Early Rock','Oldies','Classic Rock','Psychedelic Rock'] },
-  { name:'Pop & Rock', genres:['Pop','Soft Rock','Indie Pop','Motown','Hard Rock','Prog Rock','Arena Rock','Punk','New Wave'] },
-  { name:'Metal',     genres:['Metal','Heavy Metal','Doom Metal','Speed Metal','Glam Metal','Power Metal','Thrash Metal','Post-Punk','Gothic'] },
-  { name:'Extreme',   genres:['Death Metal','Black Metal','Grindcore','Industrial Metal','Noise','Sludge Metal'] },
+  { name:'Pop & Rock',  genres:['Pop','Soft Rock','Indie Pop','Motown','Hard Rock','Prog Rock','Arena Rock','Punk','New Wave'] },
+  { name:'Hip-Hop',     genres:['Hip-Hop','Rap','Trap','R&B','Neo-Soul','Funk','Grime','Drill','Old School Hip-Hop'] },
+  { name:'Metal',       genres:['Metal','Heavy Metal','Doom Metal','Speed Metal','Glam Metal','Power Metal','Thrash Metal','Post-Punk','Gothic'] },
+  { name:'Extreme',     genres:['Death Metal','Black Metal','Grindcore','Industrial Metal','Noise','Sludge Metal'] },
 ];
+var jmEraGenres = null; // null = no era filter active
 
 (function() {
   var wrap      = document.getElementById('jmEraWrap');
@@ -244,24 +246,11 @@ var ERAS = [
       s.style.fontWeight = (i >= lo && i <= hi) ? '700' : '400';
     });
 
-    setStatus('Searching era\u2026');
-    setTrackCount(0);
-
+    // Set era filter — no playback, tap the wheel to play
     var genreMap = {};
     selected.forEach(function(e) { e.genres.forEach(function(g) { genreMap[g] = true; }); });
-    var genres = Object.keys(genreMap);
-
-    fetchTracksByGenres(genres)
-      .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
-      .then(function(items) {
-        setTrackCount(items.length);
-        if (!items.length) { setStatus('No tracks found — check genre tags in your library.'); return; }
-        startPlayback(items);
-      })
-      .catch(function(e) {
-        console.error('[JellyMoods era]', e);
-        setStatus('Could not fetch tracks.');
-      });
+    jmEraGenres = Object.keys(genreMap);
+    setStatus('Era set — tap the wheel to play');
   }
 
   wrap.addEventListener('click', function(e) { handleEraInteraction(e.clientX); });
@@ -348,6 +337,13 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   document.getElementById('jmPlayer').style.display = 'none';
   setStatus(''); setTrackCount(0);
   if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+  // Clear era filter and reset highlight
+  jmEraGenres = null;
+  var hl = document.getElementById('jmEraHighlight');
+  if (hl) hl.style.display = 'none';
+  document.getElementById('jmEraLabels').querySelectorAll('span').forEach(function(s) {
+    s.style.color = ''; s.style.fontWeight = '';
+  });
 });
 
 function startPlayback(items) {
@@ -403,6 +399,14 @@ function handleInteraction(clientX, clientY) {
   var genreMap = {};
   nearest.forEach(function(m) { m.genres.forEach(function(g) { genreMap[g] = true; }); });
   var genres = Object.keys(genreMap);
+
+  // Apply era filter if set — intersect mood genres with era genres, fallback to mood-only if empty
+  if (jmEraGenres !== null) {
+    var eraSet = {};
+    jmEraGenres.forEach(function(g) { eraSet[g] = true; });
+    var filtered = genres.filter(function(g) { return eraSet[g]; });
+    if (filtered.length > 0) genres = filtered;
+  }
 
   fetchTracksByGenres(genres)
     .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
