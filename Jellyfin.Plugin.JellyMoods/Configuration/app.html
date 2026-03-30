@@ -105,7 +105,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </div>
 
   <a href="/web/index.html" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back to Jellyfin</a>
-  <div style="margin-top:12px;font-size:0.65em;color:#444;">v3.0.32.0</div>
+  <div style="margin-top:12px;font-size:0.65em;color:#444;">v3.0.33.0</div>
 </div>
 
 <script>
@@ -156,6 +156,15 @@ var JM = {
   }
 };
 JM.init();
+var jmGenreCache = null;
+if (JM.token) {
+  fetch(JM.server + '/Genres?' + new URLSearchParams({
+    IncludeItemTypes:'Audio', Recursive:'true', Limit:'500'
+  }), {headers: JM.headers()})
+  .then(function(r){ return r.json(); })
+  .then(function(d){ jmGenreCache = (d.Items||[]).map(function(g){ return g.Name; }); })
+  .catch(function(){});
+}
 if (!JM.token) {
   document.getElementById('jmStatus').textContent = 'Not signed in — please log into Jellyfin first.';
   document.getElementById('jmStatus').style.color = '#f88';
@@ -182,65 +191,65 @@ if (!JM.token) {
 (function(){
 'use strict';
 var MOODS = [
-  { name:'Aggressive',  desc:'Raw, confrontational, intense',         x:0.08, y:0.95, col:'#ff3030', genres:['Heavy Metal','Metalcore','Punk Rock','Hard Rock','Alternative Metal'] },
-  { name:'Angry',       desc:'Hot, fierce, forceful',                 x:0.10, y:0.90, col:'#ff4040', genres:['Heavy Metal','Hard Rock','Punk Rock','Alternative Metal','Traditional Heavy Metal'] },
-  { name:'Frantic',     desc:'Frenzied, chaotic, uncontrolled',       x:0.12, y:0.92, col:'#ff3535', genres:['Metalcore','Punk Rock','Post-Hardcore','Hard Rock','Alternative Metal'] },
-  { name:'Defiant',     desc:'Bold, rebellious, confrontational',     x:0.15, y:0.82, col:'#ff5030', genres:['Punk Rock','Hard Rock','Rap Rock','Post-Hardcore','Alternative Rock'] },
-  { name:'Intense',     desc:'Concentrated, powerful, overwhelming',  x:0.20, y:0.88, col:'#ff4535', genres:['Heavy Metal','Hard Rock','Alternative Metal','Blues Rock','Metalcore'] },
-  { name:'Tense',       desc:'Edgy, uneasy, on-edge',                 x:0.18, y:0.85, col:'#ff5a3a', genres:['Alternative Rock','Post-Hardcore','Hard Rock','Punk Rock','Grunge'] },
-  { name:'Anxious',     desc:'Nervous, unsettled, restless',          x:0.25, y:0.80, col:'#ff6a40', genres:['Post-Hardcore','Alternative Rock','Punk Rock','Grunge','Indie Rock'] },
-  { name:'Dark',        desc:'Shadowy, brooding, heavy atmosphere',   x:0.18, y:0.42, col:'#5055c0', genres:['Heavy Metal','Blues','Alternative Metal','Grunge','Traditional Heavy Metal'] },
-  { name:'Mysterious',  desc:'Intriguing, shadowy, unknown depths',   x:0.38, y:0.52, col:'#8070c8', genres:['Psychedelic Rock','Space Rock','Art Rock','Blues','Jazz Fusion'] },
-  { name:'Yearning',    desc:'Deep longing, desire unfulfilled',      x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Folk Rock','Blues','Soul','Indie Rock'] },
-  { name:'Nostalgic',   desc:'Wistful longing for the past',          x:0.42, y:0.28, col:'#6878b8', genres:['Classic Rock','Folk','Blues','Soul','Rockabilly','Country Music'] },
-  { name:'Bittersweet', desc:'Joy and sadness mixed, poignant',       x:0.45, y:0.30, col:'#7080b8', genres:['Folk','Folk Rock','Soul','Blues','Country Music'] },
-  { name:'Hypnotic',    desc:'Trance-like, mesmerising, repetitive',  x:0.48, y:0.48, col:'#7088d0', genres:['Psychedelic Rock','Space Rock','Jazz Fusion','Art Rock','Proto-Prog'] },
-  { name:'Sentimental', desc:'Tender feelings, emotionally moved',    x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Soul','Ballad','Contemporary R&B','Folk'] },
-  { name:'Atmospheric', desc:'Spacious, immersive, enveloping',       x:0.55, y:0.38, col:'#5090c8', genres:['Space Rock','Psychedelic Rock','Art Rock','Progressive Rock','Jazz Fusion'] },
-  { name:'Passionate',  desc:'Fervent, deeply felt, expressive',      x:0.58, y:0.82, col:'#e89030', genres:['Rock Music','Soul','Blues','Hard Rock','Rhythm And Blues'] },
-  { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.62, y:0.62, col:'#c8d840', genres:['Folk','Pop','Soul','Indie Rock','Country Music'] },
-  { name:'Epic',        desc:'Grand, sweeping, larger than life',     x:0.62, y:0.80, col:'#d0a020', genres:['Classic Rock','Progressive Rock','Hard Rock','Rock Music','Heavy Metal'] },
-  { name:'Powerful',    desc:'Strong, commanding, forceful',          x:0.60, y:0.88, col:'#e8b030', genres:['Hard Rock','Heavy Metal','Rock Music','Blues Rock','Classic Rock'] },
-  { name:'Majestic',    desc:'Stately, grand, awe-inspiring',         x:0.65, y:0.72, col:'#c8a828', genres:['Classic Rock','Progressive Rock','Rock Music','Blues Rock','Soul'] },
-  { name:'Groovy',      desc:'Funky, rhythmic, in-the-pocket',        x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','Rhythm And Blues','Contemporary R&B','Jazz-Funk','Funk Rock'] },
-  { name:'Upbeat',      desc:'Lively, positive, feel-good',           x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Pop Rock','Reggae','Pop Music'] },
-  { name:'Happy',       desc:'Cheerful, warm, contented joy',         x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Pop Music','Soul','Funk','Reggae','Ska','Pop Rock'] },
-  { name:'Celebratory', desc:'Festive, joyful, party spirit',         x:0.85, y:0.82, col:'#ffdf38', genres:['Pop','Funk','Ska','Reggae','Pop Music','Funk Rock'] },
-  { name:'Triumphant',  desc:'Victorious, proud, unstoppable',        x:0.82, y:0.88, col:'#ffd840', genres:['Classic Rock','Hard Rock','Rock Music','Heavy Metal','Progressive Rock'] },
-  { name:'Excited',     desc:'Thrilled, eager, buzzing with energy',  x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Punk Rock','Alternative Rock','Rap Rock','Pop Rock'] },
-  { name:'Energetic',   desc:'High-powered, vigorous, dynamic',       x:0.72, y:0.90, col:'#ffcc30', genres:['Hard Rock','Rock Music','Punk Rock','Funk Rock','Alternative Rock','Rap'] },
-  { name:'Ecstatic',    desc:'Overwhelmed with joy, rapturous',       x:0.92, y:0.92, col:'#ffea28', genres:['Ska','Funk','Pop','Reggae','Punk Rock'] },
-  { name:'Euphoric',    desc:'Blissful, elated, overjoyed',           x:0.95, y:0.95, col:'#ffee22', genres:['Ska','Funk','Pop Music','Reggae','Pop Rock'] },
-  { name:'Romantic',    desc:'Loving, tender, intimate warmth',       x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','Rhythm And Blues','Contemporary R&B','Ballad'] },
-  { name:'Dreamy',      desc:'Floating, hazy, softly surreal',        x:0.62, y:0.22, col:'#60c8d8', genres:['Psychedelic Rock','Space Rock','Art Rock','Jazz Fusion','Folk'] },
-  { name:'Intimate',    desc:'Close, personal, quietly heartfelt',    x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Soul','Folk','Ballad','Contemporary R&B'] },
-  { name:'Tender',      desc:'Gentle, soft, affectionate',            x:0.70, y:0.28, col:'#55dca8', genres:['Folk','Folk Rock','Country Music','Ballad','Soul'] },
-  { name:'Content',     desc:'Satisfied, at ease, quietly pleased',   x:0.70, y:0.25, col:'#50dcc0', genres:['Folk','Jazz','Country Music','Soul','Ballad'] },
-  { name:'Relaxed',     desc:'Loose, at rest, free from tension',     x:0.78, y:0.18, col:'#40d8c0', genres:['Jazz','Reggae','Folk','Country Music','Jazz Fusion'] },
-  { name:'Calm',        desc:'Still, balanced, unhurried',            x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Soul'] },
-  { name:'Soothing',    desc:'Comforting, easing, gentle relief',     x:0.82, y:0.15, col:'#38dcc0', genres:['Jazz','Folk','Country Music','Ballad','Soul'] },
-  { name:'Serene',      desc:'Clear, composed, harmonious stillness', x:0.85, y:0.08, col:'#30e8c8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Ballad'] },
-  { name:'Peaceful',    desc:'Tranquil, undisturbed, quiet',          x:0.88, y:0.10, col:'#35e8c0', genres:['Jazz','Folk','Country Music','Ballad','Jazz Fusion'] },
-  { name:'Wistful',     desc:'Wishing things were different, pensive',x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Folk Rock','Country Music','Blues','Soul'] },
-  { name:'Melancholic', desc:'Quietly sorrowful, reflective sadness', x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Electric Blues'] },
-  { name:'Somber',      desc:'Dark and serious, grave mood',          x:0.20, y:0.20, col:'#5070e8', genres:['Blues','Electric Blues','Soul','Heavy Metal','Folk'] },
-  { name:'Sad',         desc:'Unhappy, sorrowful, downcast',          x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Country Music'] },
-  { name:'Gloomy',      desc:'Overcast, cheerless, despairing',       x:0.15, y:0.20, col:'#4870e8', genres:['Blues','Electric Blues','Heavy Metal','Alternative Rock','Grunge'] },
-  { name:'Lonely',      desc:'Isolated, alone, missing connection',   x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Blues','Country Music','Soul','Folk Rock'] },
-  { name:'Mournful',    desc:'Grieving, lamenting, sorrowful',        x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Electric Blues','Soul','Folk','Rhythm And Blues'] },
-  { name:'Depressed',   desc:'Heavy, hopeless, withdrawn',            x:0.08, y:0.08, col:'#3060e0', genres:['Blues','Electric Blues','Heavy Metal','Grunge','Alternative Rock'] },
+  { name:'Aggressive',  desc:'Raw, confrontational, intense',         x:0.08, y:0.95, col:'#ff3030', genres:['Metal','Punk','Hard Rock'] },
+  { name:'Angry',       desc:'Hot, fierce, forceful',                 x:0.10, y:0.90, col:'#ff4040', genres:['Metal','Hard Rock','Punk'] },
+  { name:'Frantic',     desc:'Frenzied, chaotic, uncontrolled',       x:0.12, y:0.92, col:'#ff3535', genres:['Metal','Punk','Hardcore'] },
+  { name:'Defiant',     desc:'Bold, rebellious, confrontational',     x:0.15, y:0.82, col:'#ff5030', genres:['Punk','Hard Rock','Rap','Alternative Rock'] },
+  { name:'Intense',     desc:'Concentrated, powerful, overwhelming',  x:0.20, y:0.88, col:'#ff4535', genres:['Metal','Hard Rock','Blues Rock'] },
+  { name:'Tense',       desc:'Edgy, uneasy, on-edge',                 x:0.18, y:0.85, col:'#ff5a3a', genres:['Alternative Rock','Hard Rock','Punk','Grunge'] },
+  { name:'Anxious',     desc:'Nervous, unsettled, restless',          x:0.25, y:0.80, col:'#ff6a40', genres:['Punk','Alternative Rock','Grunge','Indie Rock'] },
+  { name:'Dark',        desc:'Shadowy, brooding, heavy atmosphere',   x:0.18, y:0.42, col:'#5055c0', genres:['Metal','Blues','Grunge'] },
+  { name:'Mysterious',  desc:'Intriguing, shadowy, unknown depths',   x:0.38, y:0.52, col:'#8070c8', genres:['Psychedelic Rock','Space Rock','Blues','Jazz'] },
+  { name:'Yearning',    desc:'Deep longing, desire unfulfilled',      x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Blues','Soul','Indie Rock'] },
+  { name:'Nostalgic',   desc:'Wistful longing for the past',          x:0.42, y:0.28, col:'#6878b8', genres:['Classic Rock','Folk','Blues','Soul','Rockabilly','Country'] },
+  { name:'Bittersweet', desc:'Joy and sadness mixed, poignant',       x:0.45, y:0.30, col:'#7080b8', genres:['Folk','Soul','Blues','Country'] },
+  { name:'Hypnotic',    desc:'Trance-like, mesmerising, repetitive',  x:0.48, y:0.48, col:'#7088d0', genres:['Psychedelic Rock','Space Rock','Jazz','Progressive Rock'] },
+  { name:'Sentimental', desc:'Tender feelings, emotionally moved',    x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Soul','Ballad','Folk'] },
+  { name:'Atmospheric', desc:'Spacious, immersive, enveloping',       x:0.55, y:0.38, col:'#5090c8', genres:['Space Rock','Psychedelic Rock','Progressive Rock','Jazz'] },
+  { name:'Passionate',  desc:'Fervent, deeply felt, expressive',      x:0.58, y:0.82, col:'#e89030', genres:['Rock','Soul','Blues','Hard Rock'] },
+  { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.62, y:0.62, col:'#c8d840', genres:['Folk','Pop','Soul','Indie Rock','Country'] },
+  { name:'Epic',        desc:'Grand, sweeping, larger than life',     x:0.62, y:0.80, col:'#d0a020', genres:['Classic Rock','Progressive Rock','Hard Rock','Metal'] },
+  { name:'Powerful',    desc:'Strong, commanding, forceful',          x:0.60, y:0.88, col:'#e8b030', genres:['Hard Rock','Metal','Classic Rock','Blues Rock'] },
+  { name:'Majestic',    desc:'Stately, grand, awe-inspiring',         x:0.65, y:0.72, col:'#c8a828', genres:['Classic Rock','Progressive Rock','Rock','Soul'] },
+  { name:'Groovy',      desc:'Funky, rhythmic, in-the-pocket',        x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','Jazz'] },
+  { name:'Upbeat',      desc:'Lively, positive, feel-good',           x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Reggae'] },
+  { name:'Happy',       desc:'Cheerful, warm, contented joy',         x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Soul','Funk','Reggae','Ska'] },
+  { name:'Celebratory', desc:'Festive, joyful, party spirit',         x:0.85, y:0.82, col:'#ffdf38', genres:['Pop','Funk','Ska','Reggae'] },
+  { name:'Triumphant',  desc:'Victorious, proud, unstoppable',        x:0.82, y:0.88, col:'#ffd840', genres:['Classic Rock','Hard Rock','Metal','Progressive Rock'] },
+  { name:'Excited',     desc:'Thrilled, eager, buzzing with energy',  x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Punk','Alternative Rock','Rap'] },
+  { name:'Energetic',   desc:'High-powered, vigorous, dynamic',       x:0.72, y:0.90, col:'#ffcc30', genres:['Hard Rock','Rock','Punk','Funk','Rap'] },
+  { name:'Ecstatic',    desc:'Overwhelmed with joy, rapturous',       x:0.92, y:0.92, col:'#ffea28', genres:['Ska','Funk','Pop','Reggae','Punk'] },
+  { name:'Euphoric',    desc:'Blissful, elated, overjoyed',           x:0.95, y:0.95, col:'#ffee22', genres:['Ska','Funk','Pop','Reggae'] },
+  { name:'Romantic',    desc:'Loving, tender, intimate warmth',       x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','Ballad'] },
+  { name:'Dreamy',      desc:'Floating, hazy, softly surreal',        x:0.62, y:0.22, col:'#60c8d8', genres:['Psychedelic Rock','Space Rock','Jazz','Folk'] },
+  { name:'Intimate',    desc:'Close, personal, quietly heartfelt',    x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Soul','Folk','Ballad'] },
+  { name:'Tender',      desc:'Gentle, soft, affectionate',            x:0.70, y:0.28, col:'#55dca8', genres:['Folk','Country','Ballad','Soul'] },
+  { name:'Content',     desc:'Satisfied, at ease, quietly pleased',   x:0.70, y:0.25, col:'#50dcc0', genres:['Folk','Jazz','Country','Soul'] },
+  { name:'Relaxed',     desc:'Loose, at rest, free from tension',     x:0.78, y:0.18, col:'#40d8c0', genres:['Jazz','Reggae','Folk','Country'] },
+  { name:'Calm',        desc:'Still, balanced, unhurried',            x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Folk','Country','Soul'] },
+  { name:'Soothing',    desc:'Comforting, easing, gentle relief',     x:0.82, y:0.15, col:'#38dcc0', genres:['Jazz','Folk','Country','Ballad'] },
+  { name:'Serene',      desc:'Clear, composed, harmonious stillness', x:0.85, y:0.08, col:'#30e8c8', genres:['Jazz','Folk','Country','Ballad'] },
+  { name:'Peaceful',    desc:'Tranquil, undisturbed, quiet',          x:0.88, y:0.10, col:'#35e8c0', genres:['Jazz','Folk','Country','Ballad'] },
+  { name:'Wistful',     desc:'Wishing things were different, pensive',x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Country','Blues','Soul'] },
+  { name:'Melancholic', desc:'Quietly sorrowful, reflective sadness', x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Soul','Folk'] },
+  { name:'Somber',      desc:'Dark and serious, grave mood',          x:0.20, y:0.20, col:'#5070e8', genres:['Blues','Soul','Metal','Folk'] },
+  { name:'Sad',         desc:'Unhappy, sorrowful, downcast',          x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Country'] },
+  { name:'Gloomy',      desc:'Overcast, cheerless, despairing',       x:0.15, y:0.20, col:'#4870e8', genres:['Blues','Metal','Alternative Rock','Grunge'] },
+  { name:'Lonely',      desc:'Isolated, alone, missing connection',   x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Blues','Country','Soul'] },
+  { name:'Mournful',    desc:'Grieving, lamenting, sorrowful',        x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Soul','Folk'] },
+  { name:'Depressed',   desc:'Heavy, hopeless, withdrawn',            x:0.08, y:0.08, col:'#3060e0', genres:['Blues','Metal','Grunge','Alternative Rock'] },
 ];
 
 // ── Eras ─────────────────────────────────────────────────────────────────
 var ERAS = [
-  { name:'Classical',       genres:['Classical','Classical Music','Opera','Symphony','Baroque','Orchestral','Chamber Music','Film Score','Contemporary Classical Music'] },
-  { name:'Jazz & Blues',    genres:['Jazz','Jazz Fusion','Jazz-Funk','Blues','Electric Blues','Soul','Rhythm And Blues'] },
-  { name:'Folk & Country',  genres:['Folk','Folk Rock','Country Music','Country Rock','Western','Music Of Ireland','Ballad','Ska','Reggae'] },
-  { name:'Pop & Soul',      genres:['Pop','Pop Music','Pop Rock','Funk','Funk Rock','Contemporary R&B','Music Of Latin America','Latin Rock','Rock En Español','Chicano Rock'] },
-  { name:'Rock',            genres:['Rock','Rock Music','Classic Rock','Psychedelic Rock','Space Rock','Rockabilly','Art Rock','Proto-Prog','Southern Rock','Indie Rock','Alternative Rock','Grunge','Experimental Rock','Garage Rock','Acid Rock'] },
-  { name:'Hard Rock & Punk',genres:['Hard Rock','Blues Rock','Progressive Rock','Punk Rock','Post-Hardcore','Hardcore','Funk Metal'] },
-  { name:'Rap',             genres:['Rap','Rap Rock','Hip-Hop','Hip Hop'] },
-  { name:'Metal',           genres:['Heavy Metal','Alternative Metal','Traditional Heavy Metal','Metalcore','Thrash Metal','Death Metal','Black Metal'] },
+  { name:'Classical',       genres:['Classical','Opera','Orchestral','Baroque','Symphony'] },
+  { name:'Jazz & Blues',    genres:['Jazz','Blues','Soul','Rhythm And Blues'] },
+  { name:'Folk & Country',  genres:['Folk','Country','Reggae','Ska','Ballad'] },
+  { name:'Pop & Soul',      genres:['Pop','Funk','Soul','Latin'] },
+  { name:'Rock',            genres:['Rock','Grunge','Rockabilly'] },
+  { name:'Hard Rock & Punk',genres:['Hard Rock','Punk','Progressive Rock','Hardcore'] },
+  { name:'Rap',             genres:['Rap','Hip Hop'] },
+  { name:'Metal',           genres:['Metal'] },
 ];
 var jmEraGenres = null; // null = no era filter active
 
@@ -509,10 +518,24 @@ function setMoodDesc(t)  { document.getElementById('jmMoodDesc').textContent = t
 function setTrackCount(n){ var el = document.getElementById('jmTrackCount'); el.style.display = n > 0 ? 'block' : 'none'; el.textContent = n > 0 ? n + ' tracks found' : ''; }
 
 // ── API ───────────────────────────────────────────────────────────────────
+function expandGenres(seeds) {
+  if (!jmGenreCache || !jmGenreCache.length) return seeds;
+  var result = {};
+  seeds.forEach(function(seed) {
+    result[seed] = true;
+    var sn = seed.toLowerCase().replace(/[^a-z0-9]/g, '');
+    jmGenreCache.forEach(function(g) {
+      if (g.toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(sn) !== -1) result[g] = true;
+    });
+  });
+  return Object.keys(result);
+}
+
 function fetchTracksByGenres(genres) {
   if (!JM.token || !JM.userId) return Promise.resolve([]);
+  var expanded = expandGenres(genres);
   var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'100', Fields:'Genres,MediaSources'});
-  if (genres.length > 0) params.set('Genres', genres.join('|'));
+  if (expanded.length > 0) params.set('Genres', expanded.join('|'));
   return fetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { return d.Items || []; });
