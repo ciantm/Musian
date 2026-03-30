@@ -1,0 +1,11 @@
+{
+  "appId": "com.jellymoods.app",
+  "appName": "JellyMoods",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "cleartext": true
+  }
+}

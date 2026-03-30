@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>JellyMoods</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; overflow-x:hidden; }
+#jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
+#jmEraArea { width:100%; max-width:min(92vw,640px); margin-top:18px; }
+#jmWheelPrompt { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:2;transition:opacity 0.4s; }
+#jmEraWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
+#jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
+#jmEraHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
+#jmEraLabelsTop, #jmEraLabels { display:flex; width:100%; }
+#jmEraLabelsTop { margin-bottom:4px; }
+#jmEraLabels { margin-top:4px; }
+#jmEraLabelsTop span, #jmEraLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+#jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
+#jmTrackName { font-size:0.85em; color:#ccc; margin-bottom:10px; min-height:1.2em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.jm-btn { padding:10px 28px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:#fff; }
+#jmSkipBtn { background:rgba(255,255,255,0.12); margin-right:8px; }
+#jmStopBtn { background:rgba(255,255,255,0.08); }
+</style>
+</head>
+<body>
+<div id="jmApp">
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">&#127925; JellyMoods</h2>
+  <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Choose a genre, tap your mood to play</p>
+
+  <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
+    <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
+         xmlns="http://www.w3.org/2000/svg"
+         style="display:block;cursor:crosshair;filter:drop-shadow(0 0 40px rgba(0,0,0,0.9));touch-action:none;">
+      <defs>
+        <radialGradient id="gRed" cx="0%" cy="0%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ff1a00" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#ff1a00" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gYellow" cx="100%" cy="0%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ffe800" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#ffe800" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gTeal" cx="100%" cy="100%" r="100%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#00e8c0" stop-opacity="1"/>
+          <stop offset="70%" stop-color="#00e8c0" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gGlow" cx="50%" cy="50%" r="35%" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="circClip"><circle cx="200" cy="200" r="196"/></clipPath>
+      </defs>
+      <circle cx="200" cy="200" r="196" fill="#000000"/>
+      <g clip-path="url(#circClip)">
+        <rect x="0" y="0" width="400" height="400" fill="url(#gRed)"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gYellow)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gTeal)" style="mix-blend-mode:screen"/>
+        <rect x="0" y="0" width="400" height="400" fill="url(#gGlow)" style="mix-blend-mode:screen"/>
+      </g>
+      <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+      <line x1="200" y1="4" x2="200" y2="396" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
+      <line x1="4" y1="200" x2="396" y2="200" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
+      <circle cx="200" cy="200" r="196" fill="transparent"/>
+    </svg>
+    <div id="jmWheelPrompt">
+      <div style="font-size:1.1em;font-weight:300;letter-spacing:0.1em;color:rgba(255,255,255,0.75);text-shadow:0 0 24px #000,0 0 8px #000;">Tap your mood</div>
+      <div style="font-size:0.72em;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-top:6px;text-shadow:0 0 12px #000;">to play</div>
+    </div>
+    <span style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Active</span>
+    <span style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Passive</span>
+    <span style="position:absolute;left:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Negative</span>
+    <span style="position:absolute;right:-62px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;">Positive</span>
+    <span style="position:absolute;top:14px;left:18px;font-size:0.65em;font-weight:700;color:#ff7070;line-height:1.3;pointer-events:none;">Angry<br>Tense</span>
+    <span style="position:absolute;top:14px;right:18px;font-size:0.65em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;">Happy<br>Excited</span>
+    <span style="position:absolute;bottom:14px;left:18px;font-size:0.65em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;">Sad<br>Lonely</span>
+    <span style="position:absolute;bottom:14px;right:18px;font-size:0.65em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;">Calm<br>Serene</span>
+  </div>
+
+  <div id="jmEraArea">
+    <div id="jmEraLabelsTop"></div>
+    <div id="jmEraWrap">
+      <div id="jmEraBar"></div>
+      <div id="jmEraHighlight"></div>
+    </div>
+    <div id="jmEraLabels"></div>
+  </div>
+
+  <div style="text-align:center;margin-top:36px;min-height:80px;">
+    <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;"></div>
+    <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
+  </div>
+
+  <div style="margin-top:16px;text-align:center;">
+    <div id="jmStatus" style="font-size:0.8em;color:#777;min-height:1.2em;"></div>
+    <div id="jmTrackCount" style="display:none;margin-top:4px;font-size:0.78em;color:#aaa;"></div>
+  </div>
+
+  <div id="jmPlayer" style="display:none;">
+    <audio id="jmAudio"></audio>
+    <div id="jmTrackName"></div>
+    <button id="jmSkipBtn" class="jm-btn">&#9197; Skip</button>
+    <button id="jmStopBtn" class="jm-btn">&#9209; Stop</button>
+  </div>
+
+  <button id="jmSignOutBtn" style="margin-top:32px;background:none;border:none;color:#555;font-size:0.8em;cursor:pointer;text-decoration:underline;">Sign out</button>
+  <div style="margin-top:12px;font-size:0.65em;color:#444;">v1.0.0</div>
+</div>
+
+<script>
+// ── Auth ─────────────────────────────────────────────────────────────────────
+var JM = {
+  server: '',
+  token: null,
+  userId: null,
+  init: function() {
+    try {
+      var auth = JSON.parse(localStorage.getItem('jm_auth'));
+      if (auth && auth.accessToken) {
+        this.server  = auth.serverUrl;
+        this.token   = auth.accessToken;
+        this.userId  = auth.userId;
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  },
+  headers: function() {
+    return { 'X-Emby-Authorization':
+      'MediaBrowser Client="JellyMoods",Device="Android",DeviceId="jm-android",Version="1.0"' +
+      (this.token ? ',Token="' + this.token + '"' : '') };
+  },
+  streamUrl: function(itemId) {
+    return this.server + '/Audio/' + itemId + '/universal' +
+      '?UserId=' + this.userId +
+      '&DeviceId=jm-android' +
+      '&MaxStreamingBitrate=140000000' +
+      '&Container=mp3,aac,m4a,flac,ogg,opus,webma,webm,wav' +
+      '&AudioCodec=aac,mp3,flac,opus,vorbis' +
+      '&TranscodingContainer=mp3' +
+      '&TranscodingProtocol=http' +
+      '&api_key=' + this.token;
+  }
+};
+
+if (!JM.init()) {
+  window.location.replace('index.html');
+}
+
+document.getElementById('jmSignOutBtn').addEventListener('click', function() {
+  localStorage.removeItem('jm_auth');
+  window.location.replace('index.html');
+});
+
+// Library count on load
+fetch(JM.server + '/Users/' + JM.userId + '/Items?' +
+  new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', Limit:'1'}),
+  {headers: JM.headers()})
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    var n = d.TotalRecordCount;
+    if (!n) {
+      document.getElementById('jmStatus').textContent = 'Library has 0 audio tracks — check Jellyfin media libraries.';
+      document.getElementById('jmStatus').style.color = '#f88';
+    } else {
+      document.getElementById('jmStatus').textContent = n + ' audio tracks in library';
+    }
+  })
+  .catch(function() {
+    // If 401, token expired — back to login
+    document.getElementById('jmStatus').textContent = 'Could not reach server.';
+    document.getElementById('jmStatus').style.color = '#f88';
+  });
+
+(function(){
+'use strict';
+var MOODS = [
+  { name:'Aggressive',  desc:'Raw, confrontational, intense',         x:0.08, y:0.95, col:'#ff3030', genres:['Heavy Metal','Metalcore','Punk Rock','Hard Rock','Alternative Metal'] },
+  { name:'Angry',       desc:'Hot, fierce, forceful',                 x:0.10, y:0.90, col:'#ff4040', genres:['Heavy Metal','Hard Rock','Punk Rock','Alternative Metal','Traditional Heavy Metal'] },
+  { name:'Frantic',     desc:'Frenzied, chaotic, uncontrolled',       x:0.12, y:0.92, col:'#ff3535', genres:['Metalcore','Punk Rock','Post-Hardcore','Hard Rock','Alternative Metal'] },
+  { name:'Defiant',     desc:'Bold, rebellious, confrontational',     x:0.15, y:0.82, col:'#ff5030', genres:['Punk Rock','Hard Rock','Rap Rock','Post-Hardcore','Alternative Rock'] },
+  { name:'Intense',     desc:'Concentrated, powerful, overwhelming',  x:0.20, y:0.88, col:'#ff4535', genres:['Heavy Metal','Hard Rock','Alternative Metal','Blues Rock','Metalcore'] },
+  { name:'Tense',       desc:'Edgy, uneasy, on-edge',                 x:0.18, y:0.85, col:'#ff5a3a', genres:['Alternative Rock','Post-Hardcore','Hard Rock','Punk Rock','Grunge'] },
+  { name:'Anxious',     desc:'Nervous, unsettled, restless',          x:0.25, y:0.80, col:'#ff6a40', genres:['Post-Hardcore','Alternative Rock','Punk Rock','Grunge','Indie Rock'] },
+  { name:'Dark',        desc:'Shadowy, brooding, heavy atmosphere',   x:0.18, y:0.42, col:'#5055c0', genres:['Heavy Metal','Blues','Alternative Metal','Grunge','Traditional Heavy Metal'] },
+  { name:'Mysterious',  desc:'Intriguing, shadowy, unknown depths',   x:0.38, y:0.52, col:'#8070c8', genres:['Psychedelic Rock','Space Rock','Art Rock','Blues','Jazz Fusion'] },
+  { name:'Yearning',    desc:'Deep longing, desire unfulfilled',      x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Folk Rock','Blues','Soul','Indie Rock'] },
+  { name:'Nostalgic',   desc:'Wistful longing for the past',          x:0.42, y:0.28, col:'#6878b8', genres:['Classic Rock','Folk','Blues','Soul','Rockabilly','Country Music'] },
+  { name:'Bittersweet', desc:'Joy and sadness mixed, poignant',       x:0.45, y:0.30, col:'#7080b8', genres:['Folk','Folk Rock','Soul','Blues','Country Music'] },
+  { name:'Hypnotic',    desc:'Trance-like, mesmerising, repetitive',  x:0.48, y:0.48, col:'#7088d0', genres:['Psychedelic Rock','Space Rock','Jazz Fusion','Art Rock','Proto-Prog'] },
+  { name:'Sentimental', desc:'Tender feelings, emotionally moved',    x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Soul','Ballad','Contemporary R&B','Folk'] },
+  { name:'Atmospheric', desc:'Spacious, immersive, enveloping',       x:0.55, y:0.38, col:'#5090c8', genres:['Space Rock','Psychedelic Rock','Art Rock','Progressive Rock','Jazz Fusion'] },
+  { name:'Passionate',  desc:'Fervent, deeply felt, expressive',      x:0.58, y:0.82, col:'#e89030', genres:['Rock Music','Soul','Blues','Hard Rock','Rhythm And Blues'] },
+  { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.62, y:0.62, col:'#c8d840', genres:['Folk','Pop','Soul','Indie Rock','Country Music'] },
+  { name:'Epic',        desc:'Grand, sweeping, larger than life',     x:0.62, y:0.80, col:'#d0a020', genres:['Classic Rock','Progressive Rock','Hard Rock','Rock Music','Heavy Metal'] },
+  { name:'Powerful',    desc:'Strong, commanding, forceful',          x:0.60, y:0.88, col:'#e8b030', genres:['Hard Rock','Heavy Metal','Rock Music','Blues Rock','Classic Rock'] },
+  { name:'Majestic',    desc:'Stately, grand, awe-inspiring',         x:0.65, y:0.72, col:'#c8a828', genres:['Classic Rock','Progressive Rock','Rock Music','Blues Rock','Soul'] },
+  { name:'Groovy',      desc:'Funky, rhythmic, in-the-pocket',        x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','Rhythm And Blues','Contemporary R&B','Jazz-Funk','Funk Rock'] },
+  { name:'Upbeat',      desc:'Lively, positive, feel-good',           x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Pop Rock','Reggae','Pop Music'] },
+  { name:'Happy',       desc:'Cheerful, warm, contented joy',         x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Pop Music','Soul','Funk','Reggae','Ska','Pop Rock'] },
+  { name:'Celebratory', desc:'Festive, joyful, party spirit',         x:0.85, y:0.82, col:'#ffdf38', genres:['Pop','Funk','Ska','Reggae','Pop Music','Funk Rock'] },
+  { name:'Triumphant',  desc:'Victorious, proud, unstoppable',        x:0.82, y:0.88, col:'#ffd840', genres:['Classic Rock','Hard Rock','Rock Music','Heavy Metal','Progressive Rock'] },
+  { name:'Excited',     desc:'Thrilled, eager, buzzing with energy',  x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Punk Rock','Alternative Rock','Rap Rock','Pop Rock'] },
+  { name:'Energetic',   desc:'High-powered, vigorous, dynamic',       x:0.72, y:0.90, col:'#ffcc30', genres:['Hard Rock','Rock Music','Punk Rock','Funk Rock','Alternative Rock','Rap'] },
+  { name:'Ecstatic',    desc:'Overwhelmed with joy, rapturous',       x:0.92, y:0.92, col:'#ffea28', genres:['Ska','Funk','Pop','Reggae','Punk Rock'] },
+  { name:'Euphoric',    desc:'Blissful, elated, overjoyed',           x:0.95, y:0.95, col:'#ffee22', genres:['Ska','Funk','Pop Music','Reggae','Pop Rock'] },
+  { name:'Romantic',    desc:'Loving, tender, intimate warmth',       x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','Rhythm And Blues','Contemporary R&B','Ballad'] },
+  { name:'Dreamy',      desc:'Floating, hazy, softly surreal',        x:0.62, y:0.22, col:'#60c8d8', genres:['Psychedelic Rock','Space Rock','Art Rock','Jazz Fusion','Folk'] },
+  { name:'Intimate',    desc:'Close, personal, quietly heartfelt',    x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Soul','Folk','Ballad','Contemporary R&B'] },
+  { name:'Tender',      desc:'Gentle, soft, affectionate',            x:0.70, y:0.28, col:'#55dca8', genres:['Folk','Folk Rock','Country Music','Ballad','Soul'] },
+  { name:'Content',     desc:'Satisfied, at ease, quietly pleased',   x:0.70, y:0.25, col:'#50dcc0', genres:['Folk','Jazz','Country Music','Soul','Ballad'] },
+  { name:'Relaxed',     desc:'Loose, at rest, free from tension',     x:0.78, y:0.18, col:'#40d8c0', genres:['Jazz','Reggae','Folk','Country Music','Jazz Fusion'] },
+  { name:'Calm',        desc:'Still, balanced, unhurried',            x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Soul'] },
+  { name:'Soothing',    desc:'Comforting, easing, gentle relief',     x:0.82, y:0.15, col:'#38dcc0', genres:['Jazz','Folk','Country Music','Ballad','Soul'] },
+  { name:'Serene',      desc:'Clear, composed, harmonious stillness', x:0.85, y:0.08, col:'#30e8c8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Ballad'] },
+  { name:'Peaceful',    desc:'Tranquil, undisturbed, quiet',          x:0.88, y:0.10, col:'#35e8c0', genres:['Jazz','Folk','Country Music','Ballad','Jazz Fusion'] },
+  { name:'Wistful',     desc:'Wishing things were different, pensive',x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Folk Rock','Country Music','Blues','Soul'] },
+  { name:'Melancholic', desc:'Quietly sorrowful, reflective sadness', x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Electric Blues'] },
+  { name:'Somber',      desc:'Dark and serious, grave mood',          x:0.20, y:0.20, col:'#5070e8', genres:['Blues','Electric Blues','Soul','Heavy Metal','Folk'] },
+  { name:'Sad',         desc:'Unhappy, sorrowful, downcast',          x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Country Music'] },
+  { name:'Gloomy',      desc:'Overcast, cheerless, despairing',       x:0.15, y:0.20, col:'#4870e8', genres:['Blues','Electric Blues','Heavy Metal','Alternative Rock','Grunge'] },
+  { name:'Lonely',      desc:'Isolated, alone, missing connection',   x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Blues','Country Music','Soul','Folk Rock'] },
+  { name:'Mournful',    desc:'Grieving, lamenting, sorrowful',        x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Electric Blues','Soul','Folk','Rhythm And Blues'] },
+  { name:'Depressed',   desc:'Heavy, hopeless, withdrawn',            x:0.08, y:0.08, col:'#3060e0', genres:['Blues','Electric Blues','Heavy Metal','Grunge','Alternative Rock'] },
+];
+
+var ERAS = [
+  { name:'Classical',       genres:['Classical','Classical Music','Opera','Symphony','Baroque','Orchestral','Chamber Music','Film Score','Contemporary Classical Music'] },
+  { name:'Jazz & Blues',    genres:['Jazz','Jazz Fusion','Jazz-Funk','Blues','Electric Blues','Soul','Rhythm And Blues'] },
+  { name:'Folk & Country',  genres:['Folk','Folk Rock','Country Music','Country Rock','Western','Music Of Ireland','Ballad','Ska','Reggae'] },
+  { name:'Pop & Soul',      genres:['Pop','Pop Music','Pop Rock','Funk','Funk Rock','Contemporary R&B','Music Of Latin America','Latin Rock','Rock En Español','Chicano Rock'] },
+  { name:'Rock',            genres:['Rock','Rock Music','Classic Rock','Psychedelic Rock','Space Rock','Rockabilly','Art Rock','Proto-Prog','Southern Rock','Indie Rock','Alternative Rock','Grunge','Experimental Rock','Garage Rock','Acid Rock'] },
+  { name:'Hard Rock & Punk',genres:['Hard Rock','Blues Rock','Progressive Rock','Punk Rock','Post-Hardcore','Hardcore','Funk Metal'] },
+  { name:'Rap',             genres:['Rap','Rap Rock','Hip-Hop','Hip Hop'] },
+  { name:'Metal',           genres:['Heavy Metal','Alternative Metal','Traditional Heavy Metal','Metalcore','Thrash Metal','Death Metal','Black Metal'] },
+];
+var jmEraGenres = null;
+
+(function() {
+  var wrap         = document.getElementById('jmEraWrap');
+  var highlight    = document.getElementById('jmEraHighlight');
+  var labelsTopEl  = document.getElementById('jmEraLabelsTop');
+  var labelsEl     = document.getElementById('jmEraLabels');
+  var n            = ERAS.length;
+
+  ERAS.forEach(function(era, i) {
+    var top = document.createElement('span');
+    var bot = document.createElement('span');
+    if (i % 2 === 0) {
+      top.textContent = era.name;
+      bot.style.visibility = 'hidden'; bot.textContent = '\u00a0';
+    } else {
+      top.style.visibility = 'hidden'; top.textContent = '\u00a0';
+      bot.textContent = era.name;
+    }
+    labelsTopEl.appendChild(top);
+    labelsEl.appendChild(bot);
+  });
+
+  function handleEraInteraction(clientX) {
+    var rect = wrap.getBoundingClientRect();
+    var rel  = (clientX - rect.left) / rect.width;
+    var idx  = Math.floor(rel * n);
+    idx = Math.max(0, Math.min(n - 1, idx));
+
+    var lo = idx, hi = idx;
+    var selected = ERAS.slice(lo, hi + 1);
+
+    var leftPct  = (lo / n) * 100;
+    var widthPct = ((hi - lo + 1) / n) * 100;
+    highlight.style.left    = leftPct + '%';
+    highlight.style.width   = widthPct + '%';
+    highlight.style.display = 'block';
+
+    [labelsTopEl, labelsEl].forEach(function(row) {
+      row.querySelectorAll('span').forEach(function(s, i) {
+        var active = (i >= lo && i <= hi);
+        s.style.color = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
+        s.style.fontWeight = active ? '700' : '400';
+      });
+    });
+
+    var genreMap = {};
+    selected.forEach(function(e) { e.genres.forEach(function(g) { genreMap[g] = true; }); });
+    jmEraGenres = Object.keys(genreMap);
+
+    if (jmMoodGenres !== null) {
+      setStatus('Searching\u2026');
+      setTrackCount(0);
+      var eraG = jmEraGenres, moodG = jmMoodGenres;
+      fetchTracksByGenres(eraG)
+        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
+        .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
+        .then(function(items) {
+          setTrackCount(items.length);
+          if (!items.length) { setStatus('No tracks found.'); return; }
+          startPlayback(items);
+        })
+        .catch(function() { setStatus('Could not fetch tracks.'); });
+    }
+  }
+
+  wrap.addEventListener('click', function(e) { handleEraInteraction(e.clientX); });
+  wrap.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    handleEraInteraction(e.changedTouches[0].clientX);
+  });
+})();
+
+// ── Player ───────────────────────────────────────────────────────────────────
+var jmPlaylist   = [];
+var jmPlayIdx    = 0;
+var jmGeneration = 0;
+var jmMoodGenres = null;
+var jmAudio      = document.getElementById('jmAudio');
+
+function jmShowPrompt(visible) {
+  var p = document.getElementById('jmWheelPrompt');
+  if (!p) return;
+  if (visible) { p.style.display = 'block'; setTimeout(function(){ p.style.opacity = '1'; }, 10); }
+  else { p.style.opacity = '0'; setTimeout(function(){ p.style.display = 'none'; }, 400); }
+}
+
+function jmAdvance(gen) {
+  return function() {
+    if (gen !== jmGeneration) return;
+    jmPlayIdx++;
+    jmPlayTrack(jmPlayIdx, gen);
+  };
+}
+
+function jmUpdateMediaSession(item) {
+  if (!('mediaSession' in navigator)) return;
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title:  item.Name  || 'JellyMoods',
+    artist: artist,
+    album:  item.Album || '',
+  });
+  navigator.mediaSession.setActionHandler('nexttrack', function() {
+    jmPlayIdx++; jmPlayTrack(jmPlayIdx, jmGeneration);
+  });
+  navigator.mediaSession.setActionHandler('previoustrack', function() {
+    jmPlayIdx = Math.max(0, jmPlayIdx - 1);
+    jmPlayTrack(jmPlayIdx, jmGeneration);
+  });
+  navigator.mediaSession.setActionHandler('stop', function() {
+    document.getElementById('jmStopBtn').click();
+  });
+}
+
+function jmPlayTrack(idx, gen) {
+  if (gen !== jmGeneration) return;
+  if (idx >= jmPlaylist.length) {
+    setStatus('Playlist ended — tap the wheel to play again.');
+    document.getElementById('jmPlayer').style.display = 'none';
+    if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+    return;
+  }
+  var item = jmPlaylist[idx];
+  jmAudio.pause();
+  jmAudio.src = JM.streamUrl(item.Id);
+  jmAudio.play().catch(function() {});
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  document.getElementById('jmTrackName').textContent =
+    (artist ? artist + ' \u2014 ' : '') + item.Name;
+  document.getElementById('jmPlayer').style.display = 'block';
+  setStatus('Playing ' + jmPlaylist.length + ' tracks \u266a');
+  jmUpdateMediaSession(item);
+}
+
+function attachPlayerListeners(gen) {
+  jmAudio.addEventListener('ended', jmAdvance(gen));
+  jmAudio.addEventListener('error', function() {
+    if (gen !== jmGeneration) return;
+    var code = jmAudio.error ? jmAudio.error.code : '?';
+    setStatus('Track error (code ' + code + ') — skipping\u2026');
+    jmPlayIdx++;
+    jmPlayTrack(jmPlayIdx, gen);
+  });
+}
+
+document.getElementById('jmSkipBtn').addEventListener('click', function() {
+  jmPlayIdx++;
+  jmPlayTrack(jmPlayIdx, jmGeneration);
+});
+document.getElementById('jmStopBtn').addEventListener('click', function() {
+  jmGeneration++;
+  jmAudio.pause(); jmAudio.src = '';
+  jmPlaylist = [];
+  document.getElementById('jmPlayer').style.display = 'none';
+  setStatus(''); setTrackCount(0); setMoodName('', ''); setMoodDesc('');
+  if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+  jmMoodGenres = null;
+  jmEraGenres = null;
+  jmShowPrompt(true);
+  var hl = document.getElementById('jmEraHighlight');
+  if (hl) hl.style.display = 'none';
+  ['jmEraLabelsTop','jmEraLabels'].forEach(function(id) {
+    document.getElementById(id).querySelectorAll('span').forEach(function(s) {
+      s.style.color = ''; s.style.fontWeight = '';
+    });
+  });
+});
+
+function startPlayback(items) {
+  jmGeneration++;
+  jmAudio.pause();
+  jmPlaylist = items; jmPlayIdx = 0;
+  attachPlayerListeners(jmGeneration);
+  jmPlayTrack(0, jmGeneration);
+}
+
+// ── Mood logic ────────────────────────────────────────────────────────────────
+function getNearestMoods(vx, vy, count) {
+  return MOODS.slice().sort(function(a, b) {
+    var da = (vx-a.x)*(vx-a.x) + (vy-a.y)*(vy-a.y);
+    var db = (vx-b.x)*(vx-b.x) + (vy-b.y)*(vy-b.y);
+    return da - db;
+  }).slice(0, count);
+}
+
+function handleInteraction(clientX, clientY) {
+  var wrap = document.getElementById('jmWheelWrap');
+  var rect = wrap.getBoundingClientRect();
+  var cx = rect.left + rect.width/2, cy = rect.top + rect.height/2, r = rect.width/2;
+  var dx = clientX - cx, dy = clientY - cy;
+  if (Math.sqrt(dx*dx + dy*dy) > r) return;
+
+  var valence = (dx/r)*0.5 + 0.5;
+  var arousal  = (-dy/r)*0.5 + 0.5;
+
+  var nearest = getNearestMoods(valence, arousal, 3);
+  var nearest1 = nearest[0];
+
+  var old = wrap.querySelectorAll('.jm-dot');
+  for (var i = 0; i < old.length; i++) wrap.removeChild(old[i]);
+  var dot = document.createElement('div');
+  dot.className = 'jm-dot';
+  dot.style.cssText = 'position:absolute;width:22px;height:22px;border-radius:50%;' +
+    'transform:translate(-50%,-50%);pointer-events:none;' +
+    'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);';
+  dot.style.background = nearest1.col;
+  dot.style.left = (clientX - rect.left) + 'px';
+  dot.style.top  = (clientY - rect.top)  + 'px';
+  wrap.appendChild(dot);
+
+  jmShowPrompt(false);
+  setMoodName(nearest.map(function(m) { return m.name; }).join(' + '), nearest1.col);
+  setMoodDesc(nearest1.desc);
+  setTrackCount(0);
+
+  var genreMap = {};
+  nearest.forEach(function(m) { m.genres.forEach(function(g) { genreMap[g] = true; }); });
+  var genres = Object.keys(genreMap);
+  jmMoodGenres = genres;
+
+  var moodGenres = genres;
+  if (jmEraGenres !== null) genres = jmEraGenres;
+
+  setStatus('Searching\u2026');
+
+  fetchTracksByGenres(genres)
+    .then(function(items) {
+      if (items.length > 0) return items;
+      if (jmEraGenres !== null && moodGenres.length > 0) return fetchTracksByGenres(moodGenres);
+      return fetchFallback();
+    })
+    .then(function(items) {
+      setTrackCount(items.length);
+      if (!items.length) { setStatus('No tracks found — check genre tags in your library.'); return; }
+      startPlayback(items);
+    })
+    .catch(function(e) {
+      console.error('[JellyMoods]', e);
+      setStatus('Could not fetch tracks.');
+    });
+}
+
+var svg = document.getElementById('jmSvgWheel');
+svg.addEventListener('click',    function(e) { handleInteraction(e.clientX, e.clientY); });
+svg.addEventListener('touchend', function(e) { e.preventDefault(); var t = e.changedTouches[0]; handleInteraction(t.clientX, t.clientY); });
+
+// ── UI helpers ─────────────────────────────────────────────────────────────────
+function setStatus(t)    { document.getElementById('jmStatus').textContent = t; }
+function setMoodName(t, col) { var el = document.getElementById('jmMoodName'); el.textContent = t; el.style.color = col || '#fff'; }
+function setMoodDesc(t)  { document.getElementById('jmMoodDesc').textContent = t; }
+function setTrackCount(n){ var el = document.getElementById('jmTrackCount'); el.style.display = n > 0 ? 'block' : 'none'; el.textContent = n > 0 ? n + ' tracks found' : ''; }
+
+// ── API ─────────────────────────────────────────────────────────────────────────
+function fetchTracksByGenres(genres) {
+  if (!JM.token || !JM.userId) return Promise.resolve([]);
+  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'100', Fields:'Genres,MediaSources'});
+  if (genres.length > 0) params.set('Genres', genres.join('|'));
+  return fetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { return d.Items || []; });
+}
+
+function fetchFallback() {
+  if (!JM.token || !JM.userId) return Promise.resolve([]);
+  return fetch(JM.server + '/Users/' + JM.userId + '/Items?' +
+    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'30'}),
+    {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { return d.Items || []; });
+}
+
+})();
+</script>
+</body>
+</html>

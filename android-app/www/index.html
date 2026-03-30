@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>JellyMoods</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh;
+       display:flex; align-items:center; justify-content:center; padding:24px; }
+.card { width:100%; max-width:360px; }
+h1 { font-size:1.8em; font-weight:300; letter-spacing:0.08em; text-align:center; margin-bottom:6px; }
+.sub { text-align:center; font-size:0.85em; color:#888; margin-bottom:36px; }
+label { display:block; font-size:0.78em; letter-spacing:0.1em; text-transform:uppercase;
+        color:#888; margin-bottom:6px; }
+input { width:100%; background:#1e1e1e; border:1px solid #333; border-radius:8px;
+        color:#fff; font-size:0.95em; padding:12px 14px; margin-bottom:20px; outline:none; }
+input:focus { border-color:#555; }
+button { width:100%; padding:13px; border:none; border-radius:24px; background:#fff;
+         color:#111; font-size:0.95em; font-weight:700; cursor:pointer; letter-spacing:0.04em; }
+button:active { opacity:0.85; }
+#jmError { margin-top:16px; text-align:center; font-size:0.82em; color:#f88; min-height:1.2em; }
+#jmSpinner { display:none; text-align:center; margin-top:16px; font-size:0.82em; color:#888; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>&#127925; JellyMoods</h1>
+  <p class="sub">Sign in to your Jellyfin server</p>
+
+  <label>Server URL</label>
+  <input id="jmServer" type="url" placeholder="http://192.168.1.10:8096" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+
+  <label>Username</label>
+  <input id="jmUser" type="text" autocomplete="username" autocapitalize="none"/>
+
+  <label>Password</label>
+  <input id="jmPass" type="password" autocomplete="current-password"/>
+
+  <button id="jmSignIn">Sign In</button>
+  <div id="jmError"></div>
+  <div id="jmSpinner">Signing in…</div>
+</div>
+
+<script>
+(function() {
+  // Pre-fill server URL if previously saved
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem('jm_auth')); } catch(e) {}
+  if (saved && saved.serverUrl) {
+    document.getElementById('jmServer').value = saved.serverUrl;
+  }
+
+  // If already logged in, go straight to app
+  if (saved && saved.accessToken) {
+    window.location.replace('app.html');
+    return;
+  }
+
+  document.getElementById('jmSignIn').addEventListener('click', signIn);
+  document.getElementById('jmPass').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') signIn();
+  });
+
+  function signIn() {
+    var server  = document.getElementById('jmServer').value.replace(/\/$/, '').trim();
+    var user    = document.getElementById('jmUser').value.trim();
+    var pass    = document.getElementById('jmPass').value;
+    var errEl   = document.getElementById('jmError');
+    var spinner = document.getElementById('jmSpinner');
+
+    errEl.textContent = '';
+
+    if (!server) { errEl.textContent = 'Please enter a server URL.'; return; }
+    if (!user)   { errEl.textContent = 'Please enter a username.'; return; }
+
+    document.getElementById('jmSignIn').style.display = 'none';
+    spinner.style.display = 'block';
+
+    fetch(server + '/Users/AuthenticateByName', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Emby-Authorization': 'MediaBrowser Client="JellyMoods",Device="Android",DeviceId="jm-android",Version="1.0"'
+      },
+      body: JSON.stringify({ Username: user, Pw: pass })
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      localStorage.setItem('jm_auth', JSON.stringify({
+        serverUrl:   server,
+        accessToken: data.AccessToken,
+        userId:      data.User.Id
+      }));
+      window.location.replace('app.html');
+    })
+    .catch(function(e) {
+      spinner.style.display = 'none';
+      document.getElementById('jmSignIn').style.display = 'block';
+      if (e.message === 'HTTP 401') {
+        errEl.textContent = 'Wrong username or password.';
+      } else {
+        errEl.textContent = 'Could not reach server. Check the URL.';
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

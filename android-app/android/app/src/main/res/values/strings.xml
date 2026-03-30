@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">JellyMoods</string>
+    <string name="title_activity_main">JellyMoods</string>
+    <string name="package_name">com.jellymoods.app</string>
+    <string name="custom_url_scheme">com.jellymoods.app</string>
+</resources>
