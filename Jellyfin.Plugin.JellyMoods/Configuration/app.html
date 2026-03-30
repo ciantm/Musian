@@ -423,7 +423,7 @@ function handleInteraction(clientX, clientY) {
   if (jmEraGenres !== null) genres = jmEraGenres;
 
   fetchTracksByGenres(genres)
-    .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
+    .then(function(items) { return (items.length > 0 || jmEraGenres !== null) ? items : fetchFallback(); })
     .then(function(items) {
       setTrackCount(items.length);
       if (!items.length) { setStatus('No tracks found — check genre tags in your library.'); return; }
