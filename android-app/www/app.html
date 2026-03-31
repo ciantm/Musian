@@ -18,16 +18,27 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmEraLabels { margin-top:4px; }
 #jmEraLabelsTop span, #jmEraLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
 #jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
-#jmTrackName { font-size:0.85em; color:#ccc; margin-bottom:10px; min-height:1.2em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#jmTrackName { width:100%; background:#1e1e1e; border:1px solid #333; border-radius:20px; color:#ccc; font-size:0.85em; padding:9px 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .jm-btn { padding:10px 28px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:#fff; }
 #jmSkipBtn { background:rgba(255,255,255,0.12); margin-right:8px; }
 #jmStopBtn { background:rgba(255,255,255,0.08); }
+#jmSearch { width:100%; background:#1e1e1e; border:1px solid #333; border-radius:20px;
+            color:#fff; font-size:0.85em; padding:9px 16px; outline:none; }
+#jmSearch:focus { border-color:#555; }
+#jmSuggest { position:absolute; top:calc(100% + 4px); left:0; right:0;
+             background:#1e1e1e; border:1px solid #333; border-radius:10px;
+             overflow:hidden; z-index:10; display:none; }
+.jm-sug-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #222; text-align:left; }
+.jm-sug-item:last-child { border-bottom:none; }
+.jm-sug-item:hover, .jm-sug-item:active { background:#2a2a2a; }
+.jm-sug-title { font-size:0.85em; color:#fff; }
+.jm-sug-artist { font-size:0.75em; color:#888; margin-top:2px; }
 </style>
 </head>
 <body>
 <div id="jmApp">
   <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 6px;">&#127925; Musian</h2>
-  <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Choose a genre, tap your mood to play</p>
+  <p style="font-size:0.85em;color:#888;margin:0 0 32px;">Listen differently, choose your mood, play your music</p>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -68,10 +79,10 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <div style="font-size:1.1em;font-weight:300;letter-spacing:0.1em;color:rgba(255,255,255,0.75);text-shadow:0 0 24px #000,0 0 8px #000;">Tap your mood</div>
       <div style="font-size:0.72em;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-top:6px;text-shadow:0 0 12px #000;">to play</div>
     </div>
-    <span style="position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;text-shadow:0 0 8px #000;">Active</span>
-    <span style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;text-shadow:0 0 8px #000;">Passive</span>
-    <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;text-shadow:0 0 8px #000;">Negative</span>
-    <span style="position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:0.65em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);pointer-events:none;text-shadow:0 0 8px #000;">Positive</span>
+    <span style="position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Active</span>
+    <span style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Passive</span>
+    <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Negative</span>
+    <span style="position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Positive</span>
     <span style="position:absolute;top:32px;left:32px;font-size:0.65em;font-weight:700;color:#ff7070;line-height:1.3;pointer-events:none;text-shadow:0 0 8px #000;">Angry<br>Tense</span>
     <span style="position:absolute;top:32px;right:32px;font-size:0.65em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;text-shadow:0 0 8px #000;">Happy<br>Excited</span>
     <span style="position:absolute;bottom:32px;left:32px;font-size:0.65em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;text-shadow:0 0 8px #000;">Sad<br>Lonely</span>
@@ -89,23 +100,29 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div style="text-align:center;margin-top:36px;min-height:80px;">
     <div id="jmMoodName" style="font-size:1.4em;font-weight:300;letter-spacing:0.08em;color:#fff;min-height:1.6em;"></div>
-    <div id="jmMoodDesc" style="font-size:0.82em;color:#999;margin-top:6px;min-height:1.2em;"></div>
+    <div id="jmUpNext" style="display:none;margin-top:6px;font-size:0.75em;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
   </div>
 
-  <div style="margin-top:16px;text-align:center;">
+  <div style="text-align:center;">
     <div id="jmStatus" style="font-size:0.8em;color:#777;min-height:1.2em;"></div>
     <div id="jmTrackCount" style="display:none;margin-top:4px;font-size:0.78em;color:#aaa;"></div>
   </div>
 
-  <div id="jmPlayer" style="display:none;">
-    <audio id="jmAudio"></audio>
-    <div id="jmTrackName"></div>
-    <button id="jmSkipBtn" class="jm-btn">&#9197; Skip</button>
-    <button id="jmStopBtn" class="jm-btn">&#9209; Stop</button>
+  <div id="jmPlayer" style="margin-top:16px;text-align:center;width:100%;max-width:420px;">
+    <audio id="jmAudio" playsinline></audio>
+    <div id="jmSearchWrap" style="position:relative;margin-bottom:10px;">
+      <input id="jmSearch" type="search" placeholder="Search song…" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+      <div id="jmSuggest"></div>
+    </div>
+    <div id="jmTrackName" style="display:none;"></div>
+    <div id="jmControls" style="display:none;margin-top:16px;">
+      <button id="jmSkipBtn" class="jm-btn">&#9197; Skip</button>
+      <button id="jmStopBtn" class="jm-btn">&#9209; Stop</button>
+    </div>
   </div>
 
   <button id="jmSignOutBtn" style="margin-top:32px;background:none;border:none;color:#555;font-size:0.8em;cursor:pointer;text-decoration:underline;">Sign out</button>
-  <div style="margin-top:12px;font-size:0.65em;color:#444;">v1.0.0</div>
+  <div style="margin-top:12px;font-size:0.65em;color:#444;">v1.1.0</div>
 </div>
 
 <script>
@@ -150,7 +167,7 @@ function makeJellyfinBackend(auth) {
     },
     fetchTracksByGenres: function(genres) {
       var expanded = expandGenres(genres);
-      var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'100', Fields:'Genres,MediaSources'});
+      var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'10', Fields:'Genres,MediaSources'});
       if (expanded.length > 0) params.set('Genres', expanded.join('|'));
       return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' + params, {headers: headers()})
         .then(function(r){ return r.json(); })
@@ -158,8 +175,16 @@ function makeJellyfinBackend(auth) {
     },
     fetchFallback: function() {
       return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' +
-        new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'30'}),
+        new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'10'}),
         {headers: headers()})
+        .then(function(r){ return r.json(); })
+        .then(function(d){ return d.Items || []; });
+    },
+    searchTracks: function(q, limit) {
+      return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' + new URLSearchParams({
+        SearchTerm: q, IncludeItemTypes: 'Audio', Recursive: 'true',
+        Limit: String(limit), Fields: 'Genres,Artists,AlbumArtist'
+      }), {headers: headers()})
         .then(function(r){ return r.json(); })
         .then(function(d){ return d.Items || []; });
     },
@@ -178,6 +203,8 @@ function makeJellyfinBackend(auth) {
       var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
       return (artist ? artist + ' \u2014 ' : '') + (item.Name || '');
     },
+    itemId: function(item) { return item.Id; },
+    itemGenres: function(item) { return item.Genres || []; },
     mediaMetadata: function(item) {
       return {
         title:  item.Name  || 'Musian',
@@ -218,7 +245,7 @@ function makeSubsonicBackend(auth) {
       var seen = {};
       var promises = expanded.map(function(genre) {
         return fetch(auth.serverUrl + '/rest/getSongsByGenre.view' + ap() +
-          '&genre=' + encodeURIComponent(genre) + '&count=50')
+          '&genre=' + encodeURIComponent(genre) + '&count=10')
           .then(function(r){ return r.json(); })
           .then(function(d){
             return ((d['subsonic-response'] && d['subsonic-response'].songsByGenre && d['subsonic-response'].songsByGenre.song) || []);
@@ -233,14 +260,23 @@ function makeSubsonicBackend(auth) {
           });
         });
         shuffle(merged);
-        return merged.slice(0, 100);
+        return merged.slice(0, 10);
       });
     },
     fetchFallback: function() {
-      return fetch(auth.serverUrl + '/rest/getRandomSongs.view' + ap() + '&size=30')
+      return fetch(auth.serverUrl + '/rest/getRandomSongs.view' + ap() + '&size=10')
         .then(function(r){ return r.json(); })
         .then(function(d){
           return ((d['subsonic-response'] && d['subsonic-response'].randomSongs && d['subsonic-response'].randomSongs.song) || []);
+        })
+        .catch(function(){ return []; });
+    },
+    searchTracks: function(q, limit) {
+      return fetch(auth.serverUrl + '/rest/search3.view' + ap() +
+        '&query=' + encodeURIComponent(q) + '&songCount=' + limit)
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          return ((d['subsonic-response'] && d['subsonic-response'].searchResult3 && d['subsonic-response'].searchResult3.song) || []);
         })
         .catch(function(){ return []; });
     },
@@ -250,6 +286,8 @@ function makeSubsonicBackend(auth) {
     trackLabel: function(item) {
       return (item.artist ? item.artist + ' \u2014 ' : '') + (item.title || item.name || '');
     },
+    itemId: function(item) { return item.id; },
+    itemGenres: function(item) { return item.genre ? [item.genre] : []; },
     mediaMetadata: function(item) {
       return {
         title:  item.title || item.name || 'Musian',
@@ -312,11 +350,18 @@ function makePlexBackend(auth) {
           });
         });
         shuffle(merged);
-        return merged.slice(0, 100);
+        return merged.slice(0, 10);
       });
     },
     fetchFallback: function() {
-      return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId + '/all?type=10&sort=random&limit=30&' + ap(), {headers: jh()})
+      return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId + '/all?type=10&sort=random&limit=10&' + ap(), {headers: jh()})
+        .then(function(r){ return r.json(); })
+        .then(function(d){ return (d.MediaContainer && d.MediaContainer.Metadata) || []; })
+        .catch(function(){ return []; });
+    },
+    searchTracks: function(q, limit) {
+      return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId +
+        '/search?type=10&query=' + encodeURIComponent(q) + '&limit=' + limit + '&' + ap(), {headers: jh()})
         .then(function(r){ return r.json(); })
         .then(function(d){ return (d.MediaContainer && d.MediaContainer.Metadata) || []; })
         .catch(function(){ return []; });
@@ -329,6 +374,10 @@ function makePlexBackend(auth) {
     trackLabel: function(item) {
       var artist = item.grandparentTitle || item.originalTitle || '';
       return (artist ? artist + ' \u2014 ' : '') + (item.title || '');
+    },
+    itemId: function(item) { return item.ratingKey || item.key; },
+    itemGenres: function(item) {
+      return (item.Genre || []).map(function(g){ return g.tag; });
     },
     mediaMetadata: function(item) {
       return {
@@ -374,53 +423,53 @@ Backend.libraryCount().then(function(n) {
 (function(){
 'use strict';
 var MOODS = [
-  { name:'Aggressive',  desc:'Raw, confrontational, intense',         x:0.08, y:0.95, col:'#ff3030', genres:['Heavy Metal','Metalcore','Punk Rock','Hard Rock','Alternative Metal'] },
-  { name:'Angry',       desc:'Hot, fierce, forceful',                 x:0.10, y:0.90, col:'#ff4040', genres:['Heavy Metal','Hard Rock','Punk Rock','Alternative Metal','Traditional Heavy Metal'] },
-  { name:'Frantic',     desc:'Frenzied, chaotic, uncontrolled',       x:0.12, y:0.92, col:'#ff3535', genres:['Metalcore','Punk Rock','Post-Hardcore','Hard Rock','Alternative Metal'] },
-  { name:'Defiant',     desc:'Bold, rebellious, confrontational',     x:0.15, y:0.82, col:'#ff5030', genres:['Punk Rock','Hard Rock','Rap Rock','Post-Hardcore','Alternative Rock'] },
-  { name:'Intense',     desc:'Concentrated, powerful, overwhelming',  x:0.20, y:0.88, col:'#ff4535', genres:['Heavy Metal','Hard Rock','Alternative Metal','Blues Rock','Metalcore'] },
-  { name:'Tense',       desc:'Edgy, uneasy, on-edge',                 x:0.18, y:0.85, col:'#ff5a3a', genres:['Alternative Rock','Post-Hardcore','Hard Rock','Punk Rock','Grunge'] },
-  { name:'Anxious',     desc:'Nervous, unsettled, restless',          x:0.25, y:0.80, col:'#ff6a40', genres:['Post-Hardcore','Alternative Rock','Punk Rock','Grunge','Indie Rock'] },
-  { name:'Dark',        desc:'Shadowy, brooding, heavy atmosphere',   x:0.18, y:0.42, col:'#5055c0', genres:['Heavy Metal','Blues','Alternative Metal','Grunge','Traditional Heavy Metal'] },
-  { name:'Mysterious',  desc:'Intriguing, shadowy, unknown depths',   x:0.38, y:0.52, col:'#8070c8', genres:['Psychedelic Rock','Space Rock','Art Rock','Blues','Jazz Fusion'] },
-  { name:'Yearning',    desc:'Deep longing, desire unfulfilled',      x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Folk Rock','Blues','Soul','Indie Rock'] },
-  { name:'Nostalgic',   desc:'Wistful longing for the past',          x:0.42, y:0.28, col:'#6878b8', genres:['Classic Rock','Folk','Blues','Soul','Rockabilly','Country Music'] },
-  { name:'Bittersweet', desc:'Joy and sadness mixed, poignant',       x:0.45, y:0.30, col:'#7080b8', genres:['Folk','Folk Rock','Soul','Blues','Country Music'] },
-  { name:'Hypnotic',    desc:'Trance-like, mesmerising, repetitive',  x:0.48, y:0.48, col:'#7088d0', genres:['Psychedelic Rock','Space Rock','Jazz Fusion','Art Rock','Proto-Prog'] },
-  { name:'Sentimental', desc:'Tender feelings, emotionally moved',    x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Soul','Ballad','Contemporary R&B','Folk'] },
-  { name:'Atmospheric', desc:'Spacious, immersive, enveloping',       x:0.55, y:0.38, col:'#5090c8', genres:['Space Rock','Psychedelic Rock','Art Rock','Progressive Rock','Jazz Fusion'] },
-  { name:'Passionate',  desc:'Fervent, deeply felt, expressive',      x:0.58, y:0.82, col:'#e89030', genres:['Rock Music','Soul','Blues','Hard Rock','Rhythm And Blues'] },
-  { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.62, y:0.62, col:'#c8d840', genres:['Folk','Pop','Soul','Indie Rock','Country Music'] },
-  { name:'Epic',        desc:'Grand, sweeping, larger than life',     x:0.62, y:0.80, col:'#d0a020', genres:['Classic Rock','Progressive Rock','Hard Rock','Rock Music','Heavy Metal'] },
-  { name:'Powerful',    desc:'Strong, commanding, forceful',          x:0.60, y:0.88, col:'#e8b030', genres:['Hard Rock','Heavy Metal','Rock Music','Blues Rock','Classic Rock'] },
-  { name:'Majestic',    desc:'Stately, grand, awe-inspiring',         x:0.65, y:0.72, col:'#c8a828', genres:['Classic Rock','Progressive Rock','Rock Music','Blues Rock','Soul'] },
-  { name:'Groovy',      desc:'Funky, rhythmic, in-the-pocket',        x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','Rhythm And Blues','Contemporary R&B','Jazz-Funk','Funk Rock'] },
-  { name:'Upbeat',      desc:'Lively, positive, feel-good',           x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Pop Rock','Reggae','Pop Music'] },
-  { name:'Happy',       desc:'Cheerful, warm, contented joy',         x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Pop Music','Soul','Funk','Reggae','Ska','Pop Rock'] },
-  { name:'Celebratory', desc:'Festive, joyful, party spirit',         x:0.85, y:0.82, col:'#ffdf38', genres:['Pop','Funk','Ska','Reggae','Pop Music','Funk Rock'] },
-  { name:'Triumphant',  desc:'Victorious, proud, unstoppable',        x:0.82, y:0.88, col:'#ffd840', genres:['Classic Rock','Hard Rock','Rock Music','Heavy Metal','Progressive Rock'] },
-  { name:'Excited',     desc:'Thrilled, eager, buzzing with energy',  x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Punk Rock','Alternative Rock','Rap Rock','Pop Rock'] },
-  { name:'Energetic',   desc:'High-powered, vigorous, dynamic',       x:0.72, y:0.90, col:'#ffcc30', genres:['Hard Rock','Rock Music','Punk Rock','Funk Rock','Alternative Rock','Rap'] },
-  { name:'Ecstatic',    desc:'Overwhelmed with joy, rapturous',       x:0.92, y:0.92, col:'#ffea28', genres:['Ska','Funk','Pop','Reggae','Punk Rock'] },
-  { name:'Euphoric',    desc:'Blissful, elated, overjoyed',           x:0.95, y:0.95, col:'#ffee22', genres:['Ska','Funk','Pop Music','Reggae','Pop Rock'] },
-  { name:'Romantic',    desc:'Loving, tender, intimate warmth',       x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','Rhythm And Blues','Contemporary R&B','Ballad'] },
-  { name:'Dreamy',      desc:'Floating, hazy, softly surreal',        x:0.62, y:0.22, col:'#60c8d8', genres:['Psychedelic Rock','Space Rock','Art Rock','Jazz Fusion','Folk'] },
-  { name:'Intimate',    desc:'Close, personal, quietly heartfelt',    x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Soul','Folk','Ballad','Contemporary R&B'] },
-  { name:'Tender',      desc:'Gentle, soft, affectionate',            x:0.70, y:0.28, col:'#55dca8', genres:['Folk','Folk Rock','Country Music','Ballad','Soul'] },
-  { name:'Content',     desc:'Satisfied, at ease, quietly pleased',   x:0.70, y:0.25, col:'#50dcc0', genres:['Folk','Jazz','Country Music','Soul','Ballad'] },
-  { name:'Relaxed',     desc:'Loose, at rest, free from tension',     x:0.78, y:0.18, col:'#40d8c0', genres:['Jazz','Reggae','Folk','Country Music','Jazz Fusion'] },
-  { name:'Calm',        desc:'Still, balanced, unhurried',            x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Soul'] },
-  { name:'Soothing',    desc:'Comforting, easing, gentle relief',     x:0.82, y:0.15, col:'#38dcc0', genres:['Jazz','Folk','Country Music','Ballad','Soul'] },
-  { name:'Serene',      desc:'Clear, composed, harmonious stillness', x:0.85, y:0.08, col:'#30e8c8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Ballad'] },
-  { name:'Peaceful',    desc:'Tranquil, undisturbed, quiet',          x:0.88, y:0.10, col:'#35e8c0', genres:['Jazz','Folk','Country Music','Ballad','Jazz Fusion'] },
-  { name:'Wistful',     desc:'Wishing things were different, pensive',x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Folk Rock','Country Music','Blues','Soul'] },
-  { name:'Melancholic', desc:'Quietly sorrowful, reflective sadness', x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Electric Blues'] },
-  { name:'Somber',      desc:'Dark and serious, grave mood',          x:0.20, y:0.20, col:'#5070e8', genres:['Blues','Electric Blues','Soul','Heavy Metal','Folk'] },
-  { name:'Sad',         desc:'Unhappy, sorrowful, downcast',          x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Country Music'] },
-  { name:'Gloomy',      desc:'Overcast, cheerless, despairing',       x:0.15, y:0.20, col:'#4870e8', genres:['Blues','Electric Blues','Heavy Metal','Alternative Rock','Grunge'] },
-  { name:'Lonely',      desc:'Isolated, alone, missing connection',   x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Blues','Country Music','Soul','Folk Rock'] },
-  { name:'Mournful',    desc:'Grieving, lamenting, sorrowful',        x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Electric Blues','Soul','Folk','Rhythm And Blues'] },
-  { name:'Depressed',   desc:'Heavy, hopeless, withdrawn',            x:0.08, y:0.08, col:'#3060e0', genres:['Blues','Electric Blues','Heavy Metal','Grunge','Alternative Rock'] },
+  { name:'Aggressive',  x:0.08, y:0.95, col:'#ff3030', genres:['Heavy Metal','Metalcore','Punk Rock','Hard Rock','Alternative Metal'] },
+  { name:'Angry',       x:0.10, y:0.90, col:'#ff4040', genres:['Heavy Metal','Hard Rock','Punk Rock','Alternative Metal','Traditional Heavy Metal'] },
+  { name:'Frantic',     x:0.12, y:0.92, col:'#ff3535', genres:['Metalcore','Punk Rock','Post-Hardcore','Hard Rock','Alternative Metal'] },
+  { name:'Defiant',     x:0.15, y:0.82, col:'#ff5030', genres:['Punk Rock','Hard Rock','Rap Rock','Post-Hardcore','Alternative Rock'] },
+  { name:'Intense',     x:0.20, y:0.88, col:'#ff4535', genres:['Heavy Metal','Hard Rock','Alternative Metal','Blues Rock','Metalcore'] },
+  { name:'Tense',       x:0.18, y:0.85, col:'#ff5a3a', genres:['Alternative Rock','Post-Hardcore','Hard Rock','Punk Rock','Grunge'] },
+  { name:'Anxious',     x:0.25, y:0.80, col:'#ff6a40', genres:['Post-Hardcore','Alternative Rock','Punk Rock','Grunge','Indie Rock'] },
+  { name:'Dark',        x:0.18, y:0.42, col:'#5055c0', genres:['Heavy Metal','Blues','Alternative Metal','Grunge','Traditional Heavy Metal'] },
+  { name:'Mysterious',  x:0.38, y:0.52, col:'#8070c8', genres:['Psychedelic Rock','Space Rock','Art Rock','Blues','Jazz Fusion'] },
+  { name:'Yearning',    x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Folk Rock','Blues','Soul','Indie Rock'] },
+  { name:'Nostalgic',   x:0.42, y:0.28, col:'#6878b8', genres:['Classic Rock','Folk','Blues','Soul','Rockabilly','Country Music'] },
+  { name:'Bittersweet', x:0.45, y:0.30, col:'#7080b8', genres:['Folk','Folk Rock','Soul','Blues','Country Music'] },
+  { name:'Hypnotic',    x:0.48, y:0.48, col:'#7088d0', genres:['Psychedelic Rock','Space Rock','Jazz Fusion','Art Rock','Proto-Prog'] },
+  { name:'Sentimental', x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Soul','Ballad','Contemporary R&B','Folk'] },
+  { name:'Atmospheric', x:0.55, y:0.38, col:'#5090c8', genres:['Space Rock','Psychedelic Rock','Art Rock','Progressive Rock','Jazz Fusion'] },
+  { name:'Passionate',  x:0.58, y:0.82, col:'#e89030', genres:['Rock Music','Soul','Blues','Hard Rock','Rhythm And Blues'] },
+  { name:'Hopeful',     x:0.62, y:0.62, col:'#c8d840', genres:['Folk','Pop','Soul','Indie Rock','Country Music'] },
+  { name:'Epic',        x:0.62, y:0.80, col:'#d0a020', genres:['Classic Rock','Progressive Rock','Hard Rock','Rock Music','Heavy Metal'] },
+  { name:'Powerful',    x:0.60, y:0.88, col:'#e8b030', genres:['Hard Rock','Heavy Metal','Rock Music','Blues Rock','Classic Rock'] },
+  { name:'Majestic',    x:0.65, y:0.72, col:'#c8a828', genres:['Classic Rock','Progressive Rock','Rock Music','Blues Rock','Soul'] },
+  { name:'Groovy',      x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','Rhythm And Blues','Contemporary R&B','Jazz-Funk','Funk Rock'] },
+  { name:'Upbeat',      x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Pop Rock','Reggae','Pop Music'] },
+  { name:'Happy',       x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Pop Music','Soul','Funk','Reggae','Ska','Pop Rock'] },
+  { name:'Celebratory', x:0.85, y:0.82, col:'#ffdf38', genres:['Pop','Funk','Ska','Reggae','Pop Music','Funk Rock'] },
+  { name:'Triumphant',  x:0.82, y:0.88, col:'#ffd840', genres:['Classic Rock','Hard Rock','Rock Music','Heavy Metal','Progressive Rock'] },
+  { name:'Excited',     x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Punk Rock','Alternative Rock','Rap Rock','Pop Rock'] },
+  { name:'Energetic',   x:0.72, y:0.90, col:'#ffcc30', genres:['Hard Rock','Rock Music','Punk Rock','Funk Rock','Alternative Rock','Rap'] },
+  { name:'Ecstatic',    x:0.92, y:0.92, col:'#ffea28', genres:['Ska','Funk','Pop','Reggae','Punk Rock'] },
+  { name:'Euphoric',    x:0.95, y:0.95, col:'#ffee22', genres:['Ska','Funk','Pop Music','Reggae','Pop Rock'] },
+  { name:'Romantic',    x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','Rhythm And Blues','Contemporary R&B','Ballad'] },
+  { name:'Dreamy',      x:0.62, y:0.22, col:'#60c8d8', genres:['Psychedelic Rock','Space Rock','Art Rock','Jazz Fusion','Folk'] },
+  { name:'Intimate',    x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Soul','Folk','Ballad','Contemporary R&B'] },
+  { name:'Tender',      x:0.70, y:0.28, col:'#55dca8', genres:['Folk','Folk Rock','Country Music','Ballad','Soul'] },
+  { name:'Content',     x:0.70, y:0.25, col:'#50dcc0', genres:['Folk','Jazz','Country Music','Soul','Ballad'] },
+  { name:'Relaxed',     x:0.78, y:0.18, col:'#40d8c0', genres:['Jazz','Reggae','Folk','Country Music','Jazz Fusion'] },
+  { name:'Calm',        x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Soul'] },
+  { name:'Soothing',    x:0.82, y:0.15, col:'#38dcc0', genres:['Jazz','Folk','Country Music','Ballad','Soul'] },
+  { name:'Serene',      x:0.85, y:0.08, col:'#30e8c8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Ballad'] },
+  { name:'Peaceful',    x:0.88, y:0.10, col:'#35e8c0', genres:['Jazz','Folk','Country Music','Ballad','Jazz Fusion'] },
+  { name:'Wistful',     x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Folk Rock','Country Music','Blues','Soul'] },
+  { name:'Melancholic', x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Electric Blues'] },
+  { name:'Somber',      x:0.20, y:0.20, col:'#5070e8', genres:['Blues','Electric Blues','Soul','Heavy Metal','Folk'] },
+  { name:'Sad',         x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Country Music'] },
+  { name:'Gloomy',      x:0.15, y:0.20, col:'#4870e8', genres:['Blues','Electric Blues','Heavy Metal','Alternative Rock','Grunge'] },
+  { name:'Lonely',      x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Blues','Country Music','Soul','Folk Rock'] },
+  { name:'Mournful',    x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Electric Blues','Soul','Folk','Rhythm And Blues'] },
+  { name:'Depressed',   x:0.08, y:0.08, col:'#3060e0', genres:['Blues','Electric Blues','Heavy Metal','Grunge','Alternative Rock'] },
 ];
 
 var ERAS = [
@@ -487,6 +536,7 @@ var jmEraGenres = null;
       setStatus('Searching\u2026');
       setTrackCount(0);
       var eraG = jmEraGenres, moodG = jmMoodGenres;
+      jmRefetchFn = function() { return fetchTracksByGenres(eraG); };
       fetchTracksByGenres(eraG)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
@@ -512,6 +562,9 @@ var jmPlayIdx    = 0;
 var jmGeneration = 0;
 var jmMoodGenres = null;
 var jmAudio      = document.getElementById('jmAudio');
+var jmRefetchFn  = null;
+var jmPlayedIds  = [];
+var jmFetching   = false;
 
 function jmShowPrompt(visible) {
   var p = document.getElementById('jmWheelPrompt');
@@ -532,6 +585,15 @@ function jmUpdateMediaSession(item) {
   if (!('mediaSession' in navigator)) return;
   var meta = Backend.mediaMetadata(item);
   navigator.mediaSession.metadata = new MediaMetadata(meta);
+  navigator.mediaSession.playbackState = 'playing';
+  navigator.mediaSession.setActionHandler('play', function() {
+    jmAudio.play().catch(function() {});
+    navigator.mediaSession.playbackState = 'playing';
+  });
+  navigator.mediaSession.setActionHandler('pause', function() {
+    jmAudio.pause();
+    navigator.mediaSession.playbackState = 'paused';
+  });
   navigator.mediaSession.setActionHandler('nexttrack', function() {
     jmPlayIdx++; jmPlayTrack(jmPlayIdx, jmGeneration);
   });
@@ -544,21 +606,51 @@ function jmUpdateMediaSession(item) {
   });
 }
 
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && jmPlaylist.length > 0 && jmAudio.paused && !jmAudio.ended) {
+    jmAudio.play().catch(function() {});
+  }
+});
+
 function jmPlayTrack(idx, gen) {
   if (gen !== jmGeneration) return;
   if (idx >= jmPlaylist.length) {
     setStatus('Playlist ended — tap the wheel to play again.');
-    document.getElementById('jmPlayer').style.display = 'none';
-    if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+    document.getElementById('jmSearchWrap').style.display = 'block';
+    document.getElementById('jmTrackName').style.display = 'none';
+    document.getElementById('jmControls').style.display = 'none';
+    document.getElementById('jmUpNext').style.display = 'none';
+    if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
     return;
   }
   var item = jmPlaylist[idx];
+  jmPlayedIds.push(Backend.itemId(item));
+  if (jmRefetchFn && !jmFetching && jmPlaylist.length - idx <= 2) {
+    jmFetching = true;
+    var _gen = gen;
+    jmRefetchFn().then(function(more) {
+      jmFetching = false;
+      if (_gen !== jmGeneration) return;
+      more = more.filter(function(t) { return jmPlayedIds.indexOf(Backend.itemId(t)) === -1; });
+      if (more.length) jmPlaylist = jmPlaylist.concat(more);
+    }).catch(function() { jmFetching = false; });
+  }
   jmAudio.pause();
   jmAudio.src = Backend.streamUrl(item);
   jmAudio.play().catch(function() {});
   document.getElementById('jmTrackName').textContent = Backend.trackLabel(item);
-  document.getElementById('jmPlayer').style.display = 'block';
-  setStatus('Playing ' + jmPlaylist.length + ' tracks \u266a');
+  document.getElementById('jmSearchWrap').style.display = 'none';
+  document.getElementById('jmTrackName').style.display = 'block';
+  document.getElementById('jmControls').style.display = 'block';
+  var next = jmPlaylist[idx + 1];
+  var upNextEl = document.getElementById('jmUpNext');
+  if (next) {
+    upNextEl.textContent = 'Up next \u00b7 ' + Backend.trackLabel(next);
+    upNextEl.style.display = 'block';
+  } else {
+    upNextEl.style.display = 'none';
+  }
+  setStatus('Playing \u266a');
   jmUpdateMediaSession(item);
 }
 
@@ -581,11 +673,16 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGeneration++;
   jmAudio.pause(); jmAudio.src = '';
   jmPlaylist = [];
-  document.getElementById('jmPlayer').style.display = 'none';
-  setStatus(''); setTrackCount(0); setMoodName('', ''); setMoodDesc('');
-  if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+  document.getElementById('jmSearchWrap').style.display = 'block';
+  document.getElementById('jmTrackName').style.display = 'none';
+  document.getElementById('jmControls').style.display = 'none';
+  document.getElementById('jmUpNext').style.display = 'none';
+  setStatus(''); setTrackCount(0); setMoodName('', '');
+  if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
   jmMoodGenres = null;
   jmEraGenres = null;
+  jmRefetchFn = null;
+  jmPlayedIds = [];
   jmShowPrompt(true);
   var hl = document.getElementById('jmEraHighlight');
   if (hl) hl.style.display = 'none';
@@ -600,6 +697,7 @@ function startPlayback(items) {
   jmGeneration++;
   jmAudio.pause();
   jmPlaylist = items; jmPlayIdx = 0;
+  jmPlayedIds = []; jmFetching = false;
   attachPlayerListeners(jmGeneration);
   jmPlayTrack(0, jmGeneration);
 }
@@ -640,7 +738,6 @@ function handleInteraction(clientX, clientY) {
 
   jmShowPrompt(false);
   setMoodName(nearest.map(function(m) { return m.name; }).join(' + '), nearest1.col);
-  setMoodDesc(nearest1.desc);
   setTrackCount(0);
 
   var genreMap = {};
@@ -650,6 +747,9 @@ function handleInteraction(clientX, clientY) {
 
   var moodGenres = genres;
   if (jmEraGenres !== null) genres = jmEraGenres;
+
+  var _refetchGenres = genres;
+  jmRefetchFn = function() { return fetchTracksByGenres(_refetchGenres); };
 
   setStatus('Searching\u2026');
 
@@ -677,12 +777,125 @@ svg.addEventListener('touchend', function(e) { e.preventDefault(); var t = e.cha
 // ── UI helpers ─────────────────────────────────────────────────────────────────
 function setStatus(t)    { document.getElementById('jmStatus').textContent = t; }
 function setMoodName(t, col) { var el = document.getElementById('jmMoodName'); el.textContent = t; el.style.color = col || '#fff'; }
-function setMoodDesc(t)  { document.getElementById('jmMoodDesc').textContent = t; }
 function setTrackCount(n){ var el = document.getElementById('jmTrackCount'); el.style.display = n > 0 ? 'block' : 'none'; el.textContent = n > 0 ? n + ' tracks found' : ''; }
 
 // ── API (delegates to Backend) ────────────────────────────────────────────────
 function fetchTracksByGenres(genres) { return Backend.fetchTracksByGenres(genres); }
 function fetchFallback()             { return Backend.fetchFallback(); }
+
+// ── Search ────────────────────────────────────────────────────────────────────
+function findMoodForGenres(genres) {
+  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
+  var best = MOODS[0], bestScore = -1;
+  MOODS.forEach(function(mood) {
+    var score = 0;
+    mood.genres.forEach(function(mg) {
+      var mn = mg.toLowerCase().replace(/[^a-z0-9]/g, '');
+      norm.forEach(function(n) { if (n.indexOf(mn) !== -1 || mn.indexOf(n) !== -1) score++; });
+    });
+    if (score > bestScore) { bestScore = score; best = mood; }
+  });
+  return best;
+}
+
+function placeDotForMood(mood) {
+  var wrap = document.getElementById('jmWheelWrap');
+  var rect = wrap.getBoundingClientRect();
+  var old = wrap.querySelectorAll('.jm-dot');
+  for (var i = 0; i < old.length; i++) wrap.removeChild(old[i]);
+  var dot = document.createElement('div');
+  dot.className = 'jm-dot';
+  dot.style.cssText = 'position:absolute;width:22px;height:22px;border-radius:50%;' +
+    'transform:translate(-50%,-50%);pointer-events:none;' +
+    'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);';
+  dot.style.background = mood.col;
+  dot.style.left = (mood.x * rect.width) + 'px';
+  dot.style.top  = ((1 - mood.y) * rect.height) + 'px';
+  wrap.appendChild(dot);
+}
+
+function highlightGenreBarForGenres(genres) {
+  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
+  var bestIdx = 0, bestScore = -1;
+  ERAS.forEach(function(era, i) {
+    var score = 0;
+    era.genres.forEach(function(eg) {
+      var en = eg.toLowerCase().replace(/[^a-z0-9]/g, '');
+      norm.forEach(function(n) { if (n.indexOf(en) !== -1 || en.indexOf(n) !== -1) score++; });
+    });
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  });
+  var n = ERAS.length;
+  var hl = document.getElementById('jmEraHighlight');
+  hl.style.left  = (bestIdx / n * 100) + '%';
+  hl.style.width = (1 / n * 100) + '%';
+  hl.style.display = 'block';
+  ['jmEraLabelsTop', 'jmEraLabels'].forEach(function(id) {
+    document.getElementById(id).querySelectorAll('span').forEach(function(s, i) {
+      s.style.color      = i === bestIdx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
+      s.style.fontWeight = i === bestIdx ? '700' : '400';
+    });
+  });
+}
+
+(function() {
+  var input   = document.getElementById('jmSearch');
+  var suggest = document.getElementById('jmSuggest');
+  var timer   = null;
+
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    var q = input.value.trim();
+    if (!q) { suggest.style.display = 'none'; return; }
+    timer = setTimeout(function() { doSearch(q); }, 300);
+  });
+
+  input.addEventListener('blur', function() {
+    setTimeout(function() { suggest.style.display = 'none'; }, 150);
+  });
+
+  function doSearch(q) {
+    Backend.searchTracks(q, 8)
+      .then(function(items) { renderSuggestions(items); })
+      .catch(function() {});
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderSuggestions(items) {
+    suggest.innerHTML = '';
+    if (!items.length) { suggest.style.display = 'none'; return; }
+    items.forEach(function(item) {
+      var div = document.createElement('div');
+      div.className = 'jm-sug-item';
+      var label = Backend.trackLabel(item);
+      var parts = label.split(' \u2014 ');
+      var title  = parts.length > 1 ? parts.slice(1).join(' \u2014 ') : parts[0];
+      var artist = parts.length > 1 ? parts[0] : '';
+      div.innerHTML = '<div class="jm-sug-title">' + escHtml(title) + '</div>' +
+        (artist ? '<div class="jm-sug-artist">' + escHtml(artist) + '</div>' : '');
+      div.addEventListener('mousedown', function() { selectSong(item); });
+      suggest.appendChild(div);
+    });
+    suggest.style.display = 'block';
+  }
+
+  function selectSong(item) {
+    suggest.style.display = 'none';
+    input.value = '';
+    var genres = Backend.itemGenres(item);
+    var mood = findMoodForGenres(genres);
+    var _moodGenres = mood.genres;
+    jmRefetchFn = function() { return fetchTracksByGenres(_moodGenres); };
+    startPlayback([item]);
+    placeDotForMood(mood);
+    setMoodName(mood.name, mood.col);
+    highlightGenreBarForGenres(genres);
+    jmShowPrompt(false);
+  }
+})();
 
 })();
 </script>
