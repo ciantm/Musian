@@ -121,7 +121,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </div>
 
   <a href="/web/index.html" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back to Jellyfin</a>
-  <div style="margin-top:12px;font-size:0.65em;color:#444;">v3.0.40.0</div>
+  <div style="margin-top:12px;font-size:0.65em;color:#444;">v3.0.41.0</div>
 </div>
 
 <script>
@@ -327,6 +327,7 @@ var jmEraGenres = null; // null = no era filter active
       setStatus('Searching\u2026');
       setTrackCount(0);
       var eraG = jmEraGenres, moodG = jmMoodGenres;
+      jmRefetchFn = function() { return fetchTracksByGenres(eraG); };
       fetchTracksByGenres(eraG)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
@@ -352,6 +353,8 @@ var jmPlayIdx    = 0;
 var jmGeneration = 0;
 var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
+var jmRefetchFn  = null; // zero-arg fn returning Promise of next batch
+var jmPlayedIds  = [];   // ids of tracks already played (for dedup)
 
 function jmShowPrompt(visible) {
   var p = document.getElementById('jmWheelPrompt');
@@ -414,6 +417,16 @@ function jmPlayTrack(idx, gen) {
     return;
   }
   var item = jmPlaylist[idx];
+  jmPlayedIds.push(item.Id);
+  // Prefetch next batch when penultimate track starts
+  if (jmRefetchFn && idx === jmPlaylist.length - 2) {
+    var _gen = gen;
+    jmRefetchFn().then(function(more) {
+      if (_gen !== jmGeneration) return;
+      more = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
+      if (more.length) jmPlaylist = jmPlaylist.concat(more);
+    }).catch(function() {});
+  }
   jmAudio.pause();
   jmAudio.src = JM.streamUrl(item.Id);
   jmAudio.play().catch(function() {});
@@ -422,7 +435,7 @@ function jmPlayTrack(idx, gen) {
     (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmTrackName').style.display = 'block';
   document.getElementById('jmControls').style.display = 'block';
-  setStatus('Playing ' + jmPlaylist.length + ' tracks \u266a');
+  setStatus('Playing \u266a');
   jmUpdateMediaSession(item);
 }
 
@@ -453,6 +466,8 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   // Clear mood and era state
   jmMoodGenres = null;
   jmEraGenres = null;
+  jmRefetchFn = null;
+  jmPlayedIds = [];
   jmShowPrompt(true);
   var hl = document.getElementById('jmEraHighlight');
   if (hl) hl.style.display = 'none';
@@ -467,6 +482,7 @@ function startPlayback(items) {
   jmGeneration++;
   jmAudio.pause();
   jmPlaylist = items; jmPlayIdx = 0;
+  jmPlayedIds = [];
   attachPlayerListeners(jmGeneration);
   jmPlayTrack(0, jmGeneration);
 }
@@ -522,6 +538,10 @@ function handleInteraction(clientX, clientY) {
 
   setStatus('Searching\u2026');
 
+  // Capture refetch context before async
+  var _refetchGenres = genres;
+  jmRefetchFn = function() { return fetchTracksByGenres(_refetchGenres); };
+
   fetchTracksByGenres(genres)
     .then(function(items) {
       if (items.length > 0) return items;
@@ -567,7 +587,7 @@ function expandGenres(seeds) {
 function fetchTracksByGenres(genres) {
   if (!JM.token || !JM.userId) return Promise.resolve([]);
   var expanded = expandGenres(genres);
-  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'100', Fields:'Genres,MediaSources'});
+  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'10', Fields:'Genres,MediaSources'});
   if (expanded.length > 0) params.set('Genres', expanded.join('|'));
   return fetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
@@ -577,7 +597,7 @@ function fetchTracksByGenres(genres) {
 function fetchFallback() {
   if (!JM.token || !JM.userId) return Promise.resolve([]);
   return fetch(JM.server + '/Users/' + JM.userId + '/Items?' +
-    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'30'}),
+    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'10'}),
     {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { return d.Items || []; });
@@ -689,21 +709,13 @@ function highlightGenreBarForGenres(genres) {
     input.value = '';
     var genres = item.Genres || [];
     var mood = findMoodForGenres(genres);
+    var _moodGenres = mood.genres;
+    jmRefetchFn = function() { return fetchTracksByGenres(_moodGenres); };
     startPlayback([item]);
     placeDotForMood(mood);
     setMoodName(mood.name, mood.col);
     highlightGenreBarForGenres(genres);
     jmShowPrompt(false);
-    // Fetch more tracks in the same mood and append so playback continues
-    var gen = jmGeneration;
-    fetchTracksByGenres(mood.genres).then(function(more) {
-      if (gen !== jmGeneration) return;
-      var played = item.Id;
-      more = more.filter(function(t) { return t.Id !== played; });
-      if (!more.length) return;
-      jmPlaylist = jmPlaylist.concat(more);
-      setStatus('Playing ' + jmPlaylist.length + ' tracks \u266a');
-    }).catch(function() {});
   }
 })();
 
