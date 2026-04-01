@@ -37,7 +37,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 </head>
 <body>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.51.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.52.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -533,20 +533,17 @@ function handleInteraction(clientX, clientY) {
   wrap.appendChild(dot);
 
   jmShowPrompt(false);
-  setMoodName(nearest.map(function(m) { return m.name; }).join(' + '), nearest1.col);
   setTrackCount(0);
 
   // Floating mood name animation — one per quadrant, successively
   var old2 = wrap.querySelectorAll('.jm-mlabel');
   for (var j = 0; j < old2.length; j++) wrap.removeChild(old2[j]);
-  // Fixed quadrant centres: NW, NE, SW, SE (as fraction of wrap size)
   var QPOS = [{qx:0.27,qy:0.30},{qx:0.73,qy:0.30},{qx:0.27,qy:0.70},{qx:0.73,qy:0.70}];
   nearest.forEach(function(m, idx) {
-    // Assign mood to its natural quadrant by valence/arousal
     var q = (m.x < 0.5 ? 0 : 1) + (m.y >= 0.5 ? 0 : 2);
     var lx = QPOS[q].qx * rect.width;
     var ly = QPOS[q].qy * rect.height;
-    var delay = idx * 650;
+    var delay = idx * 1300;
     (function(mood, elx, ely, d) {
       var el = document.createElement('div');
       el.className = 'jm-mlabel';
@@ -554,13 +551,13 @@ function handleInteraction(clientX, clientY) {
       el.style.cssText = 'position:absolute;pointer-events:none;font-size:0.68em;font-weight:600;' +
         'letter-spacing:0.1em;text-transform:uppercase;color:' + mood.col + ';' +
         'text-shadow:0 0 12px #000,0 0 4px #000;transform:translate(-50%,-50%);' +
-        'transition:opacity 0.4s;opacity:0;white-space:nowrap;';
+        'transition:opacity 0.8s;opacity:0;white-space:nowrap;';
       el.style.left = elx + 'px';
       el.style.top  = ely + 'px';
       wrap.appendChild(el);
       setTimeout(function() { el.style.opacity = '0.9'; }, d + 30);
-      setTimeout(function() { el.style.opacity = '0'; }, d + 480);
-      setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, d + 920);
+      setTimeout(function() { el.style.opacity = '0'; }, d + 960);
+      setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, d + 1840);
     }(m, lx, ly, delay));
   });
 
