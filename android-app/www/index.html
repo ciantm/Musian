@@ -30,6 +30,13 @@ button#jmPlexBtn { width:100%; padding:13px; border:none; border-radius:24px;
 button#jmPlexBtn:active { opacity:0.85; }
 #jmPlexWait { display:none; text-align:center; font-size:0.82em; color:#888; margin-top:16px; line-height:1.8; }
 #jmPlexWait a { color:#666; cursor:pointer; text-decoration:underline; }
+#jmServerPicker { display:none; margin-top:4px; }
+.srv-btn { width:100%; padding:12px 14px; margin-bottom:10px; border:1px solid #333;
+           border-radius:10px; background:#1e1e1e; color:#fff; font-size:0.9em;
+           text-align:left; cursor:pointer; }
+.srv-btn:active { background:#2a2a2a; }
+.srv-name { font-weight:600; }
+.srv-url  { font-size:0.75em; color:#777; margin-top:2px; }
 #jmError { margin-top:16px; text-align:center; font-size:0.82em; color:#f88; min-height:1.2em; }
 #jmSpinner { display:none; text-align:center; margin-top:16px; font-size:0.82em; color:#888; }
 </style>
@@ -39,11 +46,12 @@ button#jmPlexBtn:active { opacity:0.85; }
   <h1>&#127925; Musian</h1>
   <p class="sub">Connect to your music server</p>
 
-  <label>Server URL</label>
-  <input id="jmServer" type="url" placeholder="http://192.168.1.10:8096"
-         autocomplete="off" autocapitalize="none" spellcheck="false"/>
-
-  <div id="jmDetectMsg"></div>
+  <div id="jmServerUrlWrap">
+    <label>Server URL</label>
+    <input id="jmServer" type="url" placeholder="http://192.168.1.10:8096"
+           autocomplete="off" autocapitalize="none" spellcheck="false"/>
+    <div id="jmDetectMsg"></div>
+  </div>
 
   <div class="type-row">
     <button class="type-btn active" data-type="jellyfin">Jellyfin</button>
@@ -52,20 +60,23 @@ button#jmPlexBtn:active { opacity:0.85; }
   </div>
 
   <div id="jmCredFields">
-    <label id="jmUserLabel">Username</label>
+    <label>Username</label>
     <input id="jmUser" type="text" autocomplete="username" autocapitalize="none"/>
-
     <label>Password</label>
     <input id="jmPass" type="password" autocomplete="current-password"/>
-
     <button id="jmSignIn">Sign In</button>
   </div>
 
   <button id="jmPlexBtn">Sign in with Plex</button>
+
   <div id="jmPlexWait">
     Waiting for Plex sign-in&hellip;<br>
     <span style="font-size:0.9em;">(complete sign-in in the browser that just opened)</span><br>
     <a onclick="window.location.reload()">Cancel</a>
+  </div>
+
+  <div id="jmServerPicker">
+    <label style="margin-bottom:12px;">Choose your Plex server</label>
   </div>
 
   <div id="jmError"></div>
@@ -75,7 +86,6 @@ button#jmPlexBtn:active { opacity:0.85; }
 <script>
 (function() {
   var selectedType = 'jellyfin';
-  var plexPollTimer = null;
 
   // Restore previous server/type
   var saved = null;
@@ -96,9 +106,11 @@ button#jmPlexBtn:active { opacity:0.85; }
       b.classList.toggle('active', b.dataset.type === type);
     });
     var isPlex = type === 'plex';
-    document.getElementById('jmCredFields').style.display = isPlex ? 'none' : 'block';
-    document.getElementById('jmPlexBtn').style.display    = isPlex ? 'block' : 'none';
-    document.getElementById('jmPlexWait').style.display   = 'none';
+    document.getElementById('jmServerUrlWrap').style.display = isPlex ? 'none' : 'block';
+    document.getElementById('jmCredFields').style.display    = isPlex ? 'none' : 'block';
+    document.getElementById('jmPlexBtn').style.display       = isPlex ? 'block' : 'none';
+    document.getElementById('jmPlexWait').style.display      = 'none';
+    document.getElementById('jmServerPicker').style.display  = 'none';
     document.getElementById('jmError').textContent = '';
   }
 
@@ -129,16 +141,11 @@ button#jmPlexBtn:active { opacity:0.85; }
       .then(function(d) { return d['subsonic-response'] ? 'subsonic' : null; })
       .catch(function() { return null; });
 
-    var plex = fetchQuick(url + '/identity')
-      .then(function(r) { return r.json(); })
-      .then(function(d) { return (d.MediaContainer && d.MediaContainer.machineIdentifier) ? 'plex' : null; })
-      .catch(function() { return null; });
-
-    Promise.all([jf, sub, plex]).then(function(r) {
-      var found = r[0] || r[1] || r[2];
+    Promise.all([jf, sub]).then(function(r) {
+      var found = r[0] || r[1];
       if (found) {
         setType(found);
-        msg.textContent = 'Detected: ' + {jellyfin:'Jellyfin', subsonic:'Navidrome / Subsonic', plex:'Plex'}[found];
+        msg.textContent = 'Detected: ' + {jellyfin:'Jellyfin', subsonic:'Navidrome / Subsonic'}[found];
         msg.style.color = '#5c5';
       } else {
         msg.textContent = 'Could not detect — select server type above';
@@ -177,74 +184,136 @@ button#jmPlexBtn:active { opacity:0.85; }
     }).catch(function(e) { showError(e.message || 'Sign in failed.'); });
   }
 
-  // Plex PIN OAuth
+  // ── Plex PIN OAuth ───────────────────────────────────────────────────────────
+  var PLEX_CLIENT_ID = 'musian-android';
+  var PLEX_HEADERS = {
+    'X-Plex-Client-Identifier': PLEX_CLIENT_ID,
+    'X-Plex-Product': 'Musian',
+    'Accept': 'application/json'
+  };
+
   document.getElementById('jmPlexBtn').addEventListener('click', function() {
-    var server = document.getElementById('jmServer').value.replace(/\/$/, '').trim();
     document.getElementById('jmError').textContent = '';
-    if (!server) { document.getElementById('jmError').textContent = 'Please enter your Plex server URL first.'; return; }
     document.getElementById('jmPlexBtn').style.display = 'none';
-    signInPlexPin(server)
-      .then(function(auth) {
-        localStorage.setItem('jm_auth', JSON.stringify(auth));
-        window.location.replace('app.html');
+
+    fetch('https://plex.tv/api/v2/pins?strong=true', { method:'POST', headers: PLEX_HEADERS })
+      .then(function(r) { return r.json(); })
+      .then(function(pin) {
+        var authUrl = 'https://app.plex.tv/auth#?' +
+          'clientID=' + PLEX_CLIENT_ID +
+          '&code=' + pin.code +
+          '&context%5Bdevice%5D%5Bproduct%5D=Musian';
+        window.open(authUrl, '_system');
+        document.getElementById('jmPlexWait').style.display = 'block';
+        return pollPin(pin.id, 0);
+      })
+      .then(function(token) {
+        document.getElementById('jmPlexWait').style.display = 'none';
+        document.getElementById('jmSpinner').style.display = 'block';
+        return fetchPlexServers(token);
+      })
+      .then(function(servers) {
+        document.getElementById('jmSpinner').style.display = 'none';
+        if (!servers.length) throw new Error('No Plex servers found on your account.');
+        if (servers.length === 1) return connectToServer(servers[0]);
+        showServerPicker(servers);
       })
       .catch(function(e) {
         document.getElementById('jmPlexWait').style.display = 'none';
+        document.getElementById('jmSpinner').style.display = 'none';
+        document.getElementById('jmServerPicker').style.display = 'none';
         document.getElementById('jmPlexBtn').style.display = 'block';
         document.getElementById('jmError').textContent = e.message || 'Plex sign-in failed.';
       });
   });
 
-  function signInPlexPin(server) {
-    var CLIENT_ID = 'musian-android';
-    var headers = {
-      'X-Plex-Client-Identifier': CLIENT_ID,
-      'X-Plex-Product': 'Musian',
-      'Accept': 'application/json'
-    };
-    return fetch('https://plex.tv/api/v2/pins?strong=true', {
-      method: 'POST', headers: headers
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(pin) {
-      var authUrl = 'https://app.plex.tv/auth#?' +
-        'clientID=' + CLIENT_ID +
-        '&code=' + pin.code +
-        '&context%5Bdevice%5D%5Bproduct%5D=Musian';
-      window.open(authUrl, '_system');
-      document.getElementById('jmPlexWait').style.display = 'block';
-      return pollPin(pin.id, headers, 0);
-    })
-    .then(function(token) {
-      return findPlexSection(server, token);
-    });
-  }
-
-  function pollPin(id, headers, attempt) {
+  function pollPin(id, attempt) {
     if (attempt > 150) throw new Error('Plex sign-in timed out — please try again.');
-    return new Promise(function(res) { plexPollTimer = setTimeout(res, 2000); })
+    return new Promise(function(res) { setTimeout(res, 2000); })
       .then(function() {
-        return fetch('https://plex.tv/api/v2/pins/' + id, { headers: headers });
+        return fetch('https://plex.tv/api/v2/pins/' + id, { headers: PLEX_HEADERS });
       })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (d.authToken) return d.authToken;
-        return pollPin(id, headers, attempt + 1);
+        return pollPin(id, attempt + 1);
       });
   }
 
-  function findPlexSection(server, token) {
-    return fetch(server + '/library/sections?X-Plex-Token=' + token, {
-      headers: { 'Accept': 'application/json' }
-    }).then(function(r) {
-      if (!r.ok) throw new Error('Could not reach Plex server (' + r.status + ').');
-      return r.json();
-    }).then(function(d) {
-      var sections = (d.MediaContainer && d.MediaContainer.Directory) || [];
-      var music = sections.filter(function(s) { return s.type === 'artist'; });
-      if (!music.length) throw new Error('No music library found on this Plex server.');
-      return { type:'plex', serverUrl:server, token:token, sectionId:music[0].key };
+  function fetchPlexServers(token) {
+    var headers = Object.assign({}, PLEX_HEADERS, { 'X-Plex-Token': token });
+    return fetch('https://plex.tv/api/v2/resources?includeHttps=1&includeRelay=1', { headers: headers })
+      .then(function(r) { return r.json(); })
+      .then(function(resources) {
+        return (resources || [])
+          .filter(function(r) { return r.provides && r.provides.indexOf('server') !== -1; })
+          .map(function(r) {
+            // Sort connections: local first, then remote, relay last
+            var conns = (r.connections || []).slice().sort(function(a, b) {
+              if (a.local && !b.local) return -1;
+              if (!a.local && b.local) return 1;
+              if (!a.relay && b.relay) return -1;
+              if (a.relay && !b.relay) return 1;
+              return 0;
+            });
+            return { name: r.name, token: token, connections: conns };
+          });
+      });
+  }
+
+  function showServerPicker(servers) {
+    var picker = document.getElementById('jmServerPicker');
+    // Clear previous buttons (keep the label)
+    var label = picker.querySelector('label');
+    picker.innerHTML = '';
+    picker.appendChild(label);
+    servers.forEach(function(srv) {
+      var btn = document.createElement('button');
+      btn.className = 'srv-btn';
+      btn.innerHTML = '<div class="srv-name">' + escHtml(srv.name) + '</div>' +
+        '<div class="srv-url">' + escHtml((srv.connections[0] || {}).uri || '') + '</div>';
+      btn.addEventListener('click', function() {
+        picker.style.display = 'none';
+        document.getElementById('jmSpinner').style.display = 'block';
+        connectToServer(srv).catch(function(e) {
+          document.getElementById('jmSpinner').style.display = 'none';
+          document.getElementById('jmPlexBtn').style.display = 'block';
+          document.getElementById('jmError').textContent = e.message || 'Could not connect.';
+        });
+      });
+      picker.appendChild(btn);
     });
+    picker.style.display = 'block';
+  }
+
+  function connectToServer(srv) {
+    // Try connections in order until one works
+    var conns = srv.connections;
+    function tryNext(i) {
+      if (i >= conns.length) throw new Error('Could not reach Plex server — check your network.');
+      var uri = conns[i].uri;
+      return fetch(uri + '/library/sections?X-Plex-Token=' + srv.token, {
+        headers: { 'Accept': 'application/json' }
+      }).then(function(r) {
+        if (!r.ok) throw new Error('bad');
+        return r.json();
+      }).then(function(d) {
+        var sections = (d.MediaContainer && d.MediaContainer.Directory) || [];
+        var music = sections.filter(function(s) { return s.type === 'artist'; });
+        if (!music.length) throw new Error('No music library found on "' + srv.name + '".');
+        var auth = { type:'plex', serverUrl: uri, token: srv.token, sectionId: music[0].key };
+        localStorage.setItem('jm_auth', JSON.stringify(auth));
+        window.location.replace('app.html');
+      }).catch(function(e) {
+        if (e.message !== 'bad' && e.message.indexOf('music library') !== -1) throw e;
+        return tryNext(i + 1);
+      });
+    }
+    return tryNext(0);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   function signInJellyfin(server, user, pass) {
