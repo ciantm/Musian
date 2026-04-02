@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <AssemblyName>Jellyfin.Plugin.JellyMoods</AssemblyName>
-    <RootNamespace>Jellyfin.Plugin.JellyMoods</RootNamespace>
+    <AssemblyName>Jellyfin.Plugin.Musian</AssemblyName>
+    <RootNamespace>Jellyfin.Plugin.Musian</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>

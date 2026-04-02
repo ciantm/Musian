@@ -32,7 +32,7 @@ jobs:
         run: |
           VER=$(grep '^version:' build.yaml | sed 's/version: *"\(.*\)"/\1/')
           TAG="v${VER}"
-          ARTIFACT="Jellyfin.Plugin.JellyMoods_${VER}.zip"
+          ARTIFACT="Jellyfin.Plugin.Musian_${VER}.zip"
           echo "tag=$TAG"           >> "$GITHUB_OUTPUT"
           echo "version=$VER"       >> "$GITHUB_OUTPUT"
           echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
@@ -40,7 +40,7 @@ jobs:
       - name: Build
         run: |
           dotnet build \
-            Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj \
+            Jellyfin.Plugin.Musian/Jellyfin.Plugin.Musian.csproj \
             --configuration Release \
             -p:Version=${{ steps.version.outputs.version }} \
             --output ./build_output
@@ -50,7 +50,7 @@ jobs:
         run: |
           ARTIFACT="${{ steps.version.outputs.artifact }}"
           cd build_output
-          zip "../${ARTIFACT}" Jellyfin.Plugin.JellyMoods.dll
+          zip "../${ARTIFACT}" Jellyfin.Plugin.Musian.dll
           cd ..
           echo "checksum=$(md5sum "${ARTIFACT}" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
@@ -64,16 +64,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: JellyMoods ${{ steps.version.outputs.version }}
+          name: Musian ${{ steps.version.outputs.version }}
           body: |
-            ## JellyMoods ${{ steps.version.outputs.version }}
+            ## Musian ${{ steps.version.outputs.version }}
 
             ### Install via Jellyfin
             Add this manifest URL to Jellyfin → Dashboard → Plugins → Repositories:
             ```
-            https://ciantm.github.io/Jellymoods/manifest.json
+            https://ciantm.github.io/Musian/manifest.json
             ```
-            Then search for **JellyMoods** in the plugin catalogue.
+            Then search for **Musian** in the plugin catalogue.
 
             ### Manual install
             Download `${{ steps.version.outputs.artifact }}`, extract the DLL into your Jellyfin plugins folder and restart.

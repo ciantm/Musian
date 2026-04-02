@@ -1,6 +1,6 @@
 {
-  "appId": "com.jellymoods.app",
-  "appName": "JellyMoods",
+  "appId": "com.musian.app",
+  "appName": "Musian",
   "webDir": "www",
   "android": {
     "allowMixedContent": true

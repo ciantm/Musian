@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Jellyfin.Plugin.JellyMoods.Configuration;
+using Jellyfin.Plugin.Musian.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 
-namespace Jellyfin.Plugin.JellyMoods;
+namespace Jellyfin.Plugin.Musian;
 
 /// <summary>
 /// Musian — play music from your library based on a visual mood wheel.
@@ -49,8 +49,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             new PluginPageInfo
             {
                 // Page name must be lowercase, no spaces — used in the URL:
-                // /web/index.html#!/configurationpage?name=jellymoods
-                Name                 = "jellymoods",
+                // /web/index.html#!/configurationpage?name=musian
+                Name                 = "musian",
                 DisplayName          = "Musian",
                 EmbeddedResourcePath = $"{ns}.Configuration.moodPicker.html",
                 EnableInMainMenu     = true,   // shows in sidebar for ALL users
@@ -61,7 +61,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             // ── Admin settings page (Dashboard → Plugins → Musian Settings) ──
             new PluginPageInfo
             {
-                Name                 = "jellymoodsconfig",
+                Name                 = "musianconfig",
                 DisplayName          = "Musian Settings",
                 EmbeddedResourcePath = $"{ns}.Configuration.configPage.html",
                 EnableInMainMenu     = false,

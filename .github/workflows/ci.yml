@@ -19,10 +19,10 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore
-        run: dotnet restore Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj
+        run: dotnet restore Jellyfin.Plugin.Musian/Jellyfin.Plugin.Musian.csproj
 
       - name: Build
-        run: dotnet build Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj --no-restore --configuration Release
+        run: dotnet build Jellyfin.Plugin.Musian/Jellyfin.Plugin.Musian.csproj --no-restore --configuration Release
 
       - name: Check warnings
-        run: dotnet build Jellyfin.Plugin.JellyMoods/Jellyfin.Plugin.JellyMoods.csproj --no-restore --configuration Release 2>&1 | grep -i warning || true
+        run: dotnet build Jellyfin.Plugin.Musian/Jellyfin.Plugin.Musian.csproj --no-restore --configuration Release 2>&1 | grep -i warning || true

@@ -12,8 +12,8 @@ import sys
 
 PLUGIN_GUID        = "6c8a80b7-3e2f-4d5a-9b1c-f7e8d9a0b2c3"
 REPO_OWNER         = "ciantm"
-REPO_NAME          = "Jellymoods"
-PLUGIN_NAME        = "JellyMoods"
+REPO_NAME          = "Musian"
+PLUGIN_NAME        = "Musian"
 TARGET_ABI         = "10.8.0.0"   # minimum Jellyfin version required
 MANIFEST_FILE      = "manifest.json"
 
@@ -58,7 +58,7 @@ def main():
     parser.add_argument("--changelog", default="",    help="Release notes")
     args = parser.parse_args()
 
-    artifact = f"Jellyfin.Plugin.JellyMoods_{args.version}.zip"
+    artifact = f"Jellyfin.Plugin.Musian_{args.version}.zip"
     source_url = f"{BASE_URL}/{args.tag}/{artifact}"
 
     manifest = load_manifest()

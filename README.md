@@ -1,4 +1,4 @@
-# 🎵 JellyMoods
+# 🎵 Musian
 
 A Jellyfin plugin that plays music from your library based on mood selection, using a visual **Valence–Arousal emotion wheel**.
 
@@ -11,11 +11,11 @@ Available as a community plugin — install directly from Jellyfin's plugin cata
 1. Open Jellyfin → **Dashboard → Plugins → Repositories**
 2. Click **+** and add this URL:
    ```
-   https://ciantm.github.io/Jellymoods/manifest.json
+   https://ciantm.github.io/Musian/manifest.json
    ```
-3. Go to **Catalogue**, search for **JellyMoods**, and install
+3. Go to **Catalogue**, search for **Musian**, and install
 4. Restart Jellyfin
-5. **JellyMoods** will appear in the sidebar for all users
+5. **Musian** will appear in the sidebar for all users
 
 ---
 
@@ -43,7 +43,7 @@ Clicking near edges blends genres from adjacent moods automatically.
 
 ## Configuration
 
-Go to **Dashboard → Plugins → JellyMoods Settings** to:
+Go to **Dashboard → Plugins → Musian Settings** to:
 
 - Customise genre lists per quadrant (comma-separated, matching your library genre tags)
 - Adjust playlist size (default 30 tracks)
@@ -73,7 +73,7 @@ The GitHub Actions workflow will build the DLL, create a Release, and update `ma
 
 ## Submitting to the official Jellyfin Plugin Catalogue
 
-To get JellyMoods listed without needing a manual repo URL:
+To get Musian listed without needing a manual repo URL:
 
 1. Ensure the repo is public with at least one release
 2. Open a PR at [jellyfin/jellyfin-plugin-repository](https://github.com/jellyfin/jellyfin-plugin-repository)
@@ -84,16 +84,16 @@ To get JellyMoods listed without needing a manual repo URL:
 ## Build from source
 
 ```bash
-git clone https://github.com/ciantm/Jellymoods.git
-cd Jellymoods
-dotnet build Jellyfin.Plugin.JellyMoods -c Release
+git clone https://github.com/ciantm/Musian.git
+cd Musian
+dotnet build Jellyfin.Plugin.Musian -c Release
 ```
 
 Copy the DLL to your Jellyfin plugins folder:
 
-- **Linux:** `~/.local/share/jellyfin/plugins/JellyMoods_1.0.0.0/`
-- **Windows:** `%APPDATA%\Jellyfin\plugins\JellyMoods_1.0.0.0\`
-- **Docker:** `/config/plugins/JellyMoods_1.0.0.0/`
+- **Linux:** `~/.local/share/jellyfin/plugins/Musian_1.0.0.0/`
+- **Windows:** `%APPDATA%\Jellyfin\plugins\Musian_1.0.0.0\`
+- **Docker:** `/config/plugins/Musian_1.0.0.0/`
 
 ---
 

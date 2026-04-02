@@ -3,7 +3,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Jellyfin.Plugin.JellyMoods.Api;
+namespace Jellyfin.Plugin.Musian.Api;
 
 /// <summary>
 /// Serves the Musian standalone app and sidebar injection script.

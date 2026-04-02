@@ -5,7 +5,7 @@
 define([], function () {
   'use strict';
 
-  var ITEM_ID  = 'jellymoods-nav-item';
+  var ITEM_ID  = 'musian-nav-item';
   var APP_URL  = '/Musian/app';
   var _timer   = null;
 

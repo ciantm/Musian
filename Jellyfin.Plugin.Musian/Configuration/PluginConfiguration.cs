@@ -1,9 +1,9 @@
 using MediaBrowser.Model.Plugins;
 
-namespace Jellyfin.Plugin.JellyMoods.Configuration;
+namespace Jellyfin.Plugin.Musian.Configuration;
 
 /// <summary>
-/// Configuration for the JellyMoods plugin.
+/// Configuration for the Musian plugin.
 /// Each quadrant maps to a comma-separated list of genres used to filter tracks.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration

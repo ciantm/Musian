@@ -1,7 +1,7 @@
 {
-  "name": "jellymoods",
+  "name": "musian",
   "version": "1.0.0",
-  "description": "JellyMoods Android app",
+  "description": "Musian Android app",
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android"

@@ -2,17 +2,17 @@
   {
     "category": "Music",
     "guid": "6c8a80b7-3e2f-4d5a-9b1c-f7e8d9a0b2c3",
-    "name": "JellyMoods",
+    "name": "Musian",
     "description": "Play music from your Jellyfin library by selecting a mood on a visual emotion wheel (Valence\u2013Arousal model).",
     "overview": "Click anywhere on the colour wheel to match music to how you feel. The wheel maps High/Low energy on the vertical axis and Positive/Negative mood on the horizontal axis.",
     "owner": "ciantm",
-    "imageUrl": "https://raw.githubusercontent.com/ciantm/Jellymoods/main/assets/logo.png",
+    "imageUrl": "https://raw.githubusercontent.com/ciantm/Musian/main/assets/logo.png",
     "versions": [
       {
         "version": "3.0.0.0",
         "changelog": "Fix critical JS bugs: SyntaxError preventing script load, broken wheel click handler, missing debug DOM elements, and broken play button using undefined serverId.",
         "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://github.com/ciantm/Jellymoods/releases/download/v3.0.0.0/Jellyfin.Plugin.JellyMoods_3.0.0.0.zip",
+        "sourceUrl": "https://github.com/ciantm/Musian/releases/download/v3.0.0.0/Jellyfin.Plugin.Musian_3.0.0.0.zip",
         "checksum": "PLACEHOLDER_REPLACE_ON_RELEASE",
         "timestamp": "2026-03-28T00:00:00Z"
       }
