@@ -117,8 +117,10 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <button id="jmStopBtn" class="jm-btn">&#9209; Stop</button>
     </div>
   </div>
-  <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 20px;border-radius:24px;display:none;z-index:100;">
-    <button id="jmPersistentPlayBtn" class="jm-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 16px;border-radius:20px;">&#9654; Play</button>
+  <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border-radius:24px;display:none;align-items:center;gap:10px;z-index:100;max-width:90vw;">
+    <span id="jmPersistentTrack" style="font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;"></span>
+    <button id="jmPersistentPlayBtn" class="jm-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9654;</button>
+    <button id="jmPersistentSkipBtn" class="jm-btn" style="background:rgba(255,255,255,0.12);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9197;</button>
   </div>
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
@@ -409,14 +411,23 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
-// Show persistent play control when playback is active
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden && jmPlaylist.length > 0 && !jmAudio.paused) {
-    document.getElementById('jmPersistentPlay').style.display = 'block';
-  } else {
-    document.getElementById('jmPersistentPlay').style.display = 'none';
+function jmUpdatePersistentBar(item) {
+  var bar = document.getElementById('jmPersistentPlay');
+  var btn = document.getElementById('jmPersistentPlayBtn');
+  var lbl = document.getElementById('jmPersistentTrack');
+  if (!bar) return;
+  if (item) {
+    var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+    lbl.textContent = (artist ? artist + ' \u2014 ' : '') + (item.Name || '');
   }
-});
+  bar.style.display = 'flex';
+  btn.innerHTML = jmAudio.paused ? '&#9654;' : '&#9646;&#9646;';
+}
+
+function jmHidePersistentBar() {
+  var bar = document.getElementById('jmPersistentPlay');
+  if (bar) bar.style.display = 'none';
+}
 
 function jmPlayTrack(idx, gen) {
   if (gen !== jmGeneration) return;
@@ -426,6 +437,7 @@ function jmPlayTrack(idx, gen) {
     document.getElementById('jmControls').style.display = 'none';
     document.getElementById('jmUpNext').style.display = 'none';
     if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
+    jmHidePersistentBar();
     return;
   }
   var item = jmPlaylist[idx];
@@ -458,6 +470,7 @@ function jmPlayTrack(idx, gen) {
   }
   setStatus('Playing \u266a');
   jmUpdateMediaSession(item);
+  jmUpdatePersistentBar(item);
 }
 
 function attachPlayerListeners(gen) {
@@ -485,6 +498,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   document.getElementById('jmUpNext').style.display = 'none';
   setStatus(''); setTrackCount(0); setMoodName('', '');
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
+  jmHidePersistentBar();
   // Clear mood and era state
   jmMoodGenres = null;
   jmEraGenres = null;
@@ -501,10 +515,17 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
 });
 
 document.getElementById('jmPersistentPlayBtn').addEventListener('click', function() {
-  if (jmPlaylist.length > 0 && jmAudio.paused) {
-    jmAudio.play().catch(function() {});
+  if (jmPlaylist.length > 0) {
+    if (jmAudio.paused) { jmAudio.play().catch(function() {}); }
+    else { jmAudio.pause(); }
   }
 });
+document.getElementById('jmPersistentSkipBtn').addEventListener('click', function() {
+  jmPlayIdx++;
+  jmPlayTrack(jmPlayIdx, jmGeneration);
+});
+jmAudio.addEventListener('play',  function() { jmUpdatePersistentBar(null); });
+jmAudio.addEventListener('pause', function() { jmUpdatePersistentBar(null); });
 
 function startPlayback(items) {
   jmGeneration++;
