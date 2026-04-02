@@ -117,6 +117,9 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <button id="jmStopBtn" class="jm-btn">&#9209; Stop</button>
     </div>
   </div>
+  <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 20px;border-radius:24px;display:none;z-index:100;">
+    <button id="jmPersistentPlayBtn" class="jm-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 16px;border-radius:20px;">&#9654; Play</button>
+  </div>
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="/web/index.html" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back to Jellyfin</a>
@@ -406,6 +409,15 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+// Show persistent play control when playback is active
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && jmPlaylist.length > 0 && !jmAudio.paused) {
+    document.getElementById('jmPersistentPlay').style.display = 'block';
+  } else {
+    document.getElementById('jmPersistentPlay').style.display = 'none';
+  }
+});
+
 function jmPlayTrack(idx, gen) {
   if (gen !== jmGeneration) return;
   if (idx >= jmPlaylist.length) {
@@ -486,6 +498,12 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
       s.style.color = ''; s.style.fontWeight = '';
     });
   });
+});
+
+document.getElementById('jmPersistentPlayBtn').addEventListener('click', function() {
+  if (jmPlaylist.length > 0 && jmAudio.paused) {
+    jmAudio.play().catch(function() {});
+  }
 });
 
 function startPlayback(items) {
