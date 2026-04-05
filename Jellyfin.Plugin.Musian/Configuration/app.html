@@ -19,11 +19,11 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmEraLabels { margin-top:4px; }
 #jmEraLabelsTop span, #jmEraLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
 #jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
-.jm-btn { padding:10px 28px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:#fff; }
-#jmBackBtn  { background:rgba(255,255,255,0.12); margin-right:8px; }
-#jmPauseBtn { background:rgba(255,255,255,0.12); margin-right:8px; }
-#jmSkipBtn  { background:rgba(255,255,255,0.12); margin-right:8px; }
-#jmStopBtn  { background:rgba(255,255,255,0.08); }
+.jm-btn { padding:10px 18px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:rgba(255,255,255,0.5); }
+#jmBackBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
+#jmPauseBtn { background:rgba(255,255,255,0.07); margin-right:8px; }
+#jmSkipBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
+#jmStopBtn  { background:rgba(255,255,255,0.04); }
 #jmSearch { width:100%; background:#1e1e1e; border:1px solid #333; border-radius:20px;
             color:#fff; font-size:0.85em; padding:9px 16px; outline:none; }
 #jmSearch:focus { border-color:#555; }
@@ -39,7 +39,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 </head>
 <body>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.60.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.61.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -115,10 +115,10 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <div id="jmSuggest"></div>
     </div>
     <div id="jmControls" style="display:none;margin-top:16px;">
-      <button id="jmBackBtn"  class="jm-btn">&#9198; Back</button>
-      <button id="jmPauseBtn" class="jm-btn">&#9646;&#9646; Pause</button>
-      <button id="jmSkipBtn"  class="jm-btn">&#9197; Skip</button>
-      <button id="jmStopBtn"  class="jm-btn">&#9209; Stop</button>
+      <button id="jmBackBtn"  class="jm-btn">&#9198;</button>
+      <button id="jmPauseBtn" class="jm-btn">&#9646;&#9646;</button>
+      <button id="jmSkipBtn"  class="jm-btn">&#9197;</button>
+      <button id="jmStopBtn"  class="jm-btn">&#9209;</button>
     </div>
   </div>
   <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border-radius:24px;display:none;align-items:center;gap:10px;z-index:100;max-width:90vw;">
@@ -281,8 +281,9 @@ var ERAS = [
   { name:'Rap',             genres:['Rap','Hip Hop'] },
   { name:'Metal',           genres:['Metal'] },
 ];
-var jmEraGenres = null; // null = no era filter active
-var jmMoodTags  = null; // tags from last mood tap, for era-zone re-search
+var jmEraGenres  = null; // null = no era filter active
+var jmMoodTags   = null; // tags from last mood tap, for era-zone re-search
+var jmMoodLabels = [];   // persistent label elements on the disc
 
 (function() {
   var wrap         = document.getElementById('jmEraWrap');
@@ -566,7 +567,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   document.getElementById('jmSearch').placeholder = 'Search song\u2026';
   document.getElementById('jmControls').style.display = 'none';
   document.getElementById('jmUpNext').style.display = 'none';
-  setStatus(''); setTrackCount(0); setMoodName('', '');
+  setStatus(''); setTrackCount(0); setMoodName('', ''); clearMoodLabels();
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
   jmHidePersistentBar();
   // Clear mood and era state
@@ -595,11 +596,11 @@ document.getElementById('jmPersistentSkipBtn').addEventListener('click', functio
   jmPlayTrack(jmPlayIdx, jmGeneration);
 });
 jmAudio.addEventListener('play',  function() {
-  document.getElementById('jmPauseBtn').innerHTML = '&#9646;&#9646; Pause';
+  document.getElementById('jmPauseBtn').innerHTML = '&#9646;&#9646;';
   jmUpdatePersistentBar(null);
 });
 jmAudio.addEventListener('pause', function() {
-  document.getElementById('jmPauseBtn').innerHTML = '&#9654; Resume';
+  document.getElementById('jmPauseBtn').innerHTML = '&#9654;';
   jmUpdatePersistentBar(null);
 });
 
@@ -651,31 +652,24 @@ function handleInteraction(clientX, clientY) {
   jmShowPrompt(false);
   setTrackCount(0);
 
-  // Floating mood name animation — one per quadrant, successively
-  var old2 = wrap.querySelectorAll('.jm-mlabel');
-  for (var j = 0; j < old2.length; j++) wrap.removeChild(old2[j]);
-  var QPOS = [{qx:0.27,qy:0.30},{qx:0.73,qy:0.30},{qx:0.27,qy:0.70},{qx:0.73,qy:0.70}];
-  nearest.forEach(function(m, idx) {
-    var q = (m.x < 0.5 ? 0 : 1) + (m.y >= 0.5 ? 0 : 2);
-    var lx = QPOS[q].qx * rect.width;
-    var ly = QPOS[q].qy * rect.height;
-    var delay = idx * 1300;
-    (function(mood, elx, ely, d) {
-      var el = document.createElement('div');
-      el.className = 'jm-mlabel';
-      var _tags = (mood.tags && mood.tags.length) ? mood.tags : [mood.name];
-      el.textContent = _tags[Math.floor(Math.random() * _tags.length)];
-      el.style.cssText = 'position:absolute;pointer-events:none;font-size:0.68em;font-weight:600;' +
-        'letter-spacing:0.1em;text-transform:uppercase;color:' + mood.col + ';' +
-        'text-shadow:0 0 12px #000,0 0 4px #000;transform:translate(-50%,-50%);' +
-        'transition:opacity 0.8s;opacity:0;white-space:nowrap;';
-      el.style.left = elx + 'px';
-      el.style.top  = ely + 'px';
-      wrap.appendChild(el);
-      setTimeout(function() { el.style.opacity = '0.9'; }, d + 30);
-      setTimeout(function() { el.style.opacity = '0'; }, d + 960);
-      setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, d + 1840);
-    }(m, lx, ly, delay));
+  // Persistent mood labels at their x-y coordinates on the disc
+  clearMoodLabels();
+  nearest.forEach(function(m) {
+    var lx = m.x * rect.width;
+    var ly = (1 - m.y) * rect.height;
+    var el = document.createElement('div');
+    el.className = 'jm-mlabel';
+    var _tags = (m.tags && m.tags.length) ? m.tags : [m.name];
+    el.textContent = _tags[Math.floor(Math.random() * _tags.length)];
+    el.style.cssText = 'position:absolute;pointer-events:none;font-size:0.68em;font-weight:600;' +
+      'letter-spacing:0.1em;text-transform:uppercase;color:' + m.col + ';' +
+      'text-shadow:0 0 12px #000,0 0 4px #000;transform:translate(-50%,-50%);' +
+      'transition:opacity 0.6s;opacity:0;white-space:nowrap;';
+    el.style.left = lx + 'px';
+    el.style.top  = ly + 'px';
+    wrap.appendChild(el);
+    jmMoodLabels.push(el);
+    setTimeout(function() { el.style.opacity = '0.85'; }, 30);
   });
 
   // Collect tags and genres from the 3 nearest moods
@@ -715,6 +709,13 @@ svg.addEventListener('click',    function(e) { handleInteraction(e.clientX, e.cl
 svg.addEventListener('touchend', function(e) { e.preventDefault(); var t = e.changedTouches[0]; handleInteraction(t.clientX, t.clientY); });
 
 // ── UI helpers ────────────────────────────────────────────────────────────
+function clearMoodLabels() {
+  jmMoodLabels.forEach(function(el) {
+    el.style.opacity = '0';
+    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
+  });
+  jmMoodLabels = [];
+}
 function setStatus(t)    { document.getElementById('jmStatus').textContent = t; }
 function setMoodName(t, col) { var el = document.getElementById('jmMoodName'); el.textContent = t; el.style.color = col || '#fff'; el.style.opacity = t ? '1' : '0'; }
 function setTrackCount(n){ var el = document.getElementById('jmTrackCount'); el.style.display = n > 0 ? 'block' : 'none'; el.textContent = n > 0 ? n + ' tracks found' : ''; }
