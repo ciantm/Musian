@@ -39,7 +39,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 </head>
 <body>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.62.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.63.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -654,7 +654,7 @@ function handleInteraction(clientX, clientY) {
 
   // Persistent mood labels at their x-y coordinates on the disc
   clearMoodLabels();
-  nearest.forEach(function(m) {
+  nearest.forEach(function(m, idx) {
     var lx = m.x * rect.width;
     var ly = (1 - m.y) * rect.height;
     var el = document.createElement('div');
@@ -669,7 +669,7 @@ function handleInteraction(clientX, clientY) {
     el.style.top  = ly + 'px';
     wrap.appendChild(el);
     jmMoodLabels.push(el);
-    setTimeout(function() { el.style.opacity = '0.85'; }, 30);
+    setTimeout(function() { el.style.opacity = '0.85'; }, 30 + idx * 400);
   });
 
   // Collect tags and genres from the 3 nearest moods
@@ -710,9 +710,9 @@ svg.addEventListener('touchend', function(e) { e.preventDefault(); var t = e.cha
 
 // ── UI helpers ────────────────────────────────────────────────────────────
 function clearMoodLabels() {
-  jmMoodLabels.forEach(function(el) {
-    el.style.opacity = '0';
-    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
+  jmMoodLabels.forEach(function(el, idx) {
+    setTimeout(function() { el.style.opacity = '0'; }, idx * 200);
+    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, idx * 200 + 600);
   });
   jmMoodLabels = [];
 }
