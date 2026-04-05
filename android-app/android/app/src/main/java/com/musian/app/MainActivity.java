@@ -2,4 +2,14 @@ package com.musian.app;
 
 import com.getcapacitor.BridgeActivity;
 
-public class MainActivity extends BridgeActivity {}
+public class MainActivity extends BridgeActivity {
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // BridgeActivity.onPause() calls webView.onPause() which suspends JS and audio.
+        // Resume immediately so audio keeps playing when the screen locks or app backgrounds.
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().onResume();
+        }
+    }
+}

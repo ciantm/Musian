@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <!-- Plain alpha-composited gradients — no CSS mix-blend-mode, works with rsvg-convert -->
+    <radialGradient id="gR" cx="5%" cy="5%" r="65%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#ff2200" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ff2200" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gY" cx="95%" cy="5%" r="65%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#ffcc00" stop-opacity="0.82"/>
+      <stop offset="100%" stop-color="#ffcc00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gT" cx="95%" cy="95%" r="65%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#00ddaa" stop-opacity="0.82"/>
+      <stop offset="100%" stop-color="#00ddaa" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="c"><circle cx="200" cy="200" r="196"/></clipPath>
+    <filter id="sg" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
+      <feFlood flood-color="#000" flood-opacity="0.85"/>
+      <feComposite in2="blur" operator="in" result="sh"/>
+      <feMerge><feMergeNode in="sh"/><feMergeNode in="sh"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="200" cy="200" r="196" fill="#000"/>
+  <g clip-path="url(#c)">
+    <rect width="400" height="400" fill="url(#gR)"/>
+    <rect width="400" height="400" fill="url(#gY)"/>
+    <rect width="400" height="400" fill="url(#gT)"/>
+  </g>
+  <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <text x="200" y="262" font-family="serif" font-size="160"
+        fill="white" fill-opacity="0.75" text-anchor="middle" filter="url(#sg)">M</text>
+  <text x="204" y="318" font-family="sans-serif" font-size="22" letter-spacing="16"
+        fill="white" fill-opacity="0.48" text-anchor="middle">musian</text>
+</svg>

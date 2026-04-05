@@ -26,11 +26,11 @@ jobs:
         run: |
           sudo apt-get install -y librsvg2-bin
           BASE=android-app/android/app/src/main/res
-          rsvg-convert -w 48  -h 48  logo.svg > $BASE/mipmap-mdpi/ic_launcher.png
-          rsvg-convert -w 72  -h 72  logo.svg > $BASE/mipmap-hdpi/ic_launcher.png
-          rsvg-convert -w 96  -h 96  logo.svg > $BASE/mipmap-xhdpi/ic_launcher.png
-          rsvg-convert -w 144 -h 144 logo.svg > $BASE/mipmap-xxhdpi/ic_launcher.png
-          rsvg-convert -w 192 -h 192 logo.svg > $BASE/mipmap-xxxhdpi/ic_launcher.png
+          rsvg-convert -w 48  -h 48  icon.svg > $BASE/mipmap-mdpi/ic_launcher.png
+          rsvg-convert -w 72  -h 72  icon.svg > $BASE/mipmap-hdpi/ic_launcher.png
+          rsvg-convert -w 96  -h 96  icon.svg > $BASE/mipmap-xhdpi/ic_launcher.png
+          rsvg-convert -w 144 -h 144 icon.svg > $BASE/mipmap-xxhdpi/ic_launcher.png
+          rsvg-convert -w 192 -h 192 icon.svg > $BASE/mipmap-xxxhdpi/ic_launcher.png
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             cp $BASE/mipmap-${d}/ic_launcher.png $BASE/mipmap-${d}/ic_launcher_round.png
             cp $BASE/mipmap-${d}/ic_launcher.png $BASE/mipmap-${d}/ic_launcher_foreground.png
