@@ -39,7 +39,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 </head>
 <body>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.64.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.65.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -325,12 +325,19 @@ var TAG_COORDS = {
   'thrilling':[0.88,0.93],'titillating':[0.86,0.91]
 };
 
-function clipToDisc(x, y) {
-  var dx = x - 0.5, dy = y - 0.5;
-  var dist = Math.sqrt(dx*dx + dy*dy);
-  var max_r = 0.45; // 90% of disc radius
-  if (dist > max_r) { var s = max_r / dist; x = 0.5 + dx*s; y = 0.5 + dy*s; }
-  return [x, y];
+// Shirley-Chiu area-preserving square→disc mapping
+function squareToDisc(x, y) {
+  var a = 2*x - 1, b = 2*y - 1;
+  if (a === 0 && b === 0) return [0.5, 0.5];
+  var r, theta;
+  if (Math.abs(a) >= Math.abs(b)) {
+    r = a; theta = (Math.PI/4) * (b/a);
+  } else {
+    r = b; theta = (Math.PI/2) - (Math.PI/4) * (a/b);
+  }
+  r *= 0.9; // keep slightly inside the rim
+  return [0.5 + r * Math.cos(theta) * 0.5,
+          0.5 - r * Math.sin(theta) * 0.5];
 }
 
 function getNearestTags(vx, vy, count) {
@@ -733,9 +740,9 @@ function handleInteraction(clientX, clientY) {
   // Labels at per-tag positions, clipped to disc
   clearMoodLabels();
   nearTags.forEach(function(t, idx) {
-    var clipped = clipToDisc(t.x, t.y);
-    var lx = clipped[0] * rect.width;
-    var ly = (1 - clipped[1]) * rect.height;
+    var dp = squareToDisc(t.x, t.y);
+    var lx = dp[0] * rect.width;
+    var ly = dp[1] * rect.height;
     var el = document.createElement('div');
     el.className = 'jm-mlabel';
     el.textContent = t.tag;
