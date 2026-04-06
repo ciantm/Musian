@@ -67,7 +67,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </svg>
 </div>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.72.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.73.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -578,7 +578,7 @@ function jmUpdateMediaSession(item) {
     title:  item.Name  || 'Musian',
     artist: artist,
     album:  item.Album || '',
-    artwork: [{ src: JM.server + '/Items/' + item.Id + '/Images/Primary?maxHeight=256&quality=90', sizes: '256x256', type: 'image/jpeg' }]
+    artwork: [{ src: JM.server + '/Items/' + item.Id + '/Images/Primary?maxHeight=256&quality=90&api_key=' + JM.token, sizes: '256x256', type: 'image/jpeg' }]
   });
   navigator.mediaSession.playbackState = 'playing';
   navigator.mediaSession.setActionHandler('play', function() {
