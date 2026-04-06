@@ -67,7 +67,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </svg>
 </div>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.73.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v3.0.74.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -572,8 +572,12 @@ function jmAdvance(gen) {
 }
 
 function jmUpdateMediaSession(item) {
-  if (!('mediaSession' in navigator)) return;
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  // Native Android bridge — creates real MediaSession + lock screen notification
+  if (window.NativeMedia) {
+    window.NativeMedia.updateSession(item.Name || 'Musian', artist, true);
+  }
+  if (!('mediaSession' in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
     title:  item.Name  || 'Musian',
     artist: artist,
@@ -650,6 +654,7 @@ function jmPlayTrack(idx, gen) {
     document.getElementById('jmSearch').placeholder = 'Search song\u2026';
     document.getElementById('jmControls').style.display = 'none';
     document.getElementById('jmUpNext').style.display = 'none';
+    if (window.NativeMedia) window.NativeMedia.clearSession();
     if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
     jmHidePersistentBar();
     return;
@@ -689,6 +694,22 @@ function jmPlayTrack(idx, gen) {
 
 function attachPlayerListeners(gen) {
   jmAudio.addEventListener('ended', jmAdvance(gen));
+  jmAudio.addEventListener('play', function() {
+    if (window.NativeMedia && jmPlaylist[jmPlayIdx]) {
+      var it = jmPlaylist[jmPlayIdx];
+      var ar = (it.Artists && it.Artists[0]) || it.AlbumArtist || '';
+      window.NativeMedia.updateSession(it.Name || 'Musian', ar, true);
+    }
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  });
+  jmAudio.addEventListener('pause', function() {
+    if (window.NativeMedia && jmPlaylist[jmPlayIdx]) {
+      var it = jmPlaylist[jmPlayIdx];
+      var ar = (it.Artists && it.Artists[0]) || it.AlbumArtist || '';
+      window.NativeMedia.updateSession(it.Name || 'Musian', ar, false);
+    }
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+  });
   jmAudio.addEventListener('error', function() {
     if (gen !== jmGeneration) return;
     var code = jmAudio.error ? jmAudio.error.code : '?';
