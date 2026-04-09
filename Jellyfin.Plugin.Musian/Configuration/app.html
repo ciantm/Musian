@@ -67,7 +67,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </svg>
 </div>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span><span style="font-size:0.33em;color:#444;font-family:sans-serif;font-weight:300;letter-spacing:0.04em;">v3.0.75.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span><span style="font-size:0.33em;color:#444;font-family:sans-serif;font-weight:300;letter-spacing:0.04em;">v3.0.76.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -674,7 +674,7 @@ function jmPlayTrack(idx, gen) {
   }
   jmAudio.pause();
   jmAudio.src = JM.streamUrl(item.Id);
-  jmAudio.play().catch(function() {});
+  jmAudio.play().catch(function() { window._pendingPlay = true; });
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';

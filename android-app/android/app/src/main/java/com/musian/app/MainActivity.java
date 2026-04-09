@@ -167,6 +167,15 @@ public class MainActivity extends BridgeActivity {
     // ── Keep WebView alive in background ───────────────────────────────────────
 
     @Override
+    public void onResume() {
+        super.onResume();
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().evaluateJavascript(
+                "if(window._pendingPlay){window._pendingPlay=false;jmAudio&&jmAudio.play();}", null);
+        }
+    }
+
+    @Override
     public void onPause() {
         super.onPause();
         if (bridge != null && bridge.getWebView() != null) bridge.getWebView().onResume();
