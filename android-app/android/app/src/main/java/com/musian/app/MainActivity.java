@@ -75,22 +75,30 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public void pauseTrack() {
-            if (mBound) mService.pauseTrack();
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.pauseTrack();
+            }});
         }
 
         @JavascriptInterface
         public void resumeTrack() {
-            if (mBound) mService.resumeTrack();
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.resumeTrack();
+            }});
         }
 
         @JavascriptInterface
         public void queueNextTrack(final String url, final String title, final String artist) {
-            if (mBound) mService.queueNextTrack(url, title, artist);
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.queueNextTrack(url, title, artist);
+            }});
         }
 
         @JavascriptInterface
         public void clearSession() {
-            if (mBound) mService.stopPlayback();
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.stopPlayback();
+            }});
         }
     }
 
