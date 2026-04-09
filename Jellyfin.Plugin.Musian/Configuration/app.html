@@ -67,7 +67,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </svg>
 </div>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span><span style="font-size:0.33em;color:#444;font-family:sans-serif;font-weight:300;letter-spacing:0.04em;">v3.0.76.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span><span style="font-size:0.33em;color:#444;font-family:sans-serif;font-weight:300;letter-spacing:0.04em;">v3.0.77.0</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -573,10 +573,6 @@ function jmAdvance(gen) {
 
 function jmUpdateMediaSession(item) {
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
-  // Native Android bridge — creates real MediaSession + lock screen notification
-  if (window.NativeMedia) {
-    window.NativeMedia.updateSession(item.Name || 'Musian', artist, true);
-  }
   if (!('mediaSession' in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
     title:  item.Name  || 'Musian',
@@ -672,10 +668,17 @@ function jmPlayTrack(idx, gen) {
       if (more.length) jmPlaylist = jmPlaylist.concat(more);
     }).catch(function() { jmFetching = false; });
   }
-  jmAudio.pause();
-  jmAudio.src = JM.streamUrl(item.Id);
-  jmAudio.play().catch(function() { window._pendingPlay = true; });
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  var url = JM.streamUrl(item.Id);
+  if (window.NativeMedia) {
+    window.NativeMedia.playTrack(url, item.Name || '', artist);
+    clearMoodLabels();
+    jmShowPrompt(true);
+  } else {
+    jmAudio.pause();
+    jmAudio.src = url;
+    jmAudio.play().catch(function() {});
+  }
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
   var next = jmPlaylist[idx + 1];
@@ -695,22 +698,12 @@ function jmPlayTrack(idx, gen) {
 function attachPlayerListeners(gen) {
   jmAudio.addEventListener('ended', jmAdvance(gen));
   jmAudio.addEventListener('play', function() {
-    if (window.NativeMedia && jmPlaylist[jmPlayIdx]) {
-      var it = jmPlaylist[jmPlayIdx];
-      var ar = (it.Artists && it.Artists[0]) || it.AlbumArtist || '';
-      window.NativeMedia.updateSession(it.Name || 'Musian', ar, true);
-    }
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
     // Clear mood labels from disc and restore the "Feel your music" prompt
     clearMoodLabels();
     jmShowPrompt(true);
   });
   jmAudio.addEventListener('pause', function() {
-    if (window.NativeMedia && jmPlaylist[jmPlayIdx]) {
-      var it = jmPlaylist[jmPlayIdx];
-      var ar = (it.Artists && it.Artists[0]) || it.AlbumArtist || '';
-      window.NativeMedia.updateSession(it.Name || 'Musian', ar, false);
-    }
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
   });
   jmAudio.addEventListener('error', function() {
@@ -727,8 +720,12 @@ document.getElementById('jmBackBtn').addEventListener('click', function() {
   if (jmPlayIdx > 0) { jmPlayIdx--; jmPlayTrack(jmPlayIdx, jmGeneration); }
 });
 document.getElementById('jmPauseBtn').addEventListener('click', function() {
-  if (jmAudio.paused) { jmAudio.play().catch(function() {}); }
-  else { jmAudio.pause(); }
+  if (window.NativeMedia) {
+    var paused = document.getElementById('jmPauseBtn').innerHTML.indexOf('\u25b6') !== -1;
+    if (paused) window.NativeMedia.resumeTrack(); else window.NativeMedia.pauseTrack();
+  } else {
+    if (jmAudio.paused) jmAudio.play().catch(function() {}); else jmAudio.pause();
+  }
 });
 document.getElementById('jmSkipBtn').addEventListener('click', function() {
   jmPlayIdx++;
@@ -761,8 +758,12 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
 
 document.getElementById('jmPersistentPlayBtn').addEventListener('click', function() {
   if (jmPlaylist.length > 0) {
-    if (jmAudio.paused) { jmAudio.play().catch(function() {}); }
-    else { jmAudio.pause(); }
+    if (window.NativeMedia) {
+      var paused = document.getElementById('jmPauseBtn').innerHTML.indexOf('\u25b6') !== -1;
+      if (paused) window.NativeMedia.resumeTrack(); else window.NativeMedia.pauseTrack();
+    } else {
+      if (jmAudio.paused) jmAudio.play().catch(function() {}); else jmAudio.pause();
+    }
   }
 });
 document.getElementById('jmPersistentSkipBtn').addEventListener('click', function() {
