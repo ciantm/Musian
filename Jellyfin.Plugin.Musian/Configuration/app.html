@@ -67,7 +67,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </svg>
 </div>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span><span style="font-size:0.33em;color:#444;font-family:sans-serif;font-weight:300;letter-spacing:0.04em;">v3.0.77.0</span></h2>
+  <h2 style="font-size:1.6em;font-weight:300;margin:0 0 32px;text-align:center;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -157,6 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.78.0</div>
 </div>
 
 <script>
@@ -665,13 +666,26 @@ function jmPlayTrack(idx, gen) {
       jmFetching = false;
       if (_gen !== jmGeneration) return;
       more = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
-      if (more.length) jmPlaylist = jmPlaylist.concat(more);
+      if (more.length) {
+        jmPlaylist = jmPlaylist.concat(more);
+        if (window.NativeMedia) {
+          more.forEach(function(t) {
+            var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
+            window.NativeMedia.queueNextTrack(JM.streamUrl(t.Id), t.Name || '', ta);
+          });
+        }
+      }
     }).catch(function() { jmFetching = false; });
   }
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   var url = JM.streamUrl(item.Id);
   if (window.NativeMedia) {
     window.NativeMedia.playTrack(url, item.Name || '', artist);
+    for (var qi = idx + 1; qi < jmPlaylist.length; qi++) {
+      var nx = jmPlaylist[qi];
+      var na = (nx.Artists && nx.Artists[0]) || nx.AlbumArtist || '';
+      window.NativeMedia.queueNextTrack(JM.streamUrl(nx.Id), nx.Name || '', na);
+    }
     clearMoodLabels();
     jmShowPrompt(true);
   } else {
@@ -694,6 +708,26 @@ function jmPlayTrack(idx, gen) {
   jmUpdateMediaSession(item);
   jmUpdatePersistentBar(item);
 }
+
+function jmNativeOnTransition() {
+  jmPlayIdx++;
+  var item = jmPlaylist[jmPlayIdx];
+  if (!item) return;
+  jmPlayedIds.push(item.Id);
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
+  document.getElementById('jmControls').style.display = 'block';
+  var next = jmPlaylist[jmPlayIdx + 1];
+  var upEl = document.getElementById('jmUpNext');
+  if (next) {
+    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
+    upEl.textContent = 'Up next \u00b7 ' + (na ? na + ' \u2014 ' : '') + next.Name;
+    upEl.style.display = 'block';
+  } else { upEl.style.display = 'none'; }
+  setStatus('Playing \u266a');
+  jmUpdatePersistentBar(item);
+}
+
 
 function attachPlayerListeners(gen) {
   jmAudio.addEventListener('ended', jmAdvance(gen));

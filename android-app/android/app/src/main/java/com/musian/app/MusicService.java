@@ -21,6 +21,7 @@ import androidx.media.app.NotificationCompat.MediaStyle;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
+import java.util.ArrayList;
 
 public class MusicService extends Service {
 
@@ -31,18 +32,22 @@ public class MusicService extends Service {
     private static final String ACT_NEXT   = "musian.NEXT";
     private static final String ACT_PREV   = "musian.PREV";
 
-    public interface OnNextListener        { void onNext(); }
-    public interface OnPrevListener        { void onPrev(); }
-    public interface OnPlayStateChanged    { void onPlayStateChanged(boolean playing); }
+    public interface OnTransitionListener { void onTransition(); }
+    public interface OnPrevListener       { void onPrev(); }
+    public interface OnPlayStateChanged   { void onPlayStateChanged(boolean playing); }
 
     private ExoPlayer          mPlayer;
     private MediaSessionCompat mSession;
     private String mTitle  = "";
     private String mArtist = "";
 
-    private OnNextListener      mNextListener;
-    private OnPrevListener      mPrevListener;
-    private OnPlayStateChanged  mPlayStateListener;
+    // Metadata list mirrors ExoPlayer's queue for notification updates on transition
+    private final ArrayList<String[]> mQueue = new ArrayList<>();
+    private int mQueueIdx = 0;
+
+    private OnTransitionListener mTransitionListener;
+    private OnPrevListener       mPrevListener;
+    private OnPlayStateChanged   mPlayStateListener;
 
     // ── Binder ────────────────────────────────────────────────────────────────
 
@@ -64,10 +69,15 @@ public class MusicService extends Service {
         mPlayer = new ExoPlayer.Builder(this).build();
         mPlayer.addListener(new Player.Listener() {
             @Override
-            public void onPlaybackStateChanged(int state) {
-                if (state == Player.STATE_ENDED) {
-                    if (mNextListener != null) mNextListener.onNext();
+            public void onMediaItemTransition(@Nullable MediaItem item, int reason) {
+                mQueueIdx++;
+                if (mQueueIdx < mQueue.size()) {
+                    mTitle  = mQueue.get(mQueueIdx)[0];
+                    mArtist = mQueue.get(mQueueIdx)[1];
+                    setMetadata(mTitle, mArtist);
+                    postNotification(mTitle, mArtist, true);
                 }
+                if (mTransitionListener != null) mTransitionListener.onTransition();
             }
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
@@ -99,22 +109,29 @@ public class MusicService extends Service {
         stopForeground(true);
     }
 
-    // ── Public API (called from MainActivity via binding) ─────────────────────
+    // ── Public API ────────────────────────────────────────────────────────────
 
-    public void setOnNextListener(OnNextListener l)              { mNextListener = l; }
-    public void setOnPrevListener(OnPrevListener l)              { mPrevListener = l; }
-    public void setOnPlayStateChangedListener(OnPlayStateChanged l) { mPlayStateListener = l; }
+    public void setOnTransitionListener(OnTransitionListener l)     { mTransitionListener = l; }
+    public void setOnPrevListener(OnPrevListener l)                  { mPrevListener = l; }
+    public void setOnPlayStateChangedListener(OnPlayStateChanged l)  { mPlayStateListener = l; }
 
     public void playTrack(String url, String title, String artist) {
+        mQueue.clear();
+        mQueueIdx = 0;
+        mQueue.add(new String[]{title, artist});
         mTitle  = title;
         mArtist = artist;
+        mPlayer.clearMediaItems();
         mPlayer.setMediaItem(MediaItem.fromUri(url));
         mPlayer.prepare();
         mPlayer.play();
         setMetadata(title, artist);
-        // Post an immediate notification so foreground starts before ExoPlayer fires onIsPlayingChanged
-        postNotification(title, artist, true);
         startForeground(NOTIF_ID, buildNotification(title, artist, true));
+    }
+
+    public void queueNextTrack(String url, String title, String artist) {
+        mQueue.add(new String[]{title, artist});
+        mPlayer.addMediaItem(MediaItem.fromUri(url));
     }
 
     public void pauseTrack()  { mPlayer.pause(); }
@@ -205,7 +222,7 @@ public class MusicService extends Service {
             String a = intent.getAction();
             if      (ACT_PAUSE.equals(a)) { mPlayer.pause(); }
             else if (ACT_PLAY.equals(a))  { mPlayer.play(); }
-            else if (ACT_NEXT.equals(a))  { if (mNextListener != null) mNextListener.onNext(); }
+            else if (ACT_NEXT.equals(a))  { mPlayer.seekToNextMediaItem(); }
             else if (ACT_PREV.equals(a))  { if (mPrevListener != null) mPrevListener.onPrev(); }
         }
     };

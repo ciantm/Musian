@@ -19,13 +19,13 @@ public class MainActivity extends BridgeActivity {
             mService = ((MusicService.MusicBinder) binder).getService();
             mBound   = true;
 
-            mService.setOnNextListener(() ->
+            mService.setOnTransitionListener(() ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
-                    "jmPlayIdx++; jmPlayTrack(jmPlayIdx, jmGeneration);", null)));
+                    "jmNativeOnTransition();", null)));
 
             mService.setOnPrevListener(() ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
-                    "jmPlayIdx=Math.max(0,jmPlayIdx-1); jmPlayTrack(jmPlayIdx,jmGeneration);", null)));
+                    "jmPlayIdx=Math.max(0,jmPlayIdx-1);jmPlayTrack(jmPlayIdx,jmGeneration);", null)));
 
             mService.setOnPlayStateChangedListener(playing ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
@@ -81,6 +81,11 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void resumeTrack() {
             if (mBound) mService.resumeTrack();
+        }
+
+        @JavascriptInterface
+        public void queueNextTrack(final String url, final String title, final String artist) {
+            if (mBound) mService.queueNextTrack(url, title, artist);
         }
 
         @JavascriptInterface
