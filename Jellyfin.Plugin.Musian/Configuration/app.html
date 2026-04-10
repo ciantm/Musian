@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.83.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.84.0</div>
 </div>
 
 <script>
@@ -551,6 +551,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
 var jmPlaylist   = [];
 var jmPlayIdx    = 0;
 var jmGeneration = 0;
+var jmNativePlaying = true;
 var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
 var jmRefetchFn  = null;  // zero-arg fn returning Promise of next batch
@@ -688,9 +689,14 @@ function jmPlayTrack(idx, gen) {
       var na = (nx.Artists && nx.Artists[0]) || nx.AlbumArtist || '';
       window.NativeMedia.queueNextTrack(JM.streamUrl(nx.Id), nx.Name || '', na);
     }
+    var _pollGen = jmGeneration;
     if (window._nativePollInterval) clearInterval(window._nativePollInterval);
     window._nativePollInterval = setInterval(function() {
-      if (!window.NativeMedia) return;
+      if (!window.NativeMedia || jmGeneration !== _pollGen) {
+        clearInterval(window._nativePollInterval);
+        window._nativePollInterval = null;
+        return;
+      }
       var nativeIdx = window.NativeMedia.getNativeIndex();
       if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
     }, 500);
@@ -715,6 +721,12 @@ function jmPlayTrack(idx, gen) {
   setStatus('Playing \u266a');
   jmUpdateMediaSession(item);
   jmUpdatePersistentBar(item);
+}
+
+function jmSetNativePlayState(playing) {
+  jmNativePlaying = playing;
+  document.getElementById('jmPauseBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
+  jmUpdatePersistentBar(null);
 }
 
 function jmNativeUpdateUI(idx) {
@@ -774,8 +786,7 @@ document.getElementById('jmBackBtn').addEventListener('click', function() {
 });
 document.getElementById('jmPauseBtn').addEventListener('click', function() {
   if (window.NativeMedia) {
-    var paused = document.getElementById('jmPauseBtn').innerHTML.indexOf('\u25b6') !== -1;
-    if (paused) window.NativeMedia.resumeTrack(); else window.NativeMedia.pauseTrack();
+    if (jmNativePlaying) window.NativeMedia.pauseTrack(); else window.NativeMedia.resumeTrack();
   } else {
     if (jmAudio.paused) jmAudio.play().catch(function() {}); else jmAudio.pause();
   }

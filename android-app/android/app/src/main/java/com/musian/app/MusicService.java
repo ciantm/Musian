@@ -22,6 +22,8 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class MusicService extends Service {
 
@@ -42,7 +44,7 @@ public class MusicService extends Service {
     private String mArtist = "";
 
     // Metadata list mirrors ExoPlayer's queue for notification updates on transition
-    private final ArrayList<String[]> mQueue = new ArrayList<>();
+    private final List<String[]> mQueue = Collections.synchronizedList(new ArrayList<>());
 
     private OnTransitionListener mTransitionListener;
     private OnPrevListener       mPrevListener;

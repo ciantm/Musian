@@ -27,9 +27,7 @@ public class MainActivity extends BridgeActivity {
 
             mService.setOnPlayStateChangedListener(playing ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
-                    "document.getElementById('jmPauseBtn').innerHTML='"
-                        + (playing ? "&#9646;&#9646;" : "&#9654;") + "';"
-                        + "jmUpdatePersistentBar(null);", null)));
+                    "if(typeof jmSetNativePlayState==='function')jmSetNativePlayState(" + playing + ");", null)));
         }
 
         @Override
