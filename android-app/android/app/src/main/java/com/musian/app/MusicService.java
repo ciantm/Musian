@@ -46,6 +46,8 @@ public class MusicService extends Service {
     // Metadata list mirrors ExoPlayer's queue for notification updates on transition
     private final List<String[]> mQueue = Collections.synchronizedList(new ArrayList<>());
 
+    private volatile int mCurrentIndex = 0; // safe to read from any thread
+
     private OnTransitionListener mTransitionListener;
     private OnPrevListener       mPrevListener;
     private OnPlayStateChanged   mPlayStateListener;
@@ -72,6 +74,7 @@ public class MusicService extends Service {
             @Override
             public void onMediaItemTransition(@Nullable MediaItem item, int reason) {
                 int idx = mPlayer.getCurrentMediaItemIndex();
+                mCurrentIndex = idx; // cache on main thread for cross-thread reads
                 if (idx >= 0 && idx < mQueue.size()) {
                     mTitle  = mQueue.get(idx)[0];
                     mArtist = mQueue.get(idx)[1];
@@ -123,13 +126,14 @@ public class MusicService extends Service {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    public int getCurrentIndex() { return mPlayer.getCurrentMediaItemIndex(); }
+    public int getCurrentIndex() { return mCurrentIndex; }
 
     public void setOnTransitionListener(OnTransitionListener l)     { mTransitionListener = l; }
     public void setOnPrevListener(OnPrevListener l)                  { mPrevListener = l; }
     public void setOnPlayStateChangedListener(OnPlayStateChanged l)  { mPlayStateListener = l; }
 
     public void playTrack(String url, String title, String artist) {
+        mCurrentIndex = 0;
         mQueue.clear();
         mQueue.add(new String[]{title, artist});
         mTitle  = title;
