@@ -20,8 +20,11 @@ public class MainActivity extends BridgeActivity {
             mBound   = true;
 
             mService.setOnTransitionListener(() ->
-                runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
-                    "jmNativeOnTransition();", null)));
+                runOnUiThread(() -> {
+                    int idx = mService.getCurrentIndex();
+                    bridge.getWebView().evaluateJavascript(
+                        "jmNativeSyncIndex(" + idx + ");", null);
+                }));
 
             mService.setOnPrevListener(() ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
