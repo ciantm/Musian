@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.82.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.83.0</div>
 </div>
 
 <script>
@@ -651,6 +651,7 @@ function jmPlayTrack(idx, gen) {
     document.getElementById('jmSearch').placeholder = 'Search song\u2026';
     document.getElementById('jmControls').style.display = 'none';
     document.getElementById('jmUpNext').style.display = 'none';
+    if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
     if (window.NativeMedia) window.NativeMedia.clearSession();
     if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
     jmHidePersistentBar();
@@ -687,6 +688,12 @@ function jmPlayTrack(idx, gen) {
       var na = (nx.Artists && nx.Artists[0]) || nx.AlbumArtist || '';
       window.NativeMedia.queueNextTrack(JM.streamUrl(nx.Id), nx.Name || '', na);
     }
+    if (window._nativePollInterval) clearInterval(window._nativePollInterval);
+    window._nativePollInterval = setInterval(function() {
+      if (!window.NativeMedia) return;
+      var nativeIdx = window.NativeMedia.getNativeIndex();
+      if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
+    }, 500);
     clearMoodLabels();
     jmShowPrompt(true);
   } else {

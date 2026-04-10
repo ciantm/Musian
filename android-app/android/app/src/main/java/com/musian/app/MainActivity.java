@@ -19,12 +19,7 @@ public class MainActivity extends BridgeActivity {
             mService = ((MusicService.MusicBinder) binder).getService();
             mBound   = true;
 
-            mService.setOnTransitionListener(() ->
-                runOnUiThread(() -> {
-                    int idx = mService.getCurrentIndex();
-                    bridge.getWebView().evaluateJavascript(
-                        "jmNativeSyncIndex(" + idx + ");", null);
-                }));
+            mService.setOnTransitionListener(() -> { /* JS polls via getNativeIndex() */ });
 
             mService.setOnPrevListener(() ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
@@ -103,6 +98,11 @@ public class MainActivity extends BridgeActivity {
                 if (mBound) mService.stopPlayback();
             }});
         }
+
+        @JavascriptInterface
+        public int getNativeIndex() {
+            return mBound ? mService.getCurrentIndex() : -1;
+        }
     }
 
     // ── Keep WebView alive in background ───────────────────────────────────────
@@ -122,9 +122,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
-        if (mBound && bridge != null && bridge.getWebView() != null) {
-            int idx = mService.getCurrentIndex();
-            bridge.getWebView().evaluateJavascript("jmNativeSyncIndex(" + idx + ");", null);
-        }
+        // JS polls native index via getNativeIndex() — no evaluateJavascript needed
     }
 }
