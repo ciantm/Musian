@@ -43,7 +43,6 @@ public class MusicService extends Service {
 
     // Metadata list mirrors ExoPlayer's queue for notification updates on transition
     private final ArrayList<String[]> mQueue = new ArrayList<>();
-    private int mQueueIdx = 0;
 
     private OnTransitionListener mTransitionListener;
     private OnPrevListener       mPrevListener;
@@ -70,14 +69,18 @@ public class MusicService extends Service {
         mPlayer.addListener(new Player.Listener() {
             @Override
             public void onMediaItemTransition(@Nullable MediaItem item, int reason) {
-                mQueueIdx++;
-                if (mQueueIdx < mQueue.size()) {
-                    mTitle  = mQueue.get(mQueueIdx)[0];
-                    mArtist = mQueue.get(mQueueIdx)[1];
+                int idx = mPlayer.getCurrentMediaItemIndex();
+                if (idx >= 0 && idx < mQueue.size()) {
+                    mTitle  = mQueue.get(idx)[0];
+                    mArtist = mQueue.get(idx)[1];
                     setMetadata(mTitle, mArtist);
                     postNotification(mTitle, mArtist, true);
                 }
-                if (mTransitionListener != null) mTransitionListener.onTransition();
+                // Only notify JS for real advances, not playlist setup
+                if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
+                        && mTransitionListener != null) {
+                    mTransitionListener.onTransition();
+                }
             }
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
@@ -88,6 +91,13 @@ public class MusicService extends Service {
         });
 
         mSession = new MediaSessionCompat(this, "Musian");
+        mSession.setCallback(new MediaSessionCompat.Callback() {
+            @Override public void onPlay()     { mPlayer.play(); }
+            @Override public void onPause()    { mPlayer.pause(); }
+            @Override public void onSkipToNext()     { mPlayer.seekToNextMediaItem(); }
+            @Override public void onSkipToPrevious() { if (mPrevListener != null) mPrevListener.onPrev(); }
+            @Override public void onStop()           { stopPlayback(); }
+        });
         mSession.setActive(true);
 
         IntentFilter f = new IntentFilter();
@@ -117,7 +127,6 @@ public class MusicService extends Service {
 
     public void playTrack(String url, String title, String artist) {
         mQueue.clear();
-        mQueueIdx = 0;
         mQueue.add(new String[]{title, artist});
         mTitle  = title;
         mArtist = artist;
