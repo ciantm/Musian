@@ -119,5 +119,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        if (mBound && bridge != null && bridge.getWebView() != null) {
+            int idx = mService.getCurrentIndex();
+            bridge.getWebView().evaluateJavascript("jmNativeSyncIndex(" + idx + ");", null);
+        }
     }
 }

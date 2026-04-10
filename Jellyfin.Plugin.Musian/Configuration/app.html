@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.80.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.81.0</div>
 </div>
 
 <script>
@@ -680,6 +680,7 @@ function jmPlayTrack(idx, gen) {
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   var url = JM.streamUrl(item.Id);
   if (window.NativeMedia) {
+    window._nativeStartIdx = idx;
     window.NativeMedia.playTrack(url, item.Name || '', artist);
     for (var qi = idx + 1; qi < jmPlaylist.length; qi++) {
       var nx = jmPlaylist[qi];
@@ -709,15 +710,14 @@ function jmPlayTrack(idx, gen) {
   jmUpdatePersistentBar(item);
 }
 
-function jmNativeOnTransition() {
-  jmPlayIdx++;
-  var item = jmPlaylist[jmPlayIdx];
+function jmNativeUpdateUI(idx) {
+  var item = jmPlaylist[idx];
   if (!item) return;
   jmPlayedIds.push(item.Id);
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
-  var next = jmPlaylist[jmPlayIdx + 1];
+  var next = jmPlaylist[idx + 1];
   var upEl = document.getElementById('jmUpNext');
   if (next) {
     var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
@@ -726,6 +726,18 @@ function jmNativeOnTransition() {
   } else { upEl.style.display = 'none'; }
   setStatus('Playing \u266a');
   jmUpdatePersistentBar(item);
+}
+
+function jmNativeOnTransition() {
+  jmPlayIdx++;
+  jmNativeUpdateUI(jmPlayIdx);
+}
+
+function jmNativeSyncIndex(nativeIdx) {
+  var target = (window._nativeStartIdx || 0) + nativeIdx;
+  if (target === jmPlayIdx) return;
+  jmPlayIdx = target;
+  jmNativeUpdateUI(jmPlayIdx);
 }
 
 

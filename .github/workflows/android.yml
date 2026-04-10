@@ -42,6 +42,13 @@ jobs:
           npm install
           npx cap sync android
 
+      - name: Restore consistent debug keystore
+        env:
+          DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
+        run: |
+          mkdir -p ~/.android
+          printf '%s' "$DEBUG_KEYSTORE" | base64 -d > ~/.android/debug.keystore
+
       - name: Build debug APK
         working-directory: android-app/android
         run: |

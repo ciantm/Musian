@@ -121,6 +121,8 @@ public class MusicService extends Service {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
+    public int getCurrentIndex() { return mPlayer.getCurrentMediaItemIndex(); }
+
     public void setOnTransitionListener(OnTransitionListener l)     { mTransitionListener = l; }
     public void setOnPrevListener(OnPrevListener l)                  { mPrevListener = l; }
     public void setOnPlayStateChangedListener(OnPlayStateChanged l)  { mPlayStateListener = l; }
