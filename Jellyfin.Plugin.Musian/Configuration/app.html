@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.85.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.86.0</div>
 </div>
 
 <script>
@@ -745,6 +745,11 @@ function jmNativeUpdateUI(idx) {
   } else { upEl.style.display = 'none'; }
   setStatus('Playing \u266a');
   jmUpdatePersistentBar(item);
+  var mood = findMoodForGenres(item.Genres || []);
+  placeDotForMood(mood);
+  jmShowPrompt(false);
+  setMoodName(mood.name, mood.col);
+  setTimeout(function() { setMoodName('', ''); jmShowPrompt(true); }, 3000);
 }
 
 function jmNativeOnTransition() {
@@ -1138,9 +1143,7 @@ function highlightGenreBarForGenres(genres) {
     jmRefetchFn = function() { return fetchTracksByGenres(_moodGenres); };
     startPlayback([item]);
     placeDotForMood(mood);
-    setMoodName(mood.name, mood.col);
     highlightGenreBarForGenres(genres);
-    jmShowPrompt(false);
   }
 })();
 
