@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.90.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.91.0</div>
 </div>
 
 <script>
@@ -233,8 +233,12 @@ var JM = {
            '&v=1.16.1&c=Musian&f=json';
   },
   streamUrl: function(item) {
-    if (this.type === 'plex')
-      return this.server + item._partKey + '?X-Plex-Token=' + this.token;
+    if (this.type === 'plex') {
+      if (item._partKey)
+        return this.server + item._partKey + '?X-Plex-Token=' + this.token;
+      // Fallback if Media.Part was not in the search response
+      return this.server + '/library/metadata/' + item.Id + '/download?X-Plex-Token=' + this.token;
+    }
     if (this.type === 'subsonic')
       return this.server + '/rest/stream.view?id=' + item.Id +
         '&u=' + encodeURIComponent(this.username) +
@@ -1110,7 +1114,7 @@ function fetchTracksByGenres(genres) {
   if (JM.type === 'plex') {
     var promises = genres.map(function(g) {
       return fetch(JM.server + '/library/sections/' + JM.sectionId +
-        '/all?type=10&sort=random&X-Plex-Container-Size=10&genre%5B0%5D=' + encodeURIComponent(g) +
+        '/all?type=10&sort=random&X-Plex-Container-Size=10&genre=' + encodeURIComponent(g) +
         '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
         .then(function(r){return r.json();})
         .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
@@ -1175,7 +1179,7 @@ function fetchTracksByTags(tags) {
   if (JM.type === 'plex') {
     var promises = tags.map(function(tag) {
       return fetch(JM.server + '/library/sections/' + JM.sectionId +
-        '/all?type=10&X-Plex-Container-Size=5&mood%5B0%5D=' + encodeURIComponent(tag) +
+        '/all?type=10&X-Plex-Container-Size=5&mood=' + encodeURIComponent(tag) +
         '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
         .then(function(r){return r.json();})
         .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
@@ -1204,10 +1208,11 @@ function fetchTracksByTags(tags) {
 function fetchTracksByTitleWords(tags) {
   if (!tags.length) return Promise.resolve([]);
   if (JM.type === 'plex') {
+    // Use /all with title filter — ensures Media.Part is included in response
     var promises = tags.map(function(tag) {
       return fetch(JM.server + '/library/sections/' + JM.sectionId +
-        '/search?type=10&query=' + encodeURIComponent(tag) +
-        '&limit=5&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
+        '/all?type=10&X-Plex-Container-Size=5&title=' + encodeURIComponent(tag) +
+        '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
         .then(function(r){return r.json();})
         .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
         .catch(function(){return [];});
