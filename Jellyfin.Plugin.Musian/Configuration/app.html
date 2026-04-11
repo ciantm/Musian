@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.88.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.89.0</div>
 </div>
 
 <script>
@@ -723,12 +723,8 @@ function jmPlayTrack(idx, gen) {
 }
 
 function jmShowMoodTransition(item) {
-  if (!item) return;
-  var mood = findMoodForGenres(item.Genres || []);
   clearMoodLabels();
-  jmShowPrompt(false);
-  setMoodName(mood.name, mood.col);
-  setTimeout(function() { setMoodName('', ''); jmShowPrompt(true); }, 3000);
+  jmShowPrompt(true);
 }
 
 function jmSetNativePlayState(playing) {
@@ -894,10 +890,8 @@ function handleInteraction(clientX, clientY) {
   var valence = (dx/r)*0.5 + 0.5;
   var arousal  = (-dy/r)*0.5 + 0.5;
 
-  // 3 nearest tags for labels; 15 nearest for search pool
-  var nearTags   = getNearestTags(valence, arousal, 3);
-  var searchPool = getNearestTags(valence, arousal, 15);
-  var nearest1   = nearTags[0];
+  var nearTags = getNearestTags(valence, arousal, 4);
+  var nearest1 = nearTags[0];
 
   // Show dot coloured by closest tag's parent mood
   var old = wrap.querySelectorAll('.jm-dot');
@@ -954,10 +948,10 @@ function handleInteraction(clientX, clientY) {
     setTimeout(function() { el.style.opacity = '0.85'; }, 30 + (n-1-idx) * 400);
   });
 
-  // Search: tags from 15 nearest; genres from parent moods of 3 nearest
+  // Search: tags and genres from 4 nearest
   var tagMap = {}, genreMap = {};
-  searchPool.forEach(function(t) { tagMap[t.tag] = true; });
   nearTags.forEach(function(t) {
+    tagMap[t.tag] = true;
     (t.mood.genres || []).forEach(function(g) { genreMap[g] = true; });
   });
   var moodTags   = Object.keys(tagMap);
@@ -966,14 +960,17 @@ function handleInteraction(clientX, clientY) {
   jmMoodGenres = moodGenres;
 
   var searchGenres = jmEraGenres !== null ? jmEraGenres : moodGenres;
-  jmRefetchFn = function() { return fetchTracksByTags(moodTags).then(function(i) {
-    return i.length ? i : fetchTracksByGenres(searchGenres);
-  }); };
+  jmRefetchFn = function() {
+    return fetchTracksByTags(moodTags)
+      .then(function(i) { return i.length ? i : fetchTracksByGenres(searchGenres); })
+      .then(function(i) { return i.length ? i : fetchTracksByTitleWords(moodTags); });
+  };
 
   setStatus('Searching\u2026');
 
   fetchTracksByTags(moodTags)
     .then(function(items) { return items.length ? items : fetchTracksByGenres(searchGenres); })
+    .then(function(items) { return items.length ? items : fetchTracksByTitleWords(moodTags); })
     .then(function(items) { return items.length ? items : fetchFallback(); })
     .then(function(items) {
       setTrackCount(items.length);
@@ -1048,6 +1045,28 @@ function fetchTracksByTags(tags) {
   return fetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { return d.Items || []; });
+}
+
+function fetchTracksByTitleWords(tags) {
+  if (!JM.token || !JM.userId || !tags.length) return Promise.resolve([]);
+  var promises = tags.map(function(tag) {
+    return fetch(JM.server + '/Users/' + JM.userId + '/Items?' + new URLSearchParams({
+      SearchTerm: tag, IncludeItemTypes: 'Audio', Recursive: 'true',
+      Limit: '5', Fields: 'Genres,MediaSources'
+    }), {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { return d.Items || []; })
+    .catch(function() { return []; });
+  });
+  return Promise.all(promises).then(function(results) {
+    var seen = {}, merged = [];
+    results.forEach(function(items) {
+      items.forEach(function(item) {
+        if (!seen[item.Id]) { seen[item.Id] = true; merged.push(item); }
+      });
+    });
+    return merged;
+  });
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -1156,8 +1175,22 @@ function highlightGenreBarForGenres(genres) {
     input.value = '';
     var genres = item.Genres || [];
     var mood = findMoodForGenres(genres);
-    var _moodGenres = mood.genres;
-    jmRefetchFn = function() { return fetchTracksByGenres(_moodGenres); };
+    var nearest = getNearestTags(mood.x, mood.y, 4);
+    var tagMap = {}, genreMap = {};
+    nearest.forEach(function(t) {
+      tagMap[t.tag] = true;
+      (t.mood.genres || []).forEach(function(g) { genreMap[g] = true; });
+    });
+    var _tags   = Object.keys(tagMap);
+    var _genres = Object.keys(genreMap);
+    var searchGenres = jmEraGenres !== null ? jmEraGenres : _genres;
+    jmMoodTags   = _tags;
+    jmMoodGenres = _genres;
+    jmRefetchFn = function() {
+      return fetchTracksByTags(_tags)
+        .then(function(i) { return i.length ? i : fetchTracksByGenres(searchGenres); })
+        .then(function(i) { return i.length ? i : fetchTracksByTitleWords(_tags); });
+    };
     startPlayback([item]);
     placeDotForMood(mood);
     highlightGenreBarForGenres(genres);
