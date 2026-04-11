@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.87.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.88.0</div>
 </div>
 
 <script>
@@ -725,7 +725,6 @@ function jmPlayTrack(idx, gen) {
 function jmShowMoodTransition(item) {
   if (!item) return;
   var mood = findMoodForGenres(item.Genres || []);
-  placeDotForMood(mood);
   clearMoodLabels();
   jmShowPrompt(false);
   setMoodName(mood.name, mood.col);
@@ -755,6 +754,22 @@ function jmNativeUpdateUI(idx) {
   setStatus('Playing \u266a');
   jmUpdatePersistentBar(item);
   jmShowMoodTransition(item);
+  if (window.NativeMedia && jmRefetchFn && !jmFetching && jmPlaylist.length - idx <= 2) {
+    jmFetching = true;
+    var _gen = jmGeneration;
+    jmRefetchFn().then(function(more) {
+      jmFetching = false;
+      if (_gen !== jmGeneration) return;
+      more = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
+      if (more.length) {
+        jmPlaylist = jmPlaylist.concat(more);
+        more.forEach(function(t) {
+          var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
+          window.NativeMedia.queueNextTrack(JM.streamUrl(t.Id), t.Name || '', ta);
+        });
+      }
+    }).catch(function() { jmFetching = false; });
+  }
 }
 
 function jmNativeOnTransition() {
