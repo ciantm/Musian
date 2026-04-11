@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.91.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.92.0</div>
 </div>
 
 <script>
@@ -1336,12 +1336,22 @@ function highlightGenreBarForGenres(genres) {
   function doSearch(q) {
     if (!JM.token) return;
     if (JM.type === 'plex') {
-      fetch(JM.server + '/library/sections/' + JM.sectionId +
-        '/search?type=10&query=' + encodeURIComponent(q) +
-        '&limit=8&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
-        .then(function(r){return r.json();})
-        .then(function(d){ renderSuggestions(normalizeTracks((d.MediaContainer&&d.MediaContainer.Metadata)||[])); })
-        .catch(function(){});
+      var filters = ['title', 'grandparentTitle', 'parentTitle'];
+      var promises = filters.map(function(f) {
+        return fetch(JM.server + '/library/sections/' + JM.sectionId +
+          '/all?type=10&X-Plex-Container-Size=5&' + f + '=' + encodeURIComponent(q) +
+          '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
+          .then(function(r){return r.json();})
+          .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
+          .catch(function(){return [];});
+      });
+      Promise.all(promises).then(function(results) {
+        var seen={}, merged=[];
+        results.forEach(function(items){ items.forEach(function(t){
+          if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
+        });});
+        renderSuggestions(normalizeTracks(merged));
+      });
       return;
     }
     if (JM.type === 'subsonic') {
