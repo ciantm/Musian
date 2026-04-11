@@ -157,7 +157,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.86.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.87.0</div>
 </div>
 
 <script>
@@ -700,8 +700,6 @@ function jmPlayTrack(idx, gen) {
       var nativeIdx = window.NativeMedia.getNativeIndex();
       if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
     }, 500);
-    clearMoodLabels();
-    jmShowPrompt(true);
   } else {
     jmAudio.pause();
     jmAudio.src = url;
@@ -721,6 +719,17 @@ function jmPlayTrack(idx, gen) {
   setStatus('Playing \u266a');
   jmUpdateMediaSession(item);
   jmUpdatePersistentBar(item);
+  jmShowMoodTransition(item);
+}
+
+function jmShowMoodTransition(item) {
+  if (!item) return;
+  var mood = findMoodForGenres(item.Genres || []);
+  placeDotForMood(mood);
+  clearMoodLabels();
+  jmShowPrompt(false);
+  setMoodName(mood.name, mood.col);
+  setTimeout(function() { setMoodName('', ''); jmShowPrompt(true); }, 3000);
 }
 
 function jmSetNativePlayState(playing) {
@@ -745,11 +754,7 @@ function jmNativeUpdateUI(idx) {
   } else { upEl.style.display = 'none'; }
   setStatus('Playing \u266a');
   jmUpdatePersistentBar(item);
-  var mood = findMoodForGenres(item.Genres || []);
-  placeDotForMood(mood);
-  jmShowPrompt(false);
-  setMoodName(mood.name, mood.col);
-  setTimeout(function() { setMoodName('', ''); jmShowPrompt(true); }, 3000);
+  jmShowMoodTransition(item);
 }
 
 function jmNativeOnTransition() {
@@ -769,9 +774,6 @@ function attachPlayerListeners(gen) {
   jmAudio.addEventListener('ended', jmAdvance(gen));
   jmAudio.addEventListener('play', function() {
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-    // Clear mood labels from disc and restore the "Feel your music" prompt
-    clearMoodLabels();
-    jmShowPrompt(true);
   });
   jmAudio.addEventListener('pause', function() {
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
