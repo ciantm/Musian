@@ -158,7 +158,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.94.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.95.0</div>
 </div>
 
 <script>
@@ -274,6 +274,7 @@ function normalizeTracks(items) {
         Artists: t.grandparentTitle ? [t.grandparentTitle] : [],
         AlbumArtist: t.grandparentTitle || '',
         Genres: (t.Genre || []).map(function(g) { return g.tag; }),
+        Moods:  (t.Mood  || []).map(function(m) { return m.tag; }),
         _partKey: t.Media && t.Media[0] && t.Media[0].Part && t.Media[0].Part[0]
                   ? t.Media[0].Part[0].key : ''
       };
@@ -647,6 +648,7 @@ var jmPlaylist   = [];
 var jmPlayIdx    = 0;
 var jmGeneration = 0;
 var jmNativePlaying = true;
+var jmUserPaused = false;
 var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
 var jmRefetchFn  = null;  // zero-arg fn returning Promise of next batch
@@ -698,13 +700,14 @@ function jmUpdateMediaSession(item) {
   });
 }
 
-// Resume audio if the browser paused it when the screen locked
+// Resume audio if the browser paused it when the screen locked (web path only)
 document.addEventListener('visibilitychange', function() {
+  if (window.NativeMedia) return;
   if (!document.hidden && jmPlaylist.length > 0) {
     if (jmAudio.ended) {
       jmPlayIdx++;
       jmPlayTrack(jmPlayIdx, jmGeneration);
-    } else if (jmAudio.paused) {
+    } else if (jmAudio.paused && !jmUserPaused) {
       jmAudio.play().catch(function() {});
     }
   }
@@ -753,6 +756,7 @@ function jmPlayTrack(idx, gen) {
     jmHidePersistentBar();
     return;
   }
+  jmUserPaused = false;
   var item = jmPlaylist[idx];
   jmPlayedIds.push(item.Id);
   // Prefetch next batch when 2 or fewer tracks remain (including current)
@@ -899,9 +903,11 @@ document.getElementById('jmBackBtn').addEventListener('click', function() {
 });
 document.getElementById('jmPauseBtn').addEventListener('click', function() {
   if (window.NativeMedia) {
-    if (jmNativePlaying) window.NativeMedia.pauseTrack(); else window.NativeMedia.resumeTrack();
+    if (jmNativePlaying) { jmUserPaused = true; window.NativeMedia.pauseTrack(); }
+    else { jmUserPaused = false; window.NativeMedia.resumeTrack(); }
   } else {
-    if (jmAudio.paused) jmAudio.play().catch(function() {}); else jmAudio.pause();
+    if (jmAudio.paused) { jmUserPaused = false; jmAudio.play().catch(function() {}); }
+    else { jmUserPaused = true; jmAudio.pause(); }
   }
 });
 document.getElementById('jmSkipBtn').addEventListener('click', function() {
@@ -910,6 +916,7 @@ document.getElementById('jmSkipBtn').addEventListener('click', function() {
 });
 document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGeneration++;
+  jmUserPaused = false;
   jmAudio.pause(); jmAudio.src = '';
   jmPlaylist = [];
   document.getElementById('jmSearch').placeholder = 'Search song\u2026';
@@ -1266,7 +1273,8 @@ function fetchTracksByTitleWords(tags) {
 // ── Search ────────────────────────────────────────────────────────────────────
 function findMoodForGenres(genres) {
   var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
-  var best = MOODS[0], bestScore = -1;
+  if (!norm.length) return null;
+  var best = null, bestScore = 0;
   MOODS.forEach(function(mood) {
     var score = 0;
     mood.genres.forEach(function(mg) {
@@ -1275,7 +1283,7 @@ function findMoodForGenres(genres) {
     });
     if (score > bestScore) { bestScore = score; best = mood; }
   });
-  return best;
+  return best; // null if no genre match
 }
 
 function placeDotForMood(mood) {
@@ -1400,26 +1408,39 @@ function highlightGenreBarForGenres(genres) {
     input.value = '';
     var genres = item.Genres || [];
     function proceed(g) {
-      var mood = findMoodForGenres(g);
-      var nearest = getNearestTags(mood.x, mood.y, 4);
-      var tagMap = {}, genreMap = {};
-      nearest.forEach(function(t) {
-        tagMap[t.tag] = true;
-        (t.mood.genres || []).forEach(function(gg) { genreMap[gg] = true; });
-      });
-      var _tags   = Object.keys(tagMap);
-      var _genres = Object.keys(genreMap);
+      var mood = null;
+      var moods = item.Moods || [];
+      if (moods.length) {
+        var mn = moods[0].toLowerCase();
+        for (var mi = 0; mi < MOODS.length; mi++) {
+          if (MOODS[mi].name.toLowerCase() === mn) { mood = MOODS[mi]; break; }
+        }
+      }
+      if (!mood) mood = findMoodForGenres(g);
+      var _tags = [], _genres = [];
+      if (mood) {
+        var nearest = getNearestTags(mood.x, mood.y, 4);
+        var tagMap = {}, genreMap = {};
+        nearest.forEach(function(t) {
+          tagMap[t.tag] = true;
+          (t.mood.genres || []).forEach(function(gg) { genreMap[gg] = true; });
+        });
+        _tags   = Object.keys(tagMap);
+        _genres = Object.keys(genreMap);
+        placeDotForMood(mood);
+        highlightGenreBarForGenres(g);
+      }
       var searchGenres = jmEraGenres !== null ? jmEraGenres : _genres;
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
       jmRefetchFn = function() {
-        return fetchTracksByTags(_tags)
-          .then(function(i) { return i.length ? i : fetchTracksByGenres(searchGenres); })
-          .then(function(i) { return i.length ? i : fetchTracksByTitleWords(_tags); });
+        return _tags.length
+          ? fetchTracksByTags(_tags)
+              .then(function(i) { return i.length ? i : fetchTracksByGenres(searchGenres); })
+              .then(function(i) { return i.length ? i : fetchTracksByTitleWords(_tags); })
+          : fetchFallback();
       };
       startPlayback([item]);
-      placeDotForMood(mood);
-      highlightGenreBarForGenres(g);
     }
     if (!genres.length && JM.type === 'jellyfin' && item.AlbumId && JM.token && JM.userId) {
       fetch(JM.server + '/Users/' + JM.userId + '/Items/' + item.AlbumId + '?Fields=Genres', {headers: JM.headers()})
