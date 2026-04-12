@@ -27,7 +27,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmSkipBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
 #jmStopBtn  { background:rgba(255,255,255,0.04); }
 #jmSearch { width:100%; background:#1e1e1e; border:1px solid #333; border-radius:20px;
-            color:#fff; font-size:0.85em; padding:9px 16px; outline:none; }
+            color:#fff; font-size:1.02em; padding:9px 16px; outline:none; }
 #jmSearch:focus { border-color:#555; }
 #jmSuggest { position:absolute; top:calc(100% + 4px); left:0; right:0;
              background:#1e1e1e; border:1px solid #333; border-radius:10px;
@@ -37,13 +37,14 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 .jm-sug-item:hover, .jm-sug-item:active { background:#2a2a2a; }
 .jm-sug-title { font-size:0.85em; color:#fff; }
 .jm-sug-artist { font-size:0.75em; color:#888; margin-top:2px; }
-#jmSplash { position:fixed; inset:0; background:#111; display:flex; align-items:center; justify-content:center; z-index:999; transition:opacity 0.8s ease; }
+#jmSplash { position:fixed; inset:0; background:#111; display:flex; flex-direction:column; align-items:center; padding:24px 16px 0; z-index:999; transition:opacity 0.8s ease; }
 #jmSplash.fade { opacity:0; pointer-events:none; }
 </style>
 </head>
 <body>
 <div id="jmSplash">
-  <svg viewBox="0 0 400 400" width="260" height="260" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 40px rgba(0,0,0,0.9));">
+  <h2 style="font-size:1.6em;font-weight:300;margin:0 0 32px;visibility:hidden;" aria-hidden="true"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;">Musian</span></h2>
+  <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style="display:block;width:min(80vw,420px);height:min(80vw,420px);filter:drop-shadow(0 0 40px rgba(0,0,0,0.9));">
     <defs>
       <radialGradient id="spR" cx="0%" cy="0%" r="100%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#ff1a00" stop-opacity="0.65"/><stop offset="65%" stop-color="#ff1a00" stop-opacity="0"/></radialGradient>
       <radialGradient id="spY" cx="100%" cy="0%" r="100%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#ffe800" stop-opacity="0.55"/><stop offset="65%" stop-color="#ffe800" stop-opacity="0"/></radialGradient>
@@ -150,14 +151,14 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     </div>
   </div>
   <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border-radius:24px;display:none;align-items:center;gap:10px;z-index:100;max-width:90vw;">
-    <span id="jmPersistentTrack" style="font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;"></span>
+    <span id="jmPersistentTrack" style="font-size:0.98em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;"></span>
     <button id="jmPersistentPlayBtn" class="jm-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9654;</button>
     <button id="jmPersistentSkipBtn" class="jm-btn" style="background:rgba(255,255,255,0.12);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9197;</button>
   </div>
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.92.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.0.93.0</div>
 </div>
 
 <script>

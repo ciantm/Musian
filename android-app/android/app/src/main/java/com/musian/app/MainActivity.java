@@ -103,23 +103,8 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // ── Keep WebView alive in background ───────────────────────────────────────
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (bridge != null && bridge.getWebView() != null) bridge.getWebView().onResume();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        if (bridge != null && bridge.getWebView() != null) bridge.getWebView().onResume();
-    }
-
     @Override
     public void onResume() {
         super.onResume();
-        // JS polls native index via getNativeIndex() — no evaluateJavascript needed
     }
 }
