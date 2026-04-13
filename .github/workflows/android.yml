@@ -25,6 +25,11 @@ jobs:
       - name: Generate Android icons from logo
         run: |
           sudo apt-get install -y librsvg2-bin
+          FONT_URL=$(curl -fsSL -A "Mozilla/4.0" "https://fonts.googleapis.com/css?family=Pinyon+Script" | grep -oP 'url\(\K[^)]+' | head -1)
+          curl -fsSL "$FONT_URL" -o /tmp/PinyonScript.ttf
+          sudo mkdir -p /usr/share/fonts/truetype/pinyon
+          sudo cp /tmp/PinyonScript.ttf /usr/share/fonts/truetype/pinyon/
+          sudo fc-cache -fv
           BASE=android-app/android/app/src/main/res
           rsvg-convert -w 48  -h 48  icon.svg > $BASE/mipmap-mdpi/ic_launcher.png
           rsvg-convert -w 72  -h 72  icon.svg > $BASE/mipmap-hdpi/ic_launcher.png

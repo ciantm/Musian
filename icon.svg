@@ -28,7 +28,7 @@
     <rect width="400" height="400" fill="url(#gT)"/>
   </g>
   <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-  <text x="200" y="262" font-family="serif" font-size="160"
+  <text x="200" y="262" font-family="'Pinyon Script', Georgia, serif" font-size="160"
         fill="white" fill-opacity="0.75" text-anchor="middle" filter="url(#sg)">M</text>
   <text x="204" y="318" font-family="sans-serif" font-size="22" letter-spacing="16"
         fill="white" fill-opacity="0.48" text-anchor="middle">musian</text>
