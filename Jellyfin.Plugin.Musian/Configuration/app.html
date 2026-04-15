@@ -265,6 +265,12 @@ JM.init();
     setTimeout(function() { splash.style.display = 'none'; }, 850);
   }, 1400);
 })();
+function jmFetch(url, opts) {
+  var ctrl = new AbortController();
+  var tid = setTimeout(function() { ctrl.abort(); }, 5000);
+  return fetch(url, Object.assign({}, opts || {}, {signal: ctrl.signal}))
+    .finally(function() { clearTimeout(tid); });
+}
 function normalizeTracks(items) {
   if (JM.type === 'plex') {
     return items.map(function(t) {
@@ -1099,12 +1105,6 @@ function clearMoodLabels() {
     setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, delay + 600);
   });
   jmMoodLabels = [];
-}
-function jmFetch(url, opts) {
-  var ctrl = new AbortController();
-  var tid = setTimeout(function() { ctrl.abort(); }, 5000);
-  return fetch(url, Object.assign({}, opts || {}, {signal: ctrl.signal}))
-    .finally(function() { clearTimeout(tid); });
 }
 function setStatus(t)    { document.getElementById('jmStatus').textContent = t; }
 function setMoodName(t, col) { var el = document.getElementById('jmMoodName'); el.textContent = t; el.style.color = col || '#fff'; el.style.opacity = t ? '1' : '0'; }
