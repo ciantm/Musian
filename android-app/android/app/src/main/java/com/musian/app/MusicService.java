@@ -70,6 +70,13 @@ public class MusicService extends Service {
         createChannel();
 
         mPlayer = new ExoPlayer.Builder(this).build();
+        mPlayer.setAudioAttributes(
+            new androidx.media3.common.AudioAttributes.Builder()
+                .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
+                .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+                .build(),
+            true
+        );
         mPlayer.addListener(new Player.Listener() {
             @Override
             public void onMediaItemTransition(@Nullable MediaItem item, int reason) {
