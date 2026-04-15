@@ -16,6 +16,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmEraWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
 #jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
 #jmEraHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
+#jmEraDot { position:absolute; top:50%; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,0.5),0 0 8px rgba(255,255,255,0.9); pointer-events:none; transition:left 0.35s ease; display:none; }
 #jmEraLabelsTop, #jmEraLabels { display:flex; width:100%; }
 #jmEraLabelsTop { margin-bottom:4px; }
 #jmEraLabels { margin-top:4px; }
@@ -127,6 +128,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <div id="jmEraWrap">
       <div id="jmEraBar"></div>
       <div id="jmEraHighlight"></div>
+      <div id="jmEraDot"></div>
     </div>
     <div id="jmEraLabels"></div>
   </div>
@@ -158,7 +160,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.1.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.2.0</div>
 </div>
 
 <script>
@@ -833,6 +835,7 @@ function jmPlayTrack(idx, gen) {
 function jmShowMoodTransition(item) {
   clearMoodLabels();
   jmShowPrompt(true);
+  placeEraDot((item && item.Genres) || []);
 }
 
 function jmSetNativePlayState(playing) {
@@ -1292,6 +1295,22 @@ function findMoodForGenres(genres) {
   return best; // null if no genre match
 }
 
+function placeEraDot(genres) {
+  var dot = document.getElementById('jmEraDot');
+  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
+  var bestIdx = -1, bestScore = 0;
+  ERAS.forEach(function(era, i) {
+    var score = 0;
+    era.genres.forEach(function(eg) {
+      var en = eg.toLowerCase().replace(/[^a-z0-9]/g, '');
+      norm.forEach(function(n) { if (n.indexOf(en) !== -1 || en.indexOf(n) !== -1) score++; });
+    });
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  });
+  if (bestIdx === -1) { dot.style.display = 'none'; return; }
+  dot.style.left = ((bestIdx + 0.5) / ERAS.length * 100) + '%';
+  dot.style.display = 'block';
+}
 function placeDotForMood(mood) {
   var wrap = document.getElementById('jmWheelWrap');
   var rect = wrap.getBoundingClientRect();
