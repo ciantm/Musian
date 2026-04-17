@@ -777,7 +777,8 @@ function jmPlayTrack(idx, gen) {
       if (_gen !== jmGeneration) return;
       jmFetching = false;
       var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
-      if (!filtered.length && more.length) { jmPlayedIds = []; } else { more = filtered; }
+      if (!filtered.length && more.length) { jmPlayedIds = []; return; }
+      more = filtered;
       if (_gen !== jmGeneration) return;
       if (more.length) {
         jmPlaylist = jmPlaylist.concat(more);
@@ -870,7 +871,8 @@ function jmNativeUpdateUI(idx) {
       if (_gen !== jmGeneration) return;
       jmFetching = false;
       var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
-      if (!filtered.length && more.length) { jmPlayedIds = []; } else { more = filtered; }
+      if (!filtered.length && more.length) { jmPlayedIds = []; return; }
+      more = filtered;
       if (_gen !== jmGeneration) return;
       if (more.length) {
         jmPlaylist = jmPlaylist.concat(more);
