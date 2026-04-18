@@ -132,6 +132,7 @@ function expandGenres(seeds) {
     result[seed] = true;
     var sn = seed.toLowerCase().replace(/[^a-z0-9]/g, '');
     jmGenreCache.forEach(function(g) {
+      if (/^not[\s_]/i.test(g)) return;
       if (g.toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(sn) !== -1) result[g] = true;
     });
   });

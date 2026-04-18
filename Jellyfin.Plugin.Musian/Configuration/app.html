@@ -397,7 +397,7 @@ var MOODS = [
     tags:['romantic','romantic music'],
     genres:['Jazz','Soul','Ballad','Folk'] },
   { name:'Calm',        desc:'Serene, tranquil, at rest',             x:0.78, y:0.10, col:'#38dcc8',
-    tags:['calm','comfort','quiet','serene','mellow','chill out','calm down','calming','chillout','comforting','content','cool down','mellow music','mellow rock','peace of mind','quietness','relaxation','serenity','solace','soothe','soothing','still','tranquil','tranquility'],
+    tags:['calm','comfort','quiet','serene','mellow','relaxed','chill out','calm down','calming','chillout','comforting','content','cool down','mellow music','mellow rock','peace of mind','quietness','relaxation','serenity','solace','soothe','soothing','still','tranquil','tranquility'],
     genres:['Jazz','Folk','Country','Soul','Reggae'] },
   { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.65, y:0.55, col:'#a8c840',
     tags:['hopeful','desire','hope'],
@@ -409,7 +409,7 @@ var MOODS = [
     tags:['happy','happiness','happy songs','happy music','glad'],
     genres:['Pop','Soul','Funk','Reggae','Ska'] },
   { name:'Cheerful',    desc:'Sunny, merry, festive, jolly',          x:0.90, y:0.75, col:'#ffdf30',
-    tags:['cheerful','cheer up','festive','jolly','jovial','merry','cheer','cheering','cheery','get happy','rejoice','songs that are cheerful','sunny'],
+    tags:['cheerful','cheer up','festive','jolly','jovial','merry','party','cheer','cheering','cheery','get happy','rejoice','songs that are cheerful','sunny'],
     genres:['Pop','Folk','Soul','Funk'] },
   { name:'Upbeat',      desc:'Lively, enthusiastic, high spirits',    x:0.80, y:0.82, col:'#ffd030',
     tags:['upbeat','gleeful','high spirits','zest','enthusiastic','buoyancy','elation'],
@@ -1125,6 +1125,7 @@ function expandGenres(seeds) {
     result[seed] = true;
     var sn = seed.toLowerCase().replace(/[^a-z0-9]/g, '');
     jmGenreCache.forEach(function(g) {
+      if (/^not[\s_]/i.test(g)) return;
       if (g.toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(sn) !== -1) result[g] = true;
     });
   });
