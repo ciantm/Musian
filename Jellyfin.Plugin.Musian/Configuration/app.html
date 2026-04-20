@@ -1217,10 +1217,15 @@ function fetchTracksByTags(tags) {
   }
   if (JM.type === 'subsonic') return Promise.resolve([]);
   if (!JM.token || !JM.userId) return Promise.resolve([]);
+  var expanded = [];
+  tags.forEach(function(t) {
+    var cap = t.charAt(0).toUpperCase() + t.slice(1);
+    expanded.push(t, cap, 'Mood:' + t, 'Mood:' + cap);
+  });
   var params = new URLSearchParams({
     IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random',
     Limit:'25', Fields:'Genres,MediaSources',
-    Tags: tags.join('|')
+    Tags: expanded.join('|')
   });
   return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
