@@ -1077,17 +1077,21 @@ function handleInteraction(clientX, clientY) {
   var searchGenres = jmEraGenres !== null ? jmEraGenres : moodGenres;
   jmRefetchFn = function() {
     return fetchTracksByTags(moodTags)
-      .then(function(i) { return i.length ? i : fetchTracksByGenres(searchGenres); })
-      .then(function(i) { return i.length ? i : fetchTracksByTitleWords(moodTags); });
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(searchGenres); }, 25); })
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); });
   };
 
   setStatus('Searching\u2026');
 
   fetchTracksByTags(moodTags)
-    .then(function(items) { return items.length ? items : fetchTracksByGenres(searchGenres); })
-    .then(function(items) { return items.length ? items : fetchTracksByTitleWords(moodTags); })
-    .then(function(items) { return items.length ? items : fetchFallback(); })
+    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(searchGenres); }, 25); })
+    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); })
+    .then(function(i) { return i.length ? i : fetchFallback(); })
     .then(function(items) {
+      for (var i = items.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = items[i]; items[i] = items[j]; items[j] = tmp;
+      }
       setTrackCount(items.length);
       if (!items.length) { setStatus('No tracks found — check genre/mood tags in your library.'); return; }
       startPlayback(items);
@@ -1194,6 +1198,16 @@ function fetchFallback() {
     {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { return d.Items || []; });
+}
+
+function jmSupplement(base, fetchFn, limit) {
+  if (base.length >= limit) return Promise.resolve(base);
+  return fetchFn().then(function(more) {
+    var seen = {};
+    base.forEach(function(t) { seen[t.Id] = true; });
+    more = more.filter(function(t) { return !seen[t.Id]; });
+    return base.concat(more).slice(0, limit);
+  });
 }
 
 function fetchTracksByTags(tags) {
