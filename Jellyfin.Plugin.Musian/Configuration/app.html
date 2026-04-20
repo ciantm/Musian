@@ -160,7 +160,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.8.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.9.0</div>
 </div>
 
 <script>
@@ -1122,15 +1122,20 @@ function setMoodName(t, col) { var el = document.getElementById('jmMoodName'); e
 function setTrackCount(n){ var el = document.getElementById('jmTrackCount'); el.style.display = n > 0 ? 'block' : 'none'; el.textContent = n > 0 ? n + ' tracks found' : ''; }
 
 // ── API ───────────────────────────────────────────────────────────────────
+function genreWordMatch(genre, seed) {
+  var g = genre.toLowerCase();
+  var s = seed.toLowerCase();
+  return new RegExp('(?:^| )' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?= |$)').test(g);
+}
+
 function expandGenres(seeds) {
   if (!jmGenreCache || !jmGenreCache.length) return seeds;
   var result = {};
   seeds.forEach(function(seed) {
     result[seed] = true;
-    var sn = seed.toLowerCase().replace(/[^a-z0-9]/g, '');
     jmGenreCache.forEach(function(g) {
       if (/^not[\s_]/i.test(g)) return;
-      if (g.toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(sn) !== -1) result[g] = true;
+      if (genreWordMatch(g, seed)) result[g] = true;
     });
   });
   return Object.keys(result);
@@ -1305,29 +1310,25 @@ function fetchTracksByTitleWords(tags) {
 
 // ── Search ────────────────────────────────────────────────────────────────────
 function findMoodForGenres(genres) {
-  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
-  if (!norm.length) return null;
+  if (!(genres || []).length) return null;
   var best = null, bestScore = 0;
   MOODS.forEach(function(mood) {
     var score = 0;
     mood.genres.forEach(function(mg) {
-      var mn = mg.toLowerCase().replace(/[^a-z0-9]/g, '');
-      norm.forEach(function(n) { if (n.indexOf(mn) !== -1 || mn.indexOf(n) !== -1) score++; });
+      genres.forEach(function(g) { if (genreWordMatch(g, mg) || genreWordMatch(mg, g)) score++; });
     });
     if (score > bestScore) { bestScore = score; best = mood; }
   });
-  return best; // null if no genre match
+  return best;
 }
 
 function placeEraDot(genres) {
   var dot = document.getElementById('jmEraDot');
-  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
   var bestIdx = -1, bestScore = 0;
   ERAS.forEach(function(era, i) {
     var score = 0;
     era.genres.forEach(function(eg) {
-      var en = eg.toLowerCase().replace(/[^a-z0-9]/g, '');
-      norm.forEach(function(n) { if (n.indexOf(en) !== -1 || en.indexOf(n) !== -1) score++; });
+      (genres || []).forEach(function(g) { if (genreWordMatch(g, eg) || genreWordMatch(eg, g)) score++; });
     });
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
@@ -1353,13 +1354,11 @@ function placeDotForMood(mood) {
 }
 
 function highlightGenreBarForGenres(genres) {
-  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
   var bestIdx = 0, bestScore = -1;
   ERAS.forEach(function(era, i) {
     var score = 0;
     era.genres.forEach(function(eg) {
-      var en = eg.toLowerCase().replace(/[^a-z0-9]/g, '');
-      norm.forEach(function(n) { if (n.indexOf(en) !== -1 || en.indexOf(n) !== -1) score++; });
+      (genres || []).forEach(function(g) { if (genreWordMatch(g, eg) || genreWordMatch(eg, g)) score++; });
     });
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
