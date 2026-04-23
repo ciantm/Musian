@@ -160,7 +160,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.9.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.10.0</div>
 </div>
 
 <script>
@@ -1215,7 +1215,7 @@ function jmSupplement(base, fetchFn, limit) {
   });
 }
 
-function fetchTracksByTags(tags) {
+function fetchTracksByTags(tags, genres) {
   if (!tags.length) return Promise.resolve([]);
   if (JM.type === 'plex') {
     var promises = tags.map(function(tag) {
@@ -1231,7 +1231,13 @@ function fetchTracksByTags(tags) {
       results.forEach(function(items){ items.forEach(function(t){
         if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
       });});
-      return normalizeTracks(merged);
+      var tracks = normalizeTracks(merged);
+      if (genres && genres.length) tracks = tracks.filter(function(t) {
+        return (t.Genres||[]).some(function(g) {
+          return genres.some(function(sg) { return genreWordMatch(g,sg)||genreWordMatch(sg,g); });
+        });
+      });
+      return tracks;
     });
   }
   if (JM.type === 'subsonic') return Promise.resolve([]);
@@ -1246,6 +1252,7 @@ function fetchTracksByTags(tags) {
     Limit:'25', Fields:'Genres,MediaSources',
     Tags: expanded.join('|')
   });
+  if (genres && genres.length) params.set('Genres', expandGenres(genres).join('|'));
   return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { return d.Items || []; });
@@ -1481,14 +1488,20 @@ function highlightGenreBarForGenres(genres) {
       var searchGenres = jmEraGenres !== null ? jmEraGenres : _genres;
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
+      var seedGenres = g.length ? g : null;
       jmRefetchFn = function() {
         return _tags.length
-          ? fetchTracksByTags(_tags)
-              .then(function(i) { return i.length ? i : fetchTracksByGenres(searchGenres); })
-              .then(function(i) { return i.length ? i : fetchTracksByTitleWords(_tags); })
-          : fetchFallback();
+          ? fetchTracksByTags(_tags, seedGenres)
+              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres); }, 25); })
+              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(_tags); }, 25); })
+          : fetchTracksByGenres(seedGenres || searchGenres);
       };
-      startPlayback([item]);
+      setStatus('Searching\u2026');
+      jmRefetchFn().then(function(more) {
+        var seen = {}; seen[item.Id] = true;
+        var all = [item].concat(more.filter(function(t) { return !seen[t.Id]; })).slice(0, 25);
+        startPlayback(all);
+      }).catch(function() { startPlayback([item]); });
     }
     if (!genres.length && JM.type === 'jellyfin' && item.AlbumId && JM.token && JM.userId) {
       jmFetch(JM.server + '/Users/' + JM.userId + '/Items/' + item.AlbumId + '?Fields=Genres', {headers: JM.headers()})
