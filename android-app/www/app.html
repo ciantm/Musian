@@ -8,16 +8,16 @@
 * { box-sizing:border-box; margin:0; padding:0; }
 body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; overflow-x:hidden; }
 #jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
-#jmEraArea { width:100%; max-width:min(80vw,420px); margin-top:18px; }
+#jmGenreArea { width:100%; max-width:min(80vw,420px); margin-top:18px; }
 #jmWheelPrompt { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:2;transition:opacity 0.4s; }
 #jmMoodName { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;text-align:center;pointer-events:none;z-index:3;transition:opacity 0.4s;font-size:1.2em;font-weight:300;letter-spacing:0.08em;text-shadow:0 0 32px #000,0 0 12px #000;opacity:0; }
-#jmEraWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
-#jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
-#jmEraHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
-#jmEraLabelsTop, #jmEraLabels { display:flex; width:100%; }
-#jmEraLabelsTop { margin-bottom:4px; }
-#jmEraLabels { margin-top:4px; }
-#jmEraLabelsTop span, #jmEraLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+#jmGenreWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
+#jmGenreBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
+#jmGenreHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
+#jmGenreLabelsTop, #jmGenreLabels { display:flex; width:100%; }
+#jmGenreLabelsTop { margin-bottom:4px; }
+#jmGenreLabels { margin-top:4px; }
+#jmGenreLabelsTop span, #jmGenreLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
 #jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
 .jm-btn { padding:10px 28px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:#fff; }
 #jmSkipBtn { background:rgba(255,255,255,0.12); margin-right:8px; }
@@ -89,13 +89,13 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <span style="position:absolute;bottom:32px;right:32px;font-size:0.65em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;text-shadow:0 0 8px #000;">Calm<br>Serene</span>
   </div>
 
-  <div id="jmEraArea">
-    <div id="jmEraLabelsTop"></div>
-    <div id="jmEraWrap">
-      <div id="jmEraBar"></div>
-      <div id="jmEraHighlight"></div>
+  <div id="jmGenreArea">
+    <div id="jmGenreLabelsTop"></div>
+    <div id="jmGenreWrap">
+      <div id="jmGenreBar"></div>
+      <div id="jmGenreHighlight"></div>
     </div>
-    <div id="jmEraLabels"></div>
+    <div id="jmGenreLabels"></div>
   </div>
 
   <div id="jmUpNext" style="display:none;margin-top:10px;font-size:0.75em;color:#555;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(80vw,420px);"></div>
@@ -468,7 +468,7 @@ var MOODS = [
   { name:'Depressed',   x:0.08, y:0.08, col:'#3060e0', genres:['Blues','Electric Blues','Heavy Metal','Grunge','Alternative Rock'] },
 ];
 
-var ERAS = [
+var GENRES = [
   { name:'Classical',       genres:['Classical','Classical Music','Opera','Symphony','Baroque','Orchestral','Chamber Music','Film Score','Contemporary Classical Music'] },
   { name:'Jazz & Blues',    genres:['Jazz','Jazz Fusion','Jazz-Funk','Blues','Electric Blues','Soul','Rhythm And Blues'] },
   { name:'Folk & Country',  genres:['Folk','Folk Rock','Country Music','Country Rock','Western','Music Of Ireland','Ballad'] },
@@ -478,37 +478,37 @@ var ERAS = [
   { name:'Rap',             genres:['Rap','Rap Rock','Hip-Hop','Hip Hop'] },
   { name:'Metal',           genres:['Heavy Metal','Alternative Metal','Traditional Heavy Metal','Metalcore','Thrash Metal','Death Metal','Black Metal'] },
 ];
-var jmEraGenres = null;
+var jmGenreFilter = null;
 
 (function() {
-  var wrap         = document.getElementById('jmEraWrap');
-  var highlight    = document.getElementById('jmEraHighlight');
-  var labelsTopEl  = document.getElementById('jmEraLabelsTop');
-  var labelsEl     = document.getElementById('jmEraLabels');
-  var n            = ERAS.length;
+  var wrap         = document.getElementById('jmGenreWrap');
+  var highlight    = document.getElementById('jmGenreHighlight');
+  var labelsTopEl  = document.getElementById('jmGenreLabelsTop');
+  var labelsEl     = document.getElementById('jmGenreLabels');
+  var n            = GENRES.length;
 
-  ERAS.forEach(function(era, i) {
+  GENRES.forEach(function(genre, i) {
     var top = document.createElement('span');
     var bot = document.createElement('span');
     if (i % 2 === 0) {
-      top.textContent = era.name;
+      top.textContent = genre.name;
       bot.style.visibility = 'hidden'; bot.textContent = '\u00a0';
     } else {
       top.style.visibility = 'hidden'; top.textContent = '\u00a0';
-      bot.textContent = era.name;
+      bot.textContent = genre.name;
     }
     labelsTopEl.appendChild(top);
     labelsEl.appendChild(bot);
   });
 
-  function handleEraInteraction(clientX) {
+  function handleGenreInteraction(clientX) {
     var rect = wrap.getBoundingClientRect();
     var rel  = (clientX - rect.left) / rect.width;
     var idx  = Math.floor(rel * n);
     idx = Math.max(0, Math.min(n - 1, idx));
 
     var lo = idx, hi = idx;
-    var selected = ERAS.slice(lo, hi + 1);
+    var selected = GENRES.slice(lo, hi + 1);
 
     var leftPct  = (lo / n) * 100;
     var widthPct = ((hi - lo + 1) / n) * 100;
@@ -526,14 +526,14 @@ var jmEraGenres = null;
 
     var genreMap = {};
     selected.forEach(function(e) { e.genres.forEach(function(g) { genreMap[g] = true; }); });
-    jmEraGenres = Object.keys(genreMap);
+    jmGenreFilter = Object.keys(genreMap);
 
     if (jmMoodGenres !== null) {
       setStatus('Searching\u2026');
       setTrackCount(0);
-      var eraG = jmEraGenres, moodG = jmMoodGenres;
-      jmRefetchFn = function() { return fetchTracksByGenres(eraG); };
-      fetchTracksByGenres(eraG)
+      var genreG = jmGenreFilter, moodG = jmMoodGenres;
+      jmRefetchFn = function() { return fetchTracksByGenres(genreG); };
+      fetchTracksByGenres(genreG)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
         .then(function(items) {
@@ -545,10 +545,10 @@ var jmEraGenres = null;
     }
   }
 
-  wrap.addEventListener('click', function(e) { handleEraInteraction(e.clientX); });
+  wrap.addEventListener('click', function(e) { handleGenreInteraction(e.clientX); });
   wrap.addEventListener('touchend', function(e) {
     e.preventDefault();
-    handleEraInteraction(e.changedTouches[0].clientX);
+    handleGenreInteraction(e.changedTouches[0].clientX);
   });
 })();
 
@@ -672,13 +672,13 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   setStatus(''); setTrackCount(0); setMoodName('', '');
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
   jmMoodGenres = null;
-  jmEraGenres = null;
+  jmGenreFilter = null;
   jmRefetchFn = null;
   jmPlayedIds = [];
   jmShowPrompt(true);
-  var hl = document.getElementById('jmEraHighlight');
+  var hl = document.getElementById('jmGenreHighlight');
   if (hl) hl.style.display = 'none';
-  ['jmEraLabelsTop','jmEraLabels'].forEach(function(id) {
+  ['jmGenreLabelsTop','jmGenreLabels'].forEach(function(id) {
     document.getElementById(id).querySelectorAll('span').forEach(function(s) {
       s.style.color = ''; s.style.fontWeight = '';
     });
@@ -764,7 +764,7 @@ function handleInteraction(clientX, clientY) {
   jmMoodGenres = genres;
 
   var moodGenres = genres;
-  if (jmEraGenres !== null) genres = jmEraGenres;
+  if (jmGenreFilter !== null) genres = jmGenreFilter;
 
   var _refetchGenres = genres;
   jmRefetchFn = function() { return fetchTracksByGenres(_refetchGenres); };
@@ -774,7 +774,7 @@ function handleInteraction(clientX, clientY) {
   fetchTracksByGenres(genres)
     .then(function(items) {
       if (items.length > 0) return items;
-      if (jmEraGenres !== null && moodGenres.length > 0) return fetchTracksByGenres(moodGenres);
+      if (jmGenreFilter !== null && moodGenres.length > 0) return fetchTracksByGenres(moodGenres);
       return fetchFallback();
     })
     .then(function(items) {
@@ -835,20 +835,20 @@ function placeDotForMood(mood) {
 function highlightGenreBarForGenres(genres) {
   var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
   var bestIdx = 0, bestScore = -1;
-  ERAS.forEach(function(era, i) {
+  GENRES.forEach(function(genre, i) {
     var score = 0;
-    era.genres.forEach(function(eg) {
+    genre.genres.forEach(function(eg) {
       var en = eg.toLowerCase().replace(/[^a-z0-9]/g, '');
       norm.forEach(function(n) { if (n.indexOf(en) !== -1 || en.indexOf(n) !== -1) score++; });
     });
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
-  var n = ERAS.length;
-  var hl = document.getElementById('jmEraHighlight');
+  var n = GENRES.length;
+  var hl = document.getElementById('jmGenreHighlight');
   hl.style.left  = (bestIdx / n * 100) + '%';
   hl.style.width = (1 / n * 100) + '%';
   hl.style.display = 'block';
-  ['jmEraLabelsTop', 'jmEraLabels'].forEach(function(id) {
+  ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
     document.getElementById(id).querySelectorAll('span').forEach(function(s, i) {
       s.style.color      = i === bestIdx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
       s.style.fontWeight = i === bestIdx ? '700' : '400';

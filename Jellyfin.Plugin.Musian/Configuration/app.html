@@ -10,17 +10,17 @@
 * { box-sizing:border-box; margin:0; padding:0; }
 body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; overflow-x:hidden; }
 #jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
-#jmEraArea { width:100%; max-width:min(80vw,420px); margin-top:18px; }
+#jmGenreArea { width:100%; max-width:min(80vw,420px); margin-top:18px; }
 #jmWheelPrompt { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:2;transition:opacity 0.4s; }
 #jmMoodName { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;text-align:center;pointer-events:none;z-index:3;transition:opacity 0.4s;font-size:1.2em;font-weight:300;letter-spacing:0.08em;text-shadow:0 0 32px #000,0 0 12px #000;opacity:0; }
-#jmEraWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
-#jmEraBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
-#jmEraHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
-#jmEraDot { position:absolute; top:50%; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,0.5),0 0 8px rgba(255,255,255,0.9); pointer-events:none; transition:left 0.35s ease; display:none; }
-#jmEraLabelsTop, #jmEraLabels { display:flex; width:100%; }
-#jmEraLabelsTop { margin-bottom:4px; }
-#jmEraLabels { margin-top:4px; }
-#jmEraLabelsTop span, #jmEraLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+#jmGenreWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
+#jmGenreBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
+#jmGenreHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
+#jmGenreDot { position:absolute; top:50%; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,0.5),0 0 8px rgba(255,255,255,0.9); pointer-events:none; transition:left 0.35s ease; display:none; }
+#jmGenreLabelsTop, #jmGenreLabels { display:flex; width:100%; }
+#jmGenreLabelsTop { margin-bottom:4px; }
+#jmGenreLabels { margin-top:4px; }
+#jmGenreLabelsTop span, #jmGenreLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
 #jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
 .jm-btn { padding:10px 18px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:rgba(255,255,255,0.5); }
 #jmBackBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
@@ -123,14 +123,14 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     </div>
   </div>
 
-  <div id="jmEraArea">
-    <div id="jmEraLabelsTop"></div>
-    <div id="jmEraWrap">
-      <div id="jmEraBar"></div>
-      <div id="jmEraHighlight"></div>
-      <div id="jmEraDot"></div>
+  <div id="jmGenreArea">
+    <div id="jmGenreLabelsTop"></div>
+    <div id="jmGenreWrap">
+      <div id="jmGenreBar"></div>
+      <div id="jmGenreHighlight"></div>
+      <div id="jmGenreDot"></div>
     </div>
-    <div id="jmEraLabels"></div>
+    <div id="jmGenreLabels"></div>
   </div>
 
   <div id="jmUpNext" style="display:none;margin-top:10px;font-size:0.75em;color:#555;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(80vw,420px);"></div>
@@ -160,7 +160,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.11.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.12.0</div>
 </div>
 
 <script>
@@ -526,8 +526,8 @@ function getNearestTags(vx, vy, count) {
   return all.slice(0, count);
 }
 
-// ── Eras ─────────────────────────────────────────────────────────────────
-var ERAS = [
+// ── Genres ─────────────────────────────────────────────────────────────────
+var GENRES = [
   { name:'Classical',       genres:['Classical','Opera','Orchestral','Baroque','Symphony'] },
   { name:'Jazz & Blues',    genres:['Jazz','Blues','Soul','Rhythm And Blues'] },
   { name:'Folk & Country',  genres:['Folk','Country','Ballad'] },
@@ -538,48 +538,48 @@ var ERAS = [
   { name:'Rap',             genres:['Rap','Hip Hop'] },
   { name:'Metal',           genres:['Metal'] },
 ];
-var jmEraGenres  = null; // null = no era filter active
-var jmMoodTags   = null; // tags from last mood tap, for era-zone re-search
+var jmGenreFilter  = null; // null = no genre filter active
+var jmMoodTags   = null; // tags from last mood tap, for genre re-search
 var jmMoodLabels = [];   // persistent label elements on the disc
 
 (function() {
-  var wrap         = document.getElementById('jmEraWrap');
-  var highlight    = document.getElementById('jmEraHighlight');
-  var labelsTopEl  = document.getElementById('jmEraLabelsTop');
-  var labelsEl     = document.getElementById('jmEraLabels');
-  var n            = ERAS.length;
+  var wrap         = document.getElementById('jmGenreWrap');
+  var highlight    = document.getElementById('jmGenreHighlight');
+  var labelsTopEl  = document.getElementById('jmGenreLabelsTop');
+  var labelsEl     = document.getElementById('jmGenreLabels');
+  var n            = GENRES.length;
 
   // Build staggered labels: even indices above bar, odd indices below
-  ERAS.forEach(function(era, i) {
+  GENRES.forEach(function(genre, i) {
     var top = document.createElement('span');
     var bot = document.createElement('span');
     if (i % 2 === 0) {
-      top.textContent = era.name;
+      top.textContent = genre.name;
       bot.style.visibility = 'hidden'; bot.textContent = '\u00a0';
     } else {
       top.style.visibility = 'hidden'; top.textContent = '\u00a0';
-      bot.textContent = era.name;
+      bot.textContent = genre.name;
     }
     labelsTopEl.appendChild(top);
     labelsEl.appendChild(bot);
   });
 
-  var eraLastIdx = -1, eraTapCount = 0, eraTapTimer = null;
+  var genreLastIdx = -1, genreTapCount = 0, genreTapTimer = null;
 
-  function handleEraInteraction(clientX) {
+  function handleGenreInteraction(clientX) {
     var rect = wrap.getBoundingClientRect();
     var rel  = (clientX - rect.left) / rect.width;
     var idx  = Math.floor(rel * n);
     idx = Math.max(0, Math.min(n - 1, idx));
 
     // Track tap count on same zone
-    if (idx === eraLastIdx) { eraTapCount++; } else { eraLastIdx = idx; eraTapCount = 1; }
-    clearTimeout(eraTapTimer);
-    eraTapTimer = setTimeout(function() { eraLastIdx = -1; eraTapCount = 0; }, 500);
+    if (idx === genreLastIdx) { genreTapCount++; } else { genreLastIdx = idx; genreTapCount = 1; }
+    clearTimeout(genreTapTimer);
+    genreTapTimer = setTimeout(function() { genreLastIdx = -1; genreTapCount = 0; }, 500);
 
     // Triple tap — clear filter entirely
-    if (eraTapCount >= 3) {
-      jmEraGenres = null;
+    if (genreTapCount >= 3) {
+      jmGenreFilter = null;
       highlight.style.display = 'none';
       [labelsTopEl, labelsEl].forEach(function(row) {
         row.querySelectorAll('span').forEach(function(s) { s.style.color = ''; s.style.fontWeight = ''; });
@@ -597,14 +597,14 @@ var jmMoodLabels = [];   // persistent label elements on the disc
     }
 
     var lo, hi;
-    if (eraTapCount === 2) {
+    if (genreTapCount === 2) {
       lo = Math.max(0, idx - 1);
       hi = Math.min(n - 1, idx + 1);
     } else {
       lo = idx;
       hi = idx;
     }
-    var selected = ERAS.slice(lo, hi + 1);
+    var selected = GENRES.slice(lo, hi + 1);
 
     // Position highlight over selected range
     var leftPct  = (lo / n) * 100;
@@ -625,16 +625,16 @@ var jmMoodLabels = [];   // persistent label elements on the disc
     // Set genre filter
     var genreMap = {};
     selected.forEach(function(e) { e.genres.forEach(function(g) { genreMap[g] = true; }); });
-    jmEraGenres = Object.keys(genreMap);
+    jmGenreFilter = Object.keys(genreMap);
 
     // Replay with new genre filter only if a mood was already selected
     if (jmMoodGenres !== null) {
       setStatus('Searching\u2026');
       setTrackCount(0);
-      var eraG = jmEraGenres, moodG = jmMoodGenres, moodT = jmMoodTags || [];
-      jmRefetchFn = function() { return fetchTracksByTags(moodT).then(function(i) { return i.length ? i : fetchTracksByGenres(eraG); }); };
+      var genreG = jmGenreFilter, moodG = jmMoodGenres, moodT = jmMoodTags || [];
+      jmRefetchFn = function() { return fetchTracksByTags(moodT).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG); }); };
       fetchTracksByTags(moodT)
-        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(eraG); })
+        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG); })
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
         .then(function(items) {
@@ -646,10 +646,10 @@ var jmMoodLabels = [];   // persistent label elements on the disc
     }
   }
 
-  wrap.addEventListener('click', function(e) { handleEraInteraction(e.clientX); });
+  wrap.addEventListener('click', function(e) { handleGenreInteraction(e.clientX); });
   wrap.addEventListener('touchend', function(e) {
     e.preventDefault();
-    handleEraInteraction(e.changedTouches[0].clientX);
+    handleGenreInteraction(e.changedTouches[0].clientX);
   });
 })();
 
@@ -838,7 +838,7 @@ function jmPlayTrack(idx, gen) {
 function jmShowMoodTransition(item) {
   clearMoodLabels();
   jmShowPrompt(true);
-  placeEraDot((item && item.Genres) || []);
+  placeGenreDot((item && item.Genres) || []);
 }
 
 function jmSetNativePlayState(playing) {
@@ -948,15 +948,15 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   setStatus(''); setTrackCount(0); setMoodName('', ''); clearMoodLabels();
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
   jmHidePersistentBar();
-  // Clear mood and era state
+  // Clear mood and genre state
   jmMoodGenres = null;
-  jmEraGenres = null;
+  jmGenreFilter = null;
   jmRefetchFn = null;
   jmPlayedIds = [];
   jmShowPrompt(true);
-  var hl = document.getElementById('jmEraHighlight');
+  var hl = document.getElementById('jmGenreHighlight');
   if (hl) hl.style.display = 'none';
-  ['jmEraLabelsTop','jmEraLabels'].forEach(function(id) {
+  ['jmGenreLabelsTop','jmGenreLabels'].forEach(function(id) {
     document.getElementById(id).querySelectorAll('span').forEach(function(s) {
       s.style.color = ''; s.style.fontWeight = '';
     });
@@ -1075,7 +1075,7 @@ function handleInteraction(clientX, clientY) {
   jmMoodTags   = moodTags;
   jmMoodGenres = moodGenres;
 
-  var searchGenres = jmEraGenres !== null ? jmEraGenres : moodGenres;
+  var searchGenres = jmGenreFilter !== null ? jmGenreFilter : moodGenres;
   jmRefetchFn = function() {
     return fetchTracksByTags(moodTags)
       .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(searchGenres); }, 25); })
@@ -1330,18 +1330,18 @@ function findMoodForGenres(genres) {
   return best;
 }
 
-function placeEraDot(genres) {
-  var dot = document.getElementById('jmEraDot');
+function placeGenreDot(genres) {
+  var dot = document.getElementById('jmGenreDot');
   var bestIdx = -1, bestScore = 0;
-  ERAS.forEach(function(era, i) {
+  GENRES.forEach(function(genre, i) {
     var score = 0;
-    era.genres.forEach(function(eg) {
+    genre.genres.forEach(function(eg) {
       (genres || []).forEach(function(g) { if (genreWordMatch(g, eg) || genreWordMatch(eg, g)) score++; });
     });
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
   if (bestIdx === -1) { dot.style.display = 'none'; return; }
-  dot.style.left = ((bestIdx + 0.5) / ERAS.length * 100) + '%';
+  dot.style.left = ((bestIdx + 0.5) / GENRES.length * 100) + '%';
   dot.style.display = 'block';
 }
 function placeDotForMood(mood) {
@@ -1363,20 +1363,20 @@ function placeDotForMood(mood) {
 
 function highlightGenreBarForGenres(genres) {
   var bestIdx = 0, bestScore = -1;
-  ERAS.forEach(function(era, i) {
+  GENRES.forEach(function(genre, i) {
     var score = 0;
-    era.genres.forEach(function(eg) {
+    genre.genres.forEach(function(eg) {
       (genres || []).forEach(function(g) { if (genreWordMatch(g, eg) || genreWordMatch(eg, g)) score++; });
     });
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
   if (bestScore > 0) {
-    var n = ERAS.length;
-    var hl = document.getElementById('jmEraHighlight');
+    var n = GENRES.length;
+    var hl = document.getElementById('jmGenreHighlight');
     hl.style.left  = (bestIdx / n * 100) + '%';
     hl.style.width = (1 / n * 100) + '%';
     hl.style.display = 'block';
-    ['jmEraLabelsTop', 'jmEraLabels'].forEach(function(id) {
+    ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
       document.getElementById(id).querySelectorAll('span').forEach(function(s, i) {
         s.style.color      = i === bestIdx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
         s.style.fontWeight = i === bestIdx ? '700' : '400';
@@ -1486,7 +1486,7 @@ function highlightGenreBarForGenres(genres) {
         placeDotForMood(mood);
         highlightGenreBarForGenres(g);
       }
-      var searchGenres = jmEraGenres !== null ? jmEraGenres : _genres;
+      var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
       var seedGenres = g.length ? g : null;
