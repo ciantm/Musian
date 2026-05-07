@@ -63,6 +63,7 @@ def main():
 
     manifest = load_manifest()
     plugin = manifest[0]
+    plugin["name"] = PLUGIN_NAME
 
     # Remove any existing entry for this version (idempotent re-runs)
     plugin["versions"] = [
