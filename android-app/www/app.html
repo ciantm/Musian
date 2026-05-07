@@ -163,7 +163,7 @@ function makeJellyfinBackend(auth) {
     },
     fetchTracksByGenres: function(genres) {
       var expanded = expandGenres(genres);
-      var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'10', Fields:'Genres,MediaSources'});
+      var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'1000', Fields:'Genres,MediaSources'});
       if (expanded.length > 0) params.set('Genres', expanded.join('|'));
       return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' + params, {headers: headers()})
         .then(function(r){ return r.json(); })
@@ -241,7 +241,7 @@ function makeSubsonicBackend(auth) {
       var seen = {};
       var promises = expanded.map(function(genre) {
         return fetch(auth.serverUrl + '/rest/getSongsByGenre.view' + ap() +
-          '&genre=' + encodeURIComponent(genre) + '&count=10')
+          '&genre=' + encodeURIComponent(genre) + '&count=1000')
           .then(function(r){ return r.json(); })
           .then(function(d){
             return ((d['subsonic-response'] && d['subsonic-response'].songsByGenre && d['subsonic-response'].songsByGenre.song) || []);
@@ -256,7 +256,7 @@ function makeSubsonicBackend(auth) {
           });
         });
         shuffle(merged);
-        return merged.slice(0, 10);
+        return merged;
       });
     },
     fetchFallback: function() {
@@ -346,7 +346,7 @@ function makePlexBackend(auth) {
           });
         });
         shuffle(merged);
-        return merged.slice(0, 10);
+        return merged;
       });
     },
     fetchFallback: function() {
@@ -537,6 +537,7 @@ var jmGenreFilter = null;
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
         .then(function(items) {
+          items = items.slice(0, 25);
           setTrackCount(items.length);
           if (!items.length) { setStatus('No tracks found.'); return; }
           startPlayback(items);
@@ -813,6 +814,7 @@ function handleInteraction(clientX, clientY) {
       return fetchFallback();
     })
     .then(function(items) {
+      items = items.slice(0, 25);
       setTrackCount(items.length);
       if (!items.length) { setStatus('No tracks found — check genre tags in your library.'); return; }
       startPlayback(items);
