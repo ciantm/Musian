@@ -160,7 +160,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.12.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.13.0</div>
 </div>
 
 <script>
@@ -632,8 +632,8 @@ var jmMoodLabels = [];   // persistent label elements on the disc
       setStatus('Searching\u2026');
       setTrackCount(0);
       var genreG = jmGenreFilter, moodG = jmMoodGenres, moodT = jmMoodTags || [];
-      jmRefetchFn = function() { return fetchTracksByTags(moodT).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG); }); };
-      fetchTracksByTags(moodT)
+      jmRefetchFn = function() { return fetchTracksByTags(moodT, genreG).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG); }); };
+      fetchTracksByTags(moodT, genreG)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG); })
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
@@ -1076,16 +1076,24 @@ function handleInteraction(clientX, clientY) {
   jmMoodGenres = moodGenres;
 
   var searchGenres = jmGenreFilter !== null ? jmGenreFilter : moodGenres;
+  var _gf = jmGenreFilter;
+  function blendMoodGenre(tagPromise, genrePromise) {
+    return Promise.all([tagPromise, genrePromise]).then(function(results) {
+      var tagTracks = results[0].slice(0, 19);
+      var seen = {};
+      tagTracks.forEach(function(t) { seen[t.Id] = true; });
+      var genreTracks = results[1].filter(function(t) { return !seen[t.Id]; });
+      return tagTracks.concat(genreTracks).slice(0, 25);
+    });
+  }
   jmRefetchFn = function() {
-    return fetchTracksByTags(moodTags)
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(searchGenres); }, 25); })
+    return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
       .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); });
   };
 
   setStatus('Searching\u2026');
 
-  fetchTracksByTags(moodTags)
-    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(searchGenres); }, 25); })
+  blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
     .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); })
     .then(function(i) { return i.length ? i : fetchFallback(); })
     .then(function(items) {

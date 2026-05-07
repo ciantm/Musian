@@ -561,6 +561,7 @@ var jmAudio      = document.getElementById('jmAudio');
 var jmRefetchFn  = null;
 var jmPlayedIds  = [];
 var jmFetching   = false;
+var jmNativePollTimer = null;
 
 function jmShowPrompt(visible) {
   var p = document.getElementById('jmWheelPrompt');
@@ -576,6 +577,20 @@ function jmAdvance(gen) {
     jmPlayTrack(jmPlayIdx, gen);
   };
 }
+
+function startNativePoll(gen) {
+  clearInterval(jmNativePollTimer);
+  jmNativePollTimer = setInterval(function() {
+    if (gen !== jmGeneration) { clearInterval(jmNativePollTimer); return; }
+    var ni = NativeMedia.getNativeIndex();
+    if (ni >= 0 && ni !== jmPlayIdx) {
+      jmPlayIdx = ni;
+      jmPlayTrack(jmPlayIdx, gen);
+    }
+  }, 800);
+}
+
+function jmSetNativePlayState(playing) {}
 
 function jmUpdateMediaSession(item) {
   if (!('mediaSession' in navigator)) return;
@@ -603,7 +618,7 @@ function jmUpdateMediaSession(item) {
 }
 
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && jmPlaylist.length > 0 && jmAudio.paused && !jmAudio.ended) {
+  if (!window.NativeMedia && !document.hidden && jmPlaylist.length > 0 && jmAudio.paused && !jmAudio.ended) {
     jmAudio.play().catch(function() {});
   }
 });
@@ -627,12 +642,22 @@ function jmPlayTrack(idx, gen) {
       jmFetching = false;
       if (_gen !== jmGeneration) return;
       more = more.filter(function(t) { return jmPlayedIds.indexOf(Backend.itemId(t)) === -1; });
-      if (more.length) jmPlaylist = jmPlaylist.concat(more);
+      if (more.length) {
+        jmPlaylist = jmPlaylist.concat(more);
+        if (window.NativeMedia) {
+          more.forEach(function(t) {
+            var meta = Backend.mediaMetadata(t);
+            NativeMedia.queueNextTrack(Backend.streamUrl(t), meta.title, meta.artist);
+          });
+        }
+      }
     }).catch(function() { jmFetching = false; });
   }
-  jmAudio.pause();
-  jmAudio.src = Backend.streamUrl(item);
-  jmAudio.play().catch(function() {});
+  if (!window.NativeMedia) {
+    jmAudio.pause();
+    jmAudio.src = Backend.streamUrl(item);
+    jmAudio.play().catch(function() {});
+  }
   document.getElementById('jmSearch').placeholder = Backend.trackLabel(item);
   document.getElementById('jmControls').style.display = 'block';
   var next = jmPlaylist[idx + 1];
@@ -644,7 +669,7 @@ function jmPlayTrack(idx, gen) {
     upNextEl.style.display = 'none';
   }
   setStatus('Playing \u266a');
-  jmUpdateMediaSession(item);
+  if (!window.NativeMedia) jmUpdateMediaSession(item);
 }
 
 function attachPlayerListeners(gen) {
@@ -664,6 +689,7 @@ document.getElementById('jmSkipBtn').addEventListener('click', function() {
 });
 document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGeneration++;
+  if (window.NativeMedia) NativeMedia.clearSession();
   jmAudio.pause(); jmAudio.src = '';
   jmPlaylist = [];
   document.getElementById('jmSearch').placeholder = 'Search song\u2026';
@@ -691,6 +717,15 @@ function startPlayback(items) {
   jmPlaylist = items; jmPlayIdx = 0;
   jmPlayedIds = []; jmFetching = false;
   attachPlayerListeners(jmGeneration);
+  if (window.NativeMedia) {
+    var meta0 = Backend.mediaMetadata(items[0]);
+    NativeMedia.playTrack(Backend.streamUrl(items[0]), meta0.title, meta0.artist);
+    items.slice(1).forEach(function(t) {
+      var meta = Backend.mediaMetadata(t);
+      NativeMedia.queueNextTrack(Backend.streamUrl(t), meta.title, meta.artist);
+    });
+    startNativePoll(jmGeneration);
+  }
   jmPlayTrack(0, jmGeneration);
 }
 
