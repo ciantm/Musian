@@ -163,7 +163,7 @@ function makeJellyfinBackend(auth) {
     },
     fetchTracksByGenres: function(genres) {
       var expanded = expandGenres(genres);
-      var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'1000', Fields:'Genres,MediaSources'});
+      var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'500', Fields:'Genres,MediaSources'});
       if (expanded.length > 0) params.set('Genres', expanded.join('|'));
       return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' + params, {headers: headers()})
         .then(function(r){ return r.json(); })
@@ -241,7 +241,7 @@ function makeSubsonicBackend(auth) {
       var seen = {};
       var promises = expanded.map(function(genre) {
         return fetch(auth.serverUrl + '/rest/getSongsByGenre.view' + ap() +
-          '&genre=' + encodeURIComponent(genre) + '&count=1000')
+          '&genre=' + encodeURIComponent(genre) + '&count=500')
           .then(function(r){ return r.json(); })
           .then(function(d){
             return ((d['subsonic-response'] && d['subsonic-response'].songsByGenre && d['subsonic-response'].songsByGenre.song) || []);

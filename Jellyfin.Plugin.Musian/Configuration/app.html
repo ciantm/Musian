@@ -160,7 +160,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.14.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.15.0</div>
 </div>
 
 <script>
@@ -269,7 +269,7 @@ JM.init();
 })();
 function jmFetch(url, opts) {
   var ctrl = new AbortController();
-  var tid = setTimeout(function() { ctrl.abort(); }, 5000);
+  var tid = setTimeout(function() { ctrl.abort(); }, 10000);
   return fetch(url, Object.assign({}, opts || {}, {signal: ctrl.signal}))
     .finally(function() { clearTimeout(tid); });
 }
@@ -1079,16 +1079,16 @@ function handleInteraction(clientX, clientY) {
   var _gf = jmGenreFilter;
   function blendMoodGenre(tagPromise, genrePromise) {
     return Promise.all([tagPromise, genrePromise]).then(function(results) {
-      var tagTracks = results[0].slice(0, 750);
+      var tagTracks = results[0].slice(0, 375);
       var seen = {};
       tagTracks.forEach(function(t) { seen[t.Id] = true; });
       var genreTracks = results[1].filter(function(t) { return !seen[t.Id]; });
-      return tagTracks.concat(genreTracks).slice(0, 1000);
+      return tagTracks.concat(genreTracks).slice(0, 500);
     });
   }
   jmRefetchFn = function() {
     return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 1000); });
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 500); });
   };
 
   setStatus('Searching\u2026');
@@ -1172,7 +1172,7 @@ function fetchTracksByGenres(genres) {
   if (JM.type === 'subsonic') {
     var promises = genres.map(function(g) {
       return jmFetch(JM.server + '/rest/getSongsByGenre.view?genre=' +
-        encodeURIComponent(g) + '&count=1000' + JM.subAuth())
+        encodeURIComponent(g) + '&count=500' + JM.subAuth())
         .then(function(r){return r.json();})
         .then(function(d){return ((d['subsonic-response']||{}).songsByGenre||{}).song||[];})
         .catch(function(){return [];});
@@ -1187,7 +1187,7 @@ function fetchTracksByGenres(genres) {
   }
   if (!JM.token || !JM.userId) return Promise.resolve([]);
   var expanded = expandGenres(genres);
-  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'1000', Fields:'Genres,MediaSources'});
+  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'500', Fields:'Genres,MediaSources'});
   if (expanded.length > 0) params.set('Genres', expanded.join('|'));
   return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
@@ -1259,7 +1259,7 @@ function fetchTracksByTags(tags, genres) {
   });
   var params = new URLSearchParams({
     IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random',
-    Limit:'1000', Fields:'Genres,MediaSources',
+    Limit:'500', Fields:'Genres,MediaSources',
     Tags: expanded.join('|')
   });
   if (genres && genres.length) params.set('Genres', expandGenres(genres).join('|'));
