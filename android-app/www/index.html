@@ -72,9 +72,15 @@ button#jmPlexBtn:active { opacity:0.85; }
   </div>
 
   <div id="jmServerUrlWrap">
-    <label>Server URL</label>
-    <input id="jmServer" type="url" placeholder="http://192.168.1.10:8096" value="http://"
-           autocomplete="off" autocapitalize="none" spellcheck="false"/>
+    <label>Server Address</label>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+      <span style="color:#666;font-size:0.9em;white-space:nowrap;">http://</span>
+      <input id="jmHost" type="text" inputmode="decimal" placeholder="192.168.1.10"
+             autocomplete="off" autocapitalize="none" spellcheck="false" style="flex:1;margin-bottom:0;"/>
+      <span style="color:#666;font-size:0.9em;">:</span>
+      <input id="jmPort" type="text" inputmode="numeric" value="8096"
+             style="width:72px;margin-bottom:0;text-align:center;"/>
+    </div>
     <div id="jmDetectMsg"></div>
   </div>
 
@@ -109,17 +115,30 @@ button#jmPlexBtn:active { opacity:0.85; }
 
   <div id="jmError"></div>
   <div id="jmSpinner">Signing in…</div>
-  <div style="margin-top:24px;font-size:0.65em;color:#444;text-align:center;">v3.1.12.0</div>
+  <div style="margin-top:24px;font-size:0.65em;color:#444;text-align:center;">v3.1.16.0</div>
 </div>
 
 <script>
 (function() {
   var selectedType = 'jellyfin';
+  var DEFAULT_PORTS = { jellyfin: '8096', subsonic: '4533' };
+
+  function getServerUrl() {
+    var host = document.getElementById('jmHost').value.trim().replace(/\/$/, '');
+    var port = document.getElementById('jmPort').value.trim();
+    return 'http://' + host + (port ? ':' + port : '');
+  }
 
   // Restore previous server/type
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem('jm_auth')); } catch(e) {}
-  if (saved && saved.serverUrl) document.getElementById('jmServer').value = saved.serverUrl;
+  if (saved && saved.serverUrl) {
+    var m = saved.serverUrl.match(/^https?:\/\/([^:\/]+)(?::(\d+))?/);
+    if (m) {
+      document.getElementById('jmHost').value = m[1];
+      if (m[2]) document.getElementById('jmPort').value = m[2];
+    }
+  }
   if (saved && saved.type && saved.serverUrl) { window.location.replace('app.html'); return; }
   if (saved && saved.type) setType(saved.type);
 
@@ -141,18 +160,18 @@ button#jmPlexBtn:active { opacity:0.85; }
     document.getElementById('jmPlexWait').style.display      = 'none';
     document.getElementById('jmServerPicker').style.display  = 'none';
     document.getElementById('jmError').textContent = '';
+    // Update port default if current value is still a known default
+    var portEl = document.getElementById('jmPort');
+    var knownDefaults = Object.values(DEFAULT_PORTS);
+    if (DEFAULT_PORTS[type] && knownDefaults.indexOf(portEl.value) !== -1) {
+      portEl.value = DEFAULT_PORTS[type];
+    }
   }
 
-  // Select all on focus if only the default http:// is present
-  document.getElementById('jmServer').addEventListener('focus', function() {
-    if (this.value === 'http://') this.select();
-  });
-
-  // Auto-detect server type on URL blur
-  document.getElementById('jmServer').addEventListener('blur', function() {
-    var url = this.value.replace(/\/$/, '').trim();
-    if (!url) return;
-    detect(url);
+  // Auto-detect on host blur
+  document.getElementById('jmHost').addEventListener('blur', function() {
+    if (!this.value.trim()) return;
+    detect(getServerUrl());
   });
 
   function fetchQuick(url) {
@@ -205,11 +224,11 @@ button#jmPlexBtn:active { opacity:0.85; }
   }
 
   function signIn() {
-    var server = document.getElementById('jmServer').value.replace(/\/$/, '').trim();
+    var server = getServerUrl();
     var user   = document.getElementById('jmUser').value.trim();
     var pass   = document.getElementById('jmPass').value;
     document.getElementById('jmError').textContent = '';
-    if (!server) { showError('Please enter a server URL.'); return; }
+    if (!document.getElementById('jmHost').value.trim()) { showError('Please enter a server address.'); return; }
     if (!user)   { showError('Please enter a username.'); return; }
 
     document.getElementById('jmSignIn').style.display = 'none';

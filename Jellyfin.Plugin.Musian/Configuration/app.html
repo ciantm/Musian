@@ -160,7 +160,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.15.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.16.0</div>
 </div>
 
 <script>
@@ -528,15 +528,16 @@ function getNearestTags(vx, vy, count) {
 
 // ── Genres ─────────────────────────────────────────────────────────────────
 var GENRES = [
-  { name:'Classical',       genres:['Classical','Opera','Orchestral','Baroque','Symphony'] },
-  { name:'Jazz & Blues',    genres:['Jazz','Blues','Soul','Rhythm And Blues'] },
-  { name:'Folk & Country',  genres:['Folk','Country','Ballad'] },
-  { name:'Pop & Soul',      genres:['Pop','Funk','Soul'] },
-  { name:'Reggae & Latin',  genres:['Reggae','Ska','Dub','Dancehall','Latin','Salsa','Bossa Nova','Latin Rock'] },
-  { name:'Rock',            genres:['Rock','Grunge','Rockabilly'] },
-  { name:'Hard Rock & Punk',genres:['Hard Rock','Punk','Progressive Rock','Hardcore'] },
-  { name:'Rap',             genres:['Rap','Hip Hop'] },
-  { name:'Metal',           genres:['Metal'] },
+  { name:'Classical',          genres:['Classical','Opera','Orchestral','Baroque','Symphony'] },
+  { name:'Folk & Country',     genres:['Folk','Country','Ballad'] },
+  { name:'Jazz & Blues',       genres:['Jazz','Blues','Rhythm And Blues'] },
+  { name:'Latin & Reggae',     genres:['Latin','Reggae','Ska','Dub','Dancehall','Salsa','Bossa Nova','Latin Rock'] },
+  { name:'Soul & Pop',         genres:['Soul','Pop','Funk','R&B'] },
+  { name:'Rock',               genres:['Rock','Grunge','Rockabilly'] },
+  { name:'Hard Rock & Punk',   genres:['Hard Rock','Punk','Progressive Rock','Hardcore'] },
+  { name:'Metal',              genres:['Metal'] },
+  { name:'Rap',                genres:['Rap','Hip Hop'] },
+  { name:'Dance & Electronic', genres:['Dance','Electronic','House','Techno','Disco','Trance','Electronica','EDM','Electro','Eurodance','Dance Pop','Electronic Dance Music','Club'] },
 ];
 var jmGenreFilter  = null; // null = no genre filter active
 var jmMoodTags   = null; // tags from last mood tap, for genre re-search
