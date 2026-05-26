@@ -7,11 +7,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
+import com.musian.app.BillingManager;
 
 public class MainActivity extends BridgeActivity {
 
-    private MusicService mService;
-    private boolean      mBound = false;
+    private MusicService   mService;
+    private boolean        mBound = false;
+    private BillingManager mBilling;
 
     private final ServiceConnection mConn = new ServiceConnection() {
         @Override
@@ -40,8 +42,13 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         bridge.getWebView().addJavascriptInterface(new NativeMediaBridge(), "NativeMedia");
+        bridge.getWebView().addJavascriptInterface(new NativeBillingBridge(), "NativeBilling");
         Intent svc = new Intent(this, MusicService.class);
         bindService(svc, mConn, BIND_AUTO_CREATE);
+        mBilling = new BillingManager(this);
+        mBilling.setListener(isPremium ->
+            runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
+                "if(typeof jmOnPremiumChanged==='function')jmOnPremiumChanged(" + isPremium + ");", null)));
     }
 
     @Override
@@ -51,6 +58,7 @@ public class MainActivity extends BridgeActivity {
             unbindService(mConn);
             mBound = false;
         }
+        if (mBilling != null) mBilling.destroy();
     }
 
     // ── JS bridge ──────────────────────────────────────────────────────────────
@@ -106,5 +114,19 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+    }
+
+    // ── Billing JS bridge ──────────────────────────────────────────────────────
+
+    class NativeBillingBridge {
+        @JavascriptInterface
+        public boolean isPremium() {
+            return mBilling != null && mBilling.isPremium();
+        }
+
+        @JavascriptInterface
+        public void purchase() {
+            if (mBilling != null) mBilling.launchPurchaseFlow(MainActivity.this);
+        }
     }
 }
