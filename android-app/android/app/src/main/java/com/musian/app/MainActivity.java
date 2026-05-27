@@ -3,6 +3,7 @@ package com.musian.app;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.webkit.JavascriptInterface;
@@ -108,6 +109,15 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public int getNativeIndex() {
             return mBound ? mService.getCurrentIndex() : -1;
+        }
+
+        @JavascriptInterface
+        public void saveCredentials(final String server, final String userId, final String token) {
+            getSharedPreferences(MusicService.PREFS, MODE_PRIVATE).edit()
+                .putString(MusicService.PREF_SERVER,  server)
+                .putString(MusicService.PREF_USER_ID, userId)
+                .putString(MusicService.PREF_TOKEN,   token)
+                .apply();
         }
     }
 

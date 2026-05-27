@@ -28,7 +28,14 @@
         <service
             android:name=".MusicService"
             android:foregroundServiceType="mediaPlayback"
-            android:exported="false" />
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService"/>
+            </intent-filter>
+            <meta-data
+                android:name="com.google.android.gms.car.application"
+                android:resource="@xml/automotive_app_desc"/>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

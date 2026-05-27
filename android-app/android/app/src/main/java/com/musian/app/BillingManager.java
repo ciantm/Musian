@@ -133,6 +133,12 @@ public class BillingManager implements PurchasesUpdatedListener, BillingClientSt
         if (mListener != null) mListener.onPremiumStatusChanged(value);
     }
 
+    public static boolean isPremiumStatic(Context ctx) {
+        if (BuildConfig.DEBUG) return true;
+        return ctx.getSharedPreferences("musian_billing", Context.MODE_PRIVATE)
+                  .getBoolean("is_premium", false);
+    }
+
     public void destroy() {
         if (mBilling != null) mBilling.endConnection();
     }
