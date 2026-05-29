@@ -4,6 +4,8 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Musian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet"/>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; overflow-x:hidden; }
@@ -14,14 +16,17 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmGenreWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
 #jmGenreBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
 #jmGenreHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
+#jmGenreDot { position:absolute; top:50%; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,0.5),0 0 8px rgba(255,255,255,0.9); pointer-events:none; transition:left 0.35s ease; display:none; }
 #jmGenreLabelsTop, #jmGenreLabels { display:flex; width:100%; }
 #jmGenreLabelsTop { margin-bottom:4px; }
 #jmGenreLabels { margin-top:4px; }
 #jmGenreLabelsTop span, #jmGenreLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
 #jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
-.jm-btn { padding:10px 28px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:#fff; }
-#jmSkipBtn { background:rgba(255,255,255,0.12); margin-right:8px; }
-#jmStopBtn { background:rgba(255,255,255,0.08); }
+.jm-btn { padding:10px 18px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:rgba(255,255,255,0.5); }
+#jmBackBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
+#jmPauseBtn { background:rgba(255,255,255,0.07); margin-right:8px; }
+#jmSkipBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
+#jmStopBtn  { background:rgba(255,255,255,0.04); }
 #jmSearch { width:100%; background:#1e1e1e; border:1px solid #333; border-radius:20px;
             color:#fff; font-size:0.85em; padding:9px 16px; outline:none; }
 #jmSearch:focus { border-color:#555; }
@@ -33,11 +38,38 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 .jm-sug-item:hover, .jm-sug-item:active { background:#2a2a2a; }
 .jm-sug-title { font-size:0.85em; color:#fff; }
 .jm-sug-artist { font-size:0.75em; color:#888; margin-top:2px; }
+#jmSplash { position:fixed; inset:0; background:#111; display:flex; flex-direction:column; align-items:center; padding:24px 16px 0; z-index:999; transition:opacity 0.8s ease; }
+#jmSplash.fade { opacity:0; pointer-events:none; }
 </style>
 </head>
 <body>
+<div id="jmSplash">
+  <h2 style="font-size:1.92em;font-weight:300;margin:0 0 32px;visibility:hidden;" aria-hidden="true"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;">Musian</span></h2>
+  <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style="display:block;width:min(80vw,420px);height:min(80vw,420px);filter:drop-shadow(0 0 40px rgba(0,0,0,0.9));">
+    <defs>
+      <radialGradient id="spR" cx="0%" cy="0%" r="100%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#ff1a00" stop-opacity="0.65"/><stop offset="65%" stop-color="#ff1a00" stop-opacity="0"/></radialGradient>
+      <radialGradient id="spY" cx="100%" cy="0%" r="100%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#ffe800" stop-opacity="0.55"/><stop offset="65%" stop-color="#ffe800" stop-opacity="0"/></radialGradient>
+      <radialGradient id="spT" cx="100%" cy="100%" r="100%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#00e8c0" stop-opacity="0.55"/><stop offset="65%" stop-color="#00e8c0" stop-opacity="0"/></radialGradient>
+      <clipPath id="spC"><circle cx="200" cy="200" r="196"/></clipPath>
+      <filter id="spSG" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="14" result="blur"/>
+        <feFlood flood-color="#000" flood-opacity="0.9"/><feComposite in2="blur" operator="in" result="shadow"/>
+        <feMerge><feMergeNode in="shadow"/><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <circle cx="200" cy="200" r="196" fill="#000"/>
+    <g clip-path="url(#spC)">
+      <rect width="400" height="400" fill="url(#spR)"/>
+      <rect width="400" height="400" fill="url(#spY)" style="mix-blend-mode:screen"/>
+      <rect width="400" height="400" fill="url(#spT)" style="mix-blend-mode:screen"/>
+    </g>
+    <circle cx="200" cy="200" r="196" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+    <text x="200" y="262" font-family="'Pinyon Script', Georgia, serif" font-size="147" fill="white" fill-opacity="0.75" text-anchor="middle" filter="url(#spSG)">M</text>
+    <text x="204" y="318" font-family="sans-serif" font-size="22" font-weight="300" letter-spacing="16" fill="white" fill-opacity="0.48" text-anchor="middle">musian</text>
+  </svg>
+</div>
 <div id="jmApp">
-  <h2 style="font-size:1.6em;font-weight:300;letter-spacing:0.06em;margin:0 0 32px;display:flex;align-items:baseline;gap:10px;"><span>&#127925; Musian</span><span style="font-size:0.38em;color:#444;">v1.6.0</span></h2>
+  <h2 style="font-size:1.92em;font-weight:300;margin:0 0 32px;text-align:center;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span></h2>
 
   <div id="jmWheelWrap" style="position:relative;width:min(80vw,420px);height:min(80vw,420px);margin:0 auto 8px;">
     <svg id="jmSvgWheel" viewBox="0 0 400 400" width="100%" height="100%"
@@ -61,6 +93,11 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
           <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
         </radialGradient>
         <clipPath id="circClip"><circle cx="200" cy="200" r="196"/></clipPath>
+        <!-- Arc paths for curved edge labels (r=178, each spanning 70° centred on quadrant diagonal) -->
+        <path id="jmArcTR" d="M 231,25 A 178,178 0 0,1 375,169"/>
+        <path id="jmArcTL" d="M 25,169 A 178,178 0 0,1 169,25"/>
+        <path id="jmArcBL" d="M 169,375 A 178,178 0 0,1 25,231"/>
+        <path id="jmArcBR" d="M 375,231 A 178,178 0 0,1 231,375"/>
       </defs>
       <circle cx="200" cy="200" r="196" fill="#000000"/>
       <g clip-path="url(#circClip)">
@@ -73,20 +110,17 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <line x1="200" y1="4" x2="200" y2="396" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
       <line x1="4" y1="200" x2="396" y2="200" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,5"/>
       <circle cx="200" cy="200" r="196" fill="transparent"/>
+      <!-- Curved edge labels -->
+      <text font-size="11.5" font-weight="700" letter-spacing="2" fill="#ffe066" font-family="sans-serif" pointer-events="none" paint-order="stroke" stroke="#000" stroke-width="4" stroke-linejoin="round" opacity="0.85"><textPath href="#jmArcTR" startOffset="50%" text-anchor="middle">HAPPY · EXCITED</textPath></text>
+      <text font-size="11.5" font-weight="700" letter-spacing="2" fill="#ff7070" font-family="sans-serif" pointer-events="none" paint-order="stroke" stroke="#000" stroke-width="4" stroke-linejoin="round" opacity="0.85"><textPath href="#jmArcTL" startOffset="50%" text-anchor="middle">ANGRY · TENSE</textPath></text>
+      <text font-size="11.5" font-weight="700" letter-spacing="2" fill="#7ba3ff" font-family="sans-serif" pointer-events="none" paint-order="stroke" stroke="#000" stroke-width="4" stroke-linejoin="round" opacity="0.85"><textPath href="#jmArcBL" startOffset="50%" text-anchor="middle">SAD · LONELY</textPath></text>
+      <text font-size="11.5" font-weight="700" letter-spacing="2" fill="#5ee8cc" font-family="sans-serif" pointer-events="none" paint-order="stroke" stroke="#000" stroke-width="4" stroke-linejoin="round" opacity="0.85"><textPath href="#jmArcBR" startOffset="50%" text-anchor="middle">CALM · SERENE</textPath></text>
     </svg>
     <div id="jmMoodName"></div>
     <div id="jmWheelPrompt">
       <div style="font-size:1.1em;font-weight:300;letter-spacing:0.1em;color:rgba(255,255,255,0.75);text-shadow:0 0 24px #000,0 0 8px #000;">Feel your music</div>
       <div style="font-size:0.72em;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-top:6px;text-shadow:0 0 12px #000;">Tap to play</div>
     </div>
-    <span style="position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Active</span>
-    <span style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Passive</span>
-    <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Negative</span>
-    <span style="position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:0.62em;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);pointer-events:none;text-shadow:0 0 8px #000;">Positive</span>
-    <span style="position:absolute;top:32px;left:32px;font-size:0.65em;font-weight:700;color:#ff7070;line-height:1.3;pointer-events:none;text-shadow:0 0 8px #000;">Angry<br>Tense</span>
-    <span style="position:absolute;top:32px;right:32px;font-size:0.65em;font-weight:700;color:#ffe066;line-height:1.3;text-align:right;pointer-events:none;text-shadow:0 0 8px #000;">Happy<br>Excited</span>
-    <span style="position:absolute;bottom:32px;left:32px;font-size:0.65em;font-weight:700;color:#7ba3ff;line-height:1.3;pointer-events:none;text-shadow:0 0 8px #000;">Sad<br>Lonely</span>
-    <span style="position:absolute;bottom:32px;right:32px;font-size:0.65em;font-weight:700;color:#5ee8cc;line-height:1.3;text-align:right;pointer-events:none;text-shadow:0 0 8px #000;">Calm<br>Serene</span>
   </div>
 
   <div id="jmGenreArea">
@@ -94,6 +128,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <div id="jmGenreWrap">
       <div id="jmGenreBar"></div>
       <div id="jmGenreHighlight"></div>
+      <div id="jmGenreDot"></div>
     </div>
     <div id="jmGenreLabels"></div>
   </div>
@@ -111,376 +146,405 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <div id="jmSuggest"></div>
     </div>
     <div id="jmControls" style="display:none;margin-top:16px;">
-      <button id="jmSkipBtn" class="jm-btn">&#9197; Skip</button>
-      <button id="jmStopBtn" class="jm-btn">&#9209; Stop</button>
+      <button id="jmBackBtn"  class="jm-btn">&#9198;</button>
+      <button id="jmPauseBtn" class="jm-btn">&#9646;&#9646;</button>
+      <button id="jmSkipBtn"  class="jm-btn">&#9197;</button>
+      <button id="jmStopBtn"  class="jm-btn">&#9209;</button>
     </div>
+  </div>
+  <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border-radius:24px;display:none;align-items:center;gap:10px;z-index:100;max-width:90vw;">
+    <span id="jmPersistentTrack" style="font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;"></span>
+    <button id="jmPersistentPlayBtn" class="jm-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9654;</button>
+    <button id="jmPersistentSkipBtn" class="jm-btn" style="background:rgba(255,255,255,0.12);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9197;</button>
   </div>
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
-  <button id="jmSignOutBtn" style="margin-top:32px;background:none;border:none;color:#555;font-size:0.8em;cursor:pointer;text-decoration:underline;">Sign out</button>
+  <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.21.0</div>
 </div>
 
 <script>
-// ── Backend adapters ──────────────────────────────────────────────────────────
-var jmGenreCache = null;
-var Backend = null;
-
-function expandGenres(seeds) {
-  if (!jmGenreCache || !jmGenreCache.length) return seeds;
-  var result = {};
-  seeds.forEach(function(seed) {
-    result[seed] = true;
-    var sn = seed.toLowerCase().replace(/[^a-z0-9]/g, '');
-    jmGenreCache.forEach(function(g) {
-      if (/^not[\s_]/i.test(g)) return;
-      if (g.toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(sn) !== -1) result[g] = true;
-    });
-  });
-  return Object.keys(result);
-}
-
-function makeJellyfinBackend(auth) {
-  function headers() {
+var JM = {
+  type: 'jellyfin',
+  server: window.location.origin,
+  token: null,
+  userId: null,
+  sectionId: null,
+  username: null,
+  password: null,
+  init: function() {
+    try {
+      var keys = Object.keys(localStorage);
+      for (var i = 0; i < keys.length; i++) {
+        try {
+          var raw = localStorage.getItem(keys[i]);
+          if (!raw || raw[0] !== '{') continue;
+          var val = JSON.parse(raw);
+          if (val && val.Servers && val.Servers[0] && val.Servers[0].AccessToken) {
+            this.token = val.Servers[0].AccessToken;
+            this.userId = val.Servers[0].UserId;
+            break;
+          }
+          if (val && val.AccessToken && val.User) {
+            this.token = val.AccessToken;
+            this.userId = val.User.Id;
+            break;
+          }
+          // Android login page format: { type, serverUrl, accessToken, userId }
+          if (val && val.accessToken && val.userId) {
+            this.token = val.accessToken;
+            this.userId = val.userId;
+            if (val.serverUrl) this.server = val.serverUrl;
+            break;
+          }
+          // Plex: { type:'plex', serverUrl, token, sectionId }
+          if (val && val.type === 'plex' && val.token) {
+            this.type = 'plex';
+            this.token = val.token;
+            this.server = val.serverUrl;
+            this.sectionId = val.sectionId;
+            break;
+          }
+          // Subsonic/Navidrome: { type:'subsonic', serverUrl, username, password }
+          if (val && val.type === 'subsonic' && val.username) {
+            this.type = 'subsonic';
+            this.server = val.serverUrl;
+            this.username = val.username;
+            this.password = val.password;
+            this.token = 'subsonic'; // truthy sentinel
+            this.userId = val.username;
+            break;
+          }
+        } catch(e) {}
+      }
+      var p = new URLSearchParams(window.location.search);
+      if (p.get('token'))  this.token  = p.get('token');
+      if (p.get('userId')) this.userId = p.get('userId');
+    } catch(e) {}
+  },
+  headers: function() {
+    if (this.type === 'plex')
+      return { 'Accept': 'application/json', 'X-Plex-Token': this.token };
+    if (this.type === 'subsonic') return {};
     return { 'X-Emby-Authorization':
-      'MediaBrowser Client="Musian",Device="Android",DeviceId="jm-android",Version="1.0"' +
-      ',Token="' + auth.accessToken + '"' };
-  }
-  return {
-    loadGenreCache: function() {
-      return fetch(auth.serverUrl + '/Genres?' + new URLSearchParams({
-        IncludeItemTypes:'Audio', Recursive:'true', Limit:'500'
-      }), {headers: headers()})
-      .then(function(r){ return r.json(); })
-      .then(function(d){ jmGenreCache = (d.Items||[]).map(function(g){ return g.Name; }); })
-      .catch(function(){});
-    },
-    libraryCount: function() {
-      return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' +
-        new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', Limit:'1'}),
-        {headers: headers()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return d.TotalRecordCount || 0; });
-    },
-    fetchTracksByGenres: function(genres) {
-      var expanded = expandGenres(genres);
-      var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'500', Fields:'Genres,MediaSources'});
-      if (expanded.length > 0) params.set('Genres', expanded.join('|'));
-      return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' + params, {headers: headers()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return d.Items || []; });
-    },
-    fetchFallback: function() {
-      return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' +
-        new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'10'}),
-        {headers: headers()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return d.Items || []; });
-    },
-    searchTracks: function(q, limit) {
-      return fetch(auth.serverUrl + '/Users/' + auth.userId + '/Items?' + new URLSearchParams({
-        SearchTerm: q, IncludeItemTypes: 'Audio', Recursive: 'true',
-        Limit: String(limit), Fields: 'Genres,Artists,AlbumArtist'
-      }), {headers: headers()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return d.Items || []; });
-    },
-    streamUrl: function(item) {
-      return auth.serverUrl + '/Audio/' + item.Id + '/universal' +
-        '?UserId=' + auth.userId +
-        '&DeviceId=jm-android' +
-        '&MaxStreamingBitrate=140000000' +
-        '&Container=mp3,aac,m4a,flac,ogg,opus,webma,webm,wav' +
-        '&AudioCodec=aac,mp3,flac,opus,vorbis' +
-        '&TranscodingContainer=mp3' +
-        '&TranscodingProtocol=http' +
-        '&api_key=' + auth.accessToken;
-    },
-    trackLabel: function(item) {
-      var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
-      return (artist ? artist + ' \u2014 ' : '') + (item.Name || '');
-    },
-    itemId: function(item) { return item.Id; },
-    itemGenres: function(item) { return item.Genres || []; },
-    mediaMetadata: function(item) {
-      return {
-        title:  item.Name  || 'Musian',
-        artist: (item.Artists && item.Artists[0]) || item.AlbumArtist || '',
-        album:  item.Album || ''
-      };
-    }
-  };
-}
-
-function makeSubsonicBackend(auth) {
-  function ap() {
-    return '?u=' + encodeURIComponent(auth.username) +
-           '&p=' + encodeURIComponent(auth.password) +
+      'MediaBrowser Client="Musian",Device="Browser",DeviceId="jm1",Version="1.0"' +
+      (this.token ? ',Token="' + this.token + '"' : '') };
+  },
+  subAuth: function() {
+    return '&u=' + encodeURIComponent(this.username) +
+           '&p=' + encodeURIComponent(this.password) +
            '&v=1.16.1&c=Musian&f=json';
-  }
-  function shuffle(arr) {
-    for (var i = arr.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  },
+  streamUrl: function(item) {
+    if (this.type === 'plex') {
+      if (item._partKey)
+        return this.server + item._partKey + '?X-Plex-Token=' + this.token;
+      // Fallback if Media.Part was not in the search response
+      return this.server + '/library/metadata/' + item.Id + '/download?X-Plex-Token=' + this.token;
     }
+    if (this.type === 'subsonic')
+      return this.server + '/rest/stream.view?id=' + item.Id +
+        '&u=' + encodeURIComponent(this.username) +
+        '&p=' + encodeURIComponent(this.password) + '&v=1.16.1&c=Musian';
+    var id = typeof item === 'object' ? item.Id : item;
+    return this.server + '/Audio/' + id + '/universal' +
+      '?UserId=' + this.userId +
+      '&DeviceId=jm1' +
+      '&MaxStreamingBitrate=140000000' +
+      '&Container=mp3,aac,m4a,flac,ogg,opus,webma,webm,wav' +
+      '&AudioCodec=aac,mp3,flac,opus,vorbis' +
+      '&TranscodingContainer=mp3' +
+      '&TranscodingProtocol=http' +
+      '&api_key=' + this.token;
   }
-  return {
-    loadGenreCache: function() {
-      return fetch(auth.serverUrl + '/rest/getGenres.view' + ap())
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          var gs = (d['subsonic-response'] && d['subsonic-response'].genres && d['subsonic-response'].genres.genre) || [];
-          jmGenreCache = gs.map(function(g){ return g.value || g.name || String(g); });
-        })
-        .catch(function(){});
-    },
-    libraryCount: function() { return Promise.resolve(-1); },
-    fetchTracksByGenres: function(genres) {
-      var self = this;
-      var expanded = expandGenres(genres);
-      if (!expanded.length) return self.fetchFallback();
-      var seen = {};
-      var promises = expanded.map(function(genre) {
-        return fetch(auth.serverUrl + '/rest/getSongsByGenre.view' + ap() +
-          '&genre=' + encodeURIComponent(genre) + '&count=500')
-          .then(function(r){ return r.json(); })
-          .then(function(d){
-            return ((d['subsonic-response'] && d['subsonic-response'].songsByGenre && d['subsonic-response'].songsByGenre.song) || []);
-          })
-          .catch(function(){ return []; });
-      });
-      return Promise.all(promises).then(function(results) {
-        var merged = [];
-        results.forEach(function(songs) {
-          songs.forEach(function(s) {
-            if (!seen[s.id]) { seen[s.id] = true; merged.push(s); }
-          });
-        });
-        shuffle(merged);
-        return merged;
-      });
-    },
-    fetchFallback: function() {
-      return fetch(auth.serverUrl + '/rest/getRandomSongs.view' + ap() + '&size=10')
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          return ((d['subsonic-response'] && d['subsonic-response'].randomSongs && d['subsonic-response'].randomSongs.song) || []);
-        })
-        .catch(function(){ return []; });
-    },
-    searchTracks: function(q, limit) {
-      return fetch(auth.serverUrl + '/rest/search3.view' + ap() +
-        '&query=' + encodeURIComponent(q) + '&songCount=' + limit)
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          return ((d['subsonic-response'] && d['subsonic-response'].searchResult3 && d['subsonic-response'].searchResult3.song) || []);
-        })
-        .catch(function(){ return []; });
-    },
-    streamUrl: function(item) {
-      return auth.serverUrl + '/rest/stream.view' + ap() + '&id=' + item.id;
-    },
-    trackLabel: function(item) {
-      return (item.artist ? item.artist + ' \u2014 ' : '') + (item.title || item.name || '');
-    },
-    itemId: function(item) { return item.id; },
-    itemGenres: function(item) { return item.genre ? [item.genre] : []; },
-    mediaMetadata: function(item) {
-      return {
-        title:  item.title || item.name || 'Musian',
-        artist: item.artist || '',
-        album:  item.album  || ''
-      };
-    }
-  };
+};
+JM.init();
+if (window.NativeMedia && JM.token && JM.userId && JM.type !== 'plex' && JM.type !== 'subsonic') {
+  NativeMedia.saveCredentials(JM.server, JM.userId, JM.token);
 }
-
-function makePlexBackend(auth) {
-  var plexGenreMap = {};
-  function ap() { return 'X-Plex-Token=' + auth.token; }
-  function jh() { return {'Accept':'application/json'}; }
-  function shuffle(arr) {
-    for (var i = arr.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
-    }
-  }
-  return {
-    loadGenreCache: function() {
-      return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId + '/genre?type=10&' + ap(), {headers: jh()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          var dirs = (d.MediaContainer && d.MediaContainer.Directory) || [];
-          jmGenreCache = dirs.map(function(g){ return g.title; });
-          dirs.forEach(function(g){ plexGenreMap[g.title.toLowerCase()] = g.key || g.id || g.ratingKey; });
-        })
-        .catch(function(){});
-    },
-    libraryCount: function() {
-      return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId + '/all?type=10&' + ap(), {headers: jh()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return (d.MediaContainer && d.MediaContainer.totalSize) || 0; })
-        .catch(function(){ return 0; });
-    },
-    fetchTracksByGenres: function(genres) {
-      var self = this;
-      var expanded = expandGenres(genres);
-      var ids = [];
-      expanded.forEach(function(g) {
-        var key = plexGenreMap[g.toLowerCase()];
-        if (key !== undefined) ids.push(key);
-      });
-      if (!ids.length) return self.fetchFallback();
-      var seen = {};
-      var promises = ids.map(function(id) {
-        return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId + '/all?type=10&genre=' + id + '&sort=random&' + ap(), {headers: jh()})
-          .then(function(r){ return r.json(); })
-          .then(function(d){ return (d.MediaContainer && d.MediaContainer.Metadata) || []; })
-          .catch(function(){ return []; });
-      });
-      return Promise.all(promises).then(function(results) {
-        var merged = [];
-        results.forEach(function(tracks) {
-          tracks.forEach(function(t) {
-            var key = t.ratingKey || t.key;
-            if (!seen[key]) { seen[key] = true; merged.push(t); }
-          });
-        });
-        shuffle(merged);
-        return merged;
-      });
-    },
-    fetchFallback: function() {
-      return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId + '/all?type=10&sort=random&limit=10&' + ap(), {headers: jh()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return (d.MediaContainer && d.MediaContainer.Metadata) || []; })
-        .catch(function(){ return []; });
-    },
-    searchTracks: function(q, limit) {
-      return fetch(auth.serverUrl + '/library/sections/' + auth.sectionId +
-        '/search?type=10&query=' + encodeURIComponent(q) + '&limit=' + limit + '&' + ap(), {headers: jh()})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return (d.MediaContainer && d.MediaContainer.Metadata) || []; })
-        .catch(function(){ return []; });
-    },
-    streamUrl: function(item) {
-      var part = item.Media && item.Media[0] && item.Media[0].Part && item.Media[0].Part[0];
-      if (part && part.key) return auth.serverUrl + part.key + '?' + ap();
-      return auth.serverUrl + '/library/metadata/' + item.ratingKey + '/download?' + ap();
-    },
-    trackLabel: function(item) {
-      var artist = item.grandparentTitle || item.originalTitle || '';
-      return (artist ? artist + ' \u2014 ' : '') + (item.title || '');
-    },
-    itemId: function(item) { return item.ratingKey || item.key; },
-    itemGenres: function(item) {
-      return (item.Genre || []).map(function(g){ return g.tag; });
-    },
-    mediaMetadata: function(item) {
-      return {
-        title:  item.title || 'Musian',
-        artist: item.grandparentTitle || item.originalTitle || '',
-        album:  item.parentTitle || ''
-      };
-    }
-  };
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
 (function() {
-  var auth = null;
-  try { auth = JSON.parse(localStorage.getItem('jm_auth')); } catch(e) {}
-  if (!auth || !auth.type || !auth.serverUrl) { window.location.replace('index.html'); return; }
-  Backend = auth.type === 'subsonic' ? makeSubsonicBackend(auth)
-           : auth.type === 'plex'    ? makePlexBackend(auth)
-           :                           makeJellyfinBackend(auth);
-  Backend.loadGenreCache();
+  var splash = document.getElementById('jmSplash');
+  if (!splash) return;
+  setTimeout(function() {
+    splash.classList.add('fade');
+    setTimeout(function() { splash.style.display = 'none'; }, 850);
+  }, 1400);
 })();
-
-document.getElementById('jmSignOutBtn').addEventListener('click', function() {
-  localStorage.removeItem('jm_auth');
-  window.location.replace('index.html');
-});
-
-// Library count
-Backend.libraryCount().then(function(n) {
-  if (n < 0) {
-    document.getElementById('jmStatus').textContent = 'Connected';
-  } else if (!n) {
-    document.getElementById('jmStatus').textContent = 'Library has 0 audio tracks — check media libraries.';
-    document.getElementById('jmStatus').style.color = '#f88';
-  } else {
-    document.getElementById('jmStatus').textContent = n + ' audio tracks in library';
+function jmFetch(url, opts) {
+  var ctrl = new AbortController();
+  var tid = setTimeout(function() { ctrl.abort(); }, 10000);
+  return fetch(url, Object.assign({}, opts || {}, {signal: ctrl.signal}))
+    .finally(function() { clearTimeout(tid); });
+}
+function normalizeTracks(items) {
+  if (JM.type === 'plex') {
+    return items.map(function(t) {
+      return {
+        Id: String(t.ratingKey),
+        Name: t.title || '',
+        Artists: t.grandparentTitle ? [t.grandparentTitle] : [],
+        AlbumArtist: t.grandparentTitle || '',
+        Genres: (t.Genre || []).map(function(g) { return g.tag; }),
+        Moods:  (t.Mood  || []).map(function(m) { return m.tag; }),
+        _partKey: t.Media && t.Media[0] && t.Media[0].Part && t.Media[0].Part[0]
+                  ? t.Media[0].Part[0].key : ''
+      };
+    });
   }
-}).catch(function() {
-  document.getElementById('jmStatus').textContent = 'Could not reach server.';
+  if (JM.type === 'subsonic') {
+    return items.map(function(t) {
+      return {
+        Id: String(t.id),
+        Name: t.title || '',
+        Artists: t.artist ? [t.artist] : [],
+        AlbumArtist: t.artist || '',
+        Genres: t.genre ? [t.genre] : [],
+        Moods: []
+      };
+    });
+  }
+  return items;
+}
+
+var jmGenreCache = null;
+if (JM.token) {
+  if (JM.type === 'plex') {
+    jmFetch(JM.server + '/library/sections/' + JM.sectionId +
+      '/genre?type=10&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
+      .then(function(r){return r.json();})
+      .then(function(d){ jmGenreCache = ((d.MediaContainer&&d.MediaContainer.Directory)||[]).map(function(g){return g.title;}); })
+      .catch(function(){});
+  } else if (JM.type === 'subsonic') {
+    jmFetch(JM.server + '/rest/getGenres.view?u=' + encodeURIComponent(JM.username) +
+      '&p=' + encodeURIComponent(JM.password) + '&v=1.16.1&c=Musian&f=json')
+      .then(function(r){return r.json();})
+      .then(function(d){ jmGenreCache = ((((d['subsonic-response']||{}).genres||{}).genre)||[]).map(function(g){return g.value;}); })
+      .catch(function(){});
+  } else {
+    jmFetch(JM.server + '/Genres?' + new URLSearchParams({
+      IncludeItemTypes:'Audio', Recursive:'true', Limit:'500'
+    }), {headers: JM.headers()})
+    .then(function(r){ return r.json(); })
+    .then(function(d){ jmGenreCache = (d.Items||[]).map(function(g){ return g.Name; }); })
+    .catch(function(){});
+  }
+}
+if (!JM.token) {
+  document.getElementById('jmStatus').textContent = 'Not signed in — please log in first.';
   document.getElementById('jmStatus').style.color = '#f88';
-});
+} else if (JM.type === 'plex') {
+  jmFetch(JM.server + '/library/sections/' + JM.sectionId +
+    '/all?type=10&X-Plex-Container-Size=0&X-Plex-Container-Start=0&X-Plex-Token=' + JM.token,
+    {headers:{'Accept':'application/json'}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var n = d.MediaContainer && d.MediaContainer.totalSize;
+      document.getElementById('jmStatus').textContent = n ? n + ' audio tracks in library' : 'Connected to Plex';
+    }).catch(function(){});
+} else if (JM.type === 'subsonic') {
+  document.getElementById('jmStatus').textContent = 'Connected to Navidrome';
+} else {
+  jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' +
+    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', Limit:'1'}),
+    {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var n = d.TotalRecordCount;
+      if (n === 0 || n === undefined) {
+        document.getElementById('jmStatus').textContent = 'Library has 0 audio tracks — check Jellyfin media libraries.';
+        document.getElementById('jmStatus').style.color = '#f88';
+      } else {
+        document.getElementById('jmStatus').textContent = n + ' audio tracks in library';
+      }
+    })
+    .catch(function() {
+      document.getElementById('jmStatus').textContent = 'Could not reach Jellyfin API.';
+      document.getElementById('jmStatus').style.color = '#f88';
+    });
+}
 
 (function(){
 'use strict';
 var MOODS = [
-  { name:'Aggressive',  x:0.08, y:0.95, col:'#ff3030', genres:['Heavy Metal','Metalcore','Punk Rock','Hard Rock','Alternative Metal'] },
-  { name:'Angry',       x:0.10, y:0.90, col:'#ff4040', genres:['Heavy Metal','Hard Rock','Punk Rock','Alternative Metal','Traditional Heavy Metal'] },
-  { name:'Frantic',     x:0.12, y:0.92, col:'#ff3535', genres:['Metalcore','Punk Rock','Post-Hardcore','Hard Rock','Alternative Metal'] },
-  { name:'Defiant',     x:0.15, y:0.82, col:'#ff5030', genres:['Punk Rock','Hard Rock','Rap Rock','Post-Hardcore','Alternative Rock'] },
-  { name:'Intense',     x:0.20, y:0.88, col:'#ff4535', genres:['Heavy Metal','Hard Rock','Alternative Metal','Blues Rock','Metalcore'] },
-  { name:'Tense',       x:0.18, y:0.85, col:'#ff5a3a', genres:['Alternative Rock','Post-Hardcore','Hard Rock','Punk Rock','Grunge'] },
-  { name:'Anxious',     x:0.25, y:0.80, col:'#ff6a40', genres:['Post-Hardcore','Alternative Rock','Punk Rock','Grunge','Indie Rock'] },
-  { name:'Dark',        x:0.18, y:0.42, col:'#5055c0', genres:['Heavy Metal','Blues','Alternative Metal','Grunge','Traditional Heavy Metal'] },
-  { name:'Mysterious',  x:0.38, y:0.52, col:'#8070c8', genres:['Psychedelic Rock','Space Rock','Art Rock','Blues','Jazz Fusion'] },
-  { name:'Yearning',    x:0.38, y:0.42, col:'#6070b0', genres:['Folk','Folk Rock','Blues','Soul','Indie Rock'] },
-  { name:'Nostalgic',   x:0.42, y:0.28, col:'#6878b8', genres:['Classic Rock','Folk','Blues','Soul','Rockabilly','Country Music'] },
-  { name:'Bittersweet', x:0.45, y:0.30, col:'#7080b8', genres:['Folk','Folk Rock','Soul','Blues','Country Music'] },
-  { name:'Hypnotic',    x:0.48, y:0.48, col:'#7088d0', genres:['Psychedelic Rock','Space Rock','Jazz Fusion','Art Rock','Proto-Prog'] },
-  { name:'Sentimental', x:0.48, y:0.25, col:'#6080b0', genres:['Pop','Soul','Ballad','Contemporary R&B','Folk'] },
-  { name:'Atmospheric', x:0.55, y:0.38, col:'#5090c8', genres:['Space Rock','Psychedelic Rock','Art Rock','Progressive Rock','Jazz Fusion'] },
-  { name:'Passionate',  x:0.58, y:0.82, col:'#e89030', genres:['Rock Music','Soul','Blues','Hard Rock','Rhythm And Blues'] },
-  { name:'Hopeful',     x:0.62, y:0.62, col:'#c8d840', genres:['Folk','Pop','Soul','Indie Rock','Country Music'] },
-  { name:'Epic',        x:0.62, y:0.80, col:'#d0a020', genres:['Classic Rock','Progressive Rock','Hard Rock','Rock Music','Heavy Metal'] },
-  { name:'Powerful',    x:0.60, y:0.88, col:'#e8b030', genres:['Hard Rock','Heavy Metal','Rock Music','Blues Rock','Classic Rock'] },
-  { name:'Majestic',    x:0.65, y:0.72, col:'#c8a828', genres:['Classic Rock','Progressive Rock','Rock Music','Blues Rock','Soul'] },
-  { name:'Groovy',      x:0.75, y:0.70, col:'#f0c840', genres:['Funk','Soul','Rhythm And Blues','Contemporary R&B','Jazz-Funk','Funk Rock'] },
-  { name:'Upbeat',      x:0.78, y:0.80, col:'#ffd535', genres:['Pop','Ska','Funk','Pop Rock','Reggae','Pop Music'] },
-  { name:'Happy',       x:0.82, y:0.72, col:'#ffe050', genres:['Pop','Pop Music','Soul','Funk','Reggae','Ska','Pop Rock'] },
-  { name:'Celebratory', x:0.85, y:0.82, col:'#ffdf38', genres:['Pop','Funk','Ska','Reggae','Pop Music','Funk Rock'] },
-  { name:'Triumphant',  x:0.82, y:0.88, col:'#ffd840', genres:['Classic Rock','Hard Rock','Rock Music','Heavy Metal','Progressive Rock'] },
-  { name:'Excited',     x:0.88, y:0.88, col:'#ffe835', genres:['Pop','Punk Rock','Alternative Rock','Rap Rock','Pop Rock'] },
-  { name:'Energetic',   x:0.72, y:0.90, col:'#ffcc30', genres:['Hard Rock','Rock Music','Punk Rock','Funk Rock','Alternative Rock','Rap'] },
-  { name:'Ecstatic',    x:0.92, y:0.92, col:'#ffea28', genres:['Ska','Funk','Pop','Reggae','Punk Rock'] },
-  { name:'Euphoric',    x:0.95, y:0.95, col:'#ffee22', genres:['Ska','Funk','Pop Music','Reggae','Pop Rock'] },
-  { name:'Romantic',    x:0.72, y:0.35, col:'#60d8a0', genres:['Jazz','Soul','Rhythm And Blues','Contemporary R&B','Ballad'] },
-  { name:'Dreamy',      x:0.62, y:0.22, col:'#60c8d8', genres:['Psychedelic Rock','Space Rock','Art Rock','Jazz Fusion','Folk'] },
-  { name:'Intimate',    x:0.68, y:0.28, col:'#58d4b0', genres:['Jazz','Soul','Folk','Ballad','Contemporary R&B'] },
-  { name:'Tender',      x:0.70, y:0.28, col:'#55dca8', genres:['Folk','Folk Rock','Country Music','Ballad','Soul'] },
-  { name:'Content',     x:0.70, y:0.25, col:'#50dcc0', genres:['Folk','Jazz','Country Music','Soul','Ballad'] },
-  { name:'Relaxed',     x:0.78, y:0.18, col:'#40d8c0', genres:['Jazz','Reggae','Folk','Country Music','Jazz Fusion'] },
-  { name:'Calm',        x:0.80, y:0.15, col:'#38dcc8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Soul'] },
-  { name:'Soothing',    x:0.82, y:0.15, col:'#38dcc0', genres:['Jazz','Folk','Country Music','Ballad','Soul'] },
-  { name:'Serene',      x:0.85, y:0.08, col:'#30e8c8', genres:['Jazz','Jazz Fusion','Folk','Country Music','Ballad'] },
-  { name:'Peaceful',    x:0.88, y:0.10, col:'#35e8c0', genres:['Jazz','Folk','Country Music','Ballad','Jazz Fusion'] },
-  { name:'Wistful',     x:0.38, y:0.22, col:'#6878c8', genres:['Folk','Folk Rock','Country Music','Blues','Soul'] },
-  { name:'Melancholic', x:0.25, y:0.22, col:'#6090ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Electric Blues'] },
-  { name:'Somber',      x:0.20, y:0.20, col:'#5070e8', genres:['Blues','Electric Blues','Soul','Heavy Metal','Folk'] },
-  { name:'Sad',         x:0.18, y:0.18, col:'#5080ff', genres:['Blues','Soul','Folk','Rhythm And Blues','Country Music'] },
-  { name:'Gloomy',      x:0.15, y:0.20, col:'#4870e8', genres:['Blues','Electric Blues','Heavy Metal','Alternative Rock','Grunge'] },
-  { name:'Lonely',      x:0.18, y:0.15, col:'#4878ff', genres:['Folk','Blues','Country Music','Soul','Folk Rock'] },
-  { name:'Mournful',    x:0.12, y:0.18, col:'#4068f0', genres:['Blues','Electric Blues','Soul','Folk','Rhythm And Blues'] },
-  { name:'Depressed',   x:0.08, y:0.08, col:'#3060e0', genres:['Blues','Electric Blues','Heavy Metal','Grunge','Alternative Rock'] },
+  { name:'Aggressive',  desc:'Raw, forceful, confrontational',        x:0.08, y:0.95, col:'#ff2020',
+    tags:['aggressive','aggression'],
+    genres:['Metal','Punk','Hard Rock','Hardcore'] },
+  { name:'Angry',       desc:'Hot, fierce, outraged',                 x:0.10, y:0.88, col:'#ff3535',
+    tags:['angry','anger','choleric','fury','outraged','rage','angry music'],
+    genres:['Metal','Hard Rock','Punk'] },
+  { name:'Anxious',     desc:'Nervous, unsettled, on-edge',           x:0.22, y:0.78, col:'#ff6040',
+    tags:['anxious','angst','anxiety','jumpy','nervous','angsty'],
+    genres:['Punk','Alternative Rock','Grunge','Indie Rock'] },
+  { name:'Pessimistic', desc:'Cynical, gloomy outlook, weltschmerz',  x:0.18, y:0.28, col:'#5060d0',
+    tags:['pessimistic','pessimism','cynical','weltschmerz','cynical/sarcastic'],
+    genres:['Blues','Alternative Rock','Grunge'] },
+  { name:'Brooding',    desc:'Contemplative, reflective, pensive',    x:0.28, y:0.42, col:'#7060b8',
+    tags:['brooding','contemplative','meditative','reflective','broody','pensive','pondering','wistful'],
+    genres:['Alternative Rock','Grunge','Blues','Psychedelic Rock'] },
+  { name:'Grief',       desc:'Heartbreak, mourning, deep sorrow',     x:0.10, y:0.18, col:'#4058e0',
+    tags:['grief','heartbreak','mournful','sorrow','sorry','doleful','heartache','heartbreaking','heartsick','lachrymose','mourning','plaintive','regret','sorrowful'],
+    genres:['Blues','Soul','Folk'] },
+  { name:'Depressed',   desc:'Dark, gloomy, hopeless',                x:0.12, y:0.10, col:'#3050d0',
+    tags:['depressed','blue','dark','depressive','dreary','gloom','darkness','depress','depression','depressing','gloomy'],
+    genres:['Blues','Metal','Grunge','Alternative Rock'] },
+  { name:'Sad',         desc:'Unhappy, melancholic, sorrowful',       x:0.20, y:0.22, col:'#5070f0',
+    tags:['sad','sadness','unhappy','melancholic','melancholy','feeling sad','sad song'],
+    genres:['Blues','Soul','Folk','Country'] },
+  { name:'Earnest',     desc:'Sincere, heartfelt, genuine',           x:0.55, y:0.42, col:'#8878a8',
+    tags:['earnest','heartfelt'],
+    genres:['Folk','Soul','Country','Indie Rock'] },
+  { name:'Dreamy',      desc:'Floating, hazy, softly surreal',        x:0.60, y:0.20, col:'#60c0d8',
+    tags:['dreamy'],
+    genres:['Psychedelic Rock','Space Rock','Jazz','Folk'] },
+  { name:'Romantic',    desc:'Loving, tender, intimate warmth',       x:0.72, y:0.30, col:'#58d4a0',
+    tags:['romantic','romantic music'],
+    genres:['Jazz','Soul','Ballad','Folk'] },
+  { name:'Calm',        desc:'Serene, tranquil, at rest',             x:0.78, y:0.10, col:'#38dcc8',
+    tags:['calm','comfort','quiet','serene','mellow','relaxed','chill out','calm down','calming','chillout','comforting','content','cool down','mellow music','mellow rock','peace of mind','quietness','relaxation','serenity','solace','soothe','soothing','still','tranquil','tranquility'],
+    genres:['Jazz','Folk','Country','Soul','Reggae'] },
+  { name:'Hopeful',     desc:'Optimistic, looking forward, yearning', x:0.65, y:0.55, col:'#a8c840',
+    tags:['hopeful','desire','hope'],
+    genres:['Folk','Pop','Soul','Indie Rock','Country'] },
+  { name:'Confident',   desc:'Encouraging, optimistic, assured',      x:0.72, y:0.65, col:'#d0a820',
+    tags:['confident','encouraging','encouragement','optimism','optimistic'],
+    genres:['Rock','Hard Rock','Soul','Rap'] },
+  { name:'Happy',       desc:'Cheerful, warm, contented joy',         x:0.85, y:0.68, col:'#ffe040',
+    tags:['happy','happiness','happy songs','happy music','glad'],
+    genres:['Pop','Soul','Funk','Reggae','Ska'] },
+  { name:'Cheerful',    desc:'Sunny, merry, festive, jolly',          x:0.90, y:0.75, col:'#ffdf30',
+    tags:['cheerful','cheer up','festive','jolly','jovial','merry','party','cheer','cheering','cheery','get happy','rejoice','songs that are cheerful','sunny'],
+    genres:['Pop','Folk','Soul','Funk'] },
+  { name:'Upbeat',      desc:'Lively, enthusiastic, high spirits',    x:0.80, y:0.82, col:'#ffd030',
+    tags:['upbeat','gleeful','high spirits','zest','enthusiastic','buoyancy','elation'],
+    genres:['Pop','Ska','Funk','Reggae'] },
+  { name:'Excited',     desc:'Thrilling, exhilarating, stimulating',  x:0.88, y:0.90, col:'#ffea20',
+    tags:['excitement','exciting','exhilarating','thrill','ardor','stimulating','thrilling','titillating'],
+    genres:['Pop','Punk','Alternative Rock','Rap'] },
+  { name:'Restless',   desc:'Tense, charged, unsettled, on edge',     x:0.48, y:0.80, col:'#ff9040',
+    tags:['restless','tense','unsettled','charged','edgy','alert','agitated','stirred'],
+    genres:['Rock','Alternative Rock','Electronic','Indie Rock'] },
+  { name:'Frustrated', desc:'Irritable, bitter, discontent, sullen',  x:0.35, y:0.68, col:'#c05030',
+    tags:['frustrated','irritable','impatient','discontent','disgruntled','bitter','sullen'],
+    genres:['Rock','Grunge','Alternative Rock','Punk'] },
+  { name:'Tender',     desc:'Warm, affectionate, gentle, sweet',      x:0.78, y:0.45, col:'#f0a0b8',
+    tags:['tender','warm','affectionate','sweet','gentle','loving','nurturing','intimate'],
+    genres:['Jazz','Soul','Folk','Pop','Ballad'] },
+  { name:'Nostalgic',  desc:'Bittersweet, longing, sentimental',      x:0.42, y:0.18, col:'#8090c8',
+    tags:['nostalgic','bittersweet','longing','yearning','sentimental','reminiscent','poignant','aching'],
+    genres:['Folk','Country','Soul','Indie Rock','Singer-Songwriter'] },
 ];
 
+// ── Per-tag valence/arousal coordinates ─────────────────────────────────
+// Used for distance calculation (may be outside disc) and display (clipped to disc)
+var TAG_COORDS = {
+  'aggressive':[0.07,0.96],'aggression':[0.08,0.94],
+  'angry':[0.10,0.89],'anger':[0.09,0.90],'choleric':[0.08,0.87],'fury':[0.07,0.92],
+  'outraged':[0.12,0.86],'rage':[0.07,0.93],'angry music':[0.11,0.88],
+  'anxious':[0.22,0.79],'angst':[0.18,0.76],'anxiety':[0.21,0.80],
+  'jumpy':[0.25,0.82],'nervous':[0.23,0.77],'angsty':[0.19,0.75],
+  'pessimistic':[0.17,0.28],'pessimism':[0.16,0.27],'cynical':[0.20,0.30],
+  'weltschmerz':[0.14,0.24],'cynical/sarcastic':[0.21,0.32],
+  'brooding':[0.27,0.43],'contemplative':[0.32,0.38],'meditative':[0.35,0.32],
+  'reflective':[0.30,0.40],'broody':[0.26,0.44],'pensive':[0.29,0.45],
+  'pondering':[0.31,0.39],'wistful':[0.33,0.36],
+  'grief':[0.09,0.20],'heartbreak':[0.08,0.22],'mournful':[0.11,0.17],
+  'sorrow':[0.11,0.16],'sorry':[0.15,0.20],'doleful':[0.12,0.15],
+  'heartache':[0.09,0.21],'heartbreaking':[0.08,0.19],'heartsick':[0.10,0.18],
+  'lachrymose':[0.12,0.14],'mourning':[0.12,0.16],'plaintive':[0.13,0.17],
+  'regret':[0.16,0.22],'sorrowful':[0.10,0.15],
+  'depressed':[0.11,0.10],'blue':[0.16,0.12],'dark':[0.10,0.09],
+  'depressive':[0.11,0.08],'dreary':[0.13,0.11],'gloom':[0.13,0.09],
+  'darkness':[0.10,0.08],'depress':[0.10,0.10],'depression':[0.11,0.09],
+  'depressing':[0.12,0.08],'gloomy':[0.13,0.10],
+  'sad':[0.19,0.22],'sadness':[0.18,0.21],'unhappy':[0.20,0.24],
+  'melancholic':[0.22,0.20],'melancholy':[0.21,0.19],
+  'feeling sad':[0.19,0.23],'sad song':[0.20,0.22],
+  'earnest':[0.55,0.43],'heartfelt':[0.53,0.40],
+  'dreamy':[0.60,0.20],
+  'romantic':[0.72,0.30],'romantic music':[0.73,0.29],
+  'calm':[0.78,0.12],'comfort':[0.74,0.14],'quiet':[0.76,0.08],
+  'serene':[0.82,0.10],'mellow':[0.72,0.15],'chill out':[0.75,0.12],
+  'calm down':[0.77,0.11],'calming':[0.79,0.10],'chillout':[0.74,0.13],
+  'comforting':[0.73,0.16],'content':[0.80,0.18],'cool down':[0.76,0.10],
+  'mellow music':[0.71,0.14],'mellow rock':[0.68,0.18],
+  'peace of mind':[0.82,0.12],'quietness':[0.77,0.07],'relaxation':[0.80,0.09],
+  'serenity':[0.83,0.08],'solace':[0.70,0.16],'soothe':[0.75,0.11],
+  'soothing':[0.78,0.10],'still':[0.80,0.06],'tranquil':[0.82,0.09],
+  'tranquility':[0.83,0.07],
+  'hopeful':[0.65,0.55],'desire':[0.62,0.52],'hope':[0.66,0.54],
+  'confident':[0.72,0.66],'encouraging':[0.70,0.63],'encouragement':[0.69,0.62],
+  'optimism':[0.73,0.65],'optimistic':[0.74,0.66],
+  'happy':[0.85,0.68],'happiness':[0.86,0.69],'happy songs':[0.84,0.67],
+  'happy music':[0.83,0.68],'glad':[0.83,0.65],
+  'cheerful':[0.90,0.75],'cheer up':[0.88,0.73],'festive':[0.89,0.78],
+  'jolly':[0.92,0.76],'jovial':[0.91,0.74],'merry':[0.91,0.77],
+  'cheer':[0.89,0.74],'cheering':[0.88,0.76],'cheery':[0.90,0.74],
+  'get happy':[0.87,0.75],'rejoice':[0.90,0.78],
+  'songs that are cheerful':[0.89,0.72],'sunny':[0.91,0.72],
+  'upbeat':[0.80,0.82],'gleeful':[0.84,0.80],'high spirits':[0.82,0.83],
+  'zest':[0.81,0.85],'enthusiastic':[0.79,0.84],'buoyancy':[0.83,0.81],
+  'elation':[0.85,0.82],
+  'excitement':[0.88,0.91],'exciting':[0.87,0.90],'exhilarating':[0.90,0.92],
+  'thrill':[0.87,0.93],'ardor':[0.85,0.89],'stimulating':[0.86,0.88],
+  'thrilling':[0.88,0.93],'titillating':[0.86,0.91],
+  'restless':[0.47,0.82],'tense':[0.45,0.80],'unsettled':[0.50,0.81],
+  'charged':[0.52,0.83],'edgy':[0.44,0.79],'alert':[0.53,0.78],
+  'agitated':[0.43,0.84],'stirred':[0.51,0.77],
+  'frustrated':[0.35,0.70],'irritable':[0.33,0.68],'impatient':[0.37,0.72],
+  'discontent':[0.32,0.66],'disgruntled':[0.34,0.65],'bitter':[0.30,0.62],
+  'sullen':[0.31,0.64],
+  'tender':[0.78,0.46],'warm':[0.76,0.44],'affectionate':[0.80,0.48],
+  'sweet':[0.75,0.42],'gentle':[0.74,0.40],'loving':[0.82,0.46],
+  'nurturing':[0.79,0.43],'intimate':[0.81,0.44],
+  'nostalgic':[0.42,0.20],'bittersweet':[0.40,0.18],'longing':[0.38,0.22],
+  'yearning':[0.39,0.16],'sentimental':[0.45,0.19],'reminiscent':[0.44,0.17],
+  'poignant':[0.41,0.21],'aching':[0.37,0.19]
+};
+
+// Shirley-Chiu area-preserving square→disc mapping
+function squareToDisc(x, y) {
+  var a = 2*x - 1, b = 2*y - 1;
+  if (a === 0 && b === 0) return [0.5, 0.5];
+  var r, theta;
+  if (Math.abs(a) >= Math.abs(b)) {
+    r = a; theta = (Math.PI/4) * (b/a);
+  } else {
+    r = b; theta = (Math.PI/2) - (Math.PI/4) * (a/b);
+  }
+  r *= 0.9; // keep slightly inside the rim
+  return [0.5 + r * Math.cos(theta) * 0.5,
+          0.5 - r * Math.sin(theta) * 0.5];
+}
+
+function getNearestTags(vx, vy, count) {
+  var all = [];
+  MOODS.forEach(function(m) {
+    (m.tags || []).forEach(function(t) {
+      var c = TAG_COORDS[t] || [m.x, m.y];
+      var dx = vx - c[0], dy = vy - c[1];
+      all.push({tag:t, mood:m, x:c[0], y:c[1], dist:dx*dx+dy*dy});
+    });
+  });
+  all.sort(function(a,b){ return a.dist - b.dist; });
+  return all.slice(0, count);
+}
+
+// ── Genres ─────────────────────────────────────────────────────────────────
 var GENRES = [
-  { name:'Classical',          genres:['Classical','Classical Music','Opera','Symphony','Baroque','Orchestral','Chamber Music','Film Score','Contemporary Classical Music'] },
-  { name:'Folk & Country',     genres:['Folk','Folk Rock','Country Music','Country Rock','Western','Music Of Ireland','Ballad'] },
-  { name:'Jazz & Blues',       genres:['Jazz','Jazz Fusion','Jazz-Funk','Blues','Electric Blues','Rhythm And Blues'] },
-  { name:'Latin & Reggae',     genres:['Latin','Music Of Latin America','Latin Rock','Rock En Español','Chicano Rock','Reggae','Ska','Dub','Dancehall','Salsa','Bossa Nova'] },
-  { name:'Soul & Pop',         genres:['Soul','Pop','Pop Music','Pop Rock','Funk','Funk Rock','Contemporary R&B'] },
-  { name:'Rock',               genres:['Rock','Rock Music','Classic Rock','Psychedelic Rock','Space Rock','Rockabilly','Art Rock','Southern Rock','Indie Rock','Alternative Rock','Grunge','Garage Rock','Acid Rock'] },
-  { name:'Hard Rock & Punk',   genres:['Hard Rock','Blues Rock','Progressive Rock','Punk Rock','Post-Hardcore','Hardcore','Funk Metal'] },
-  { name:'Metal',              genres:['Heavy Metal','Alternative Metal','Traditional Heavy Metal','Metalcore','Thrash Metal','Death Metal','Black Metal'] },
-  { name:'Rap',                genres:['Rap','Rap Rock','Hip-Hop','Hip Hop'] },
-  { name:'Dance & Electronic', genres:['Dance','Electronic','Electronic Music','Electronica','House','Techno','Disco','Trance','EDM','Electro','Eurodance','Dance Pop','Electronic Dance Music','Club'] },
+  { name:'Classical',          genres:['Classical','Opera','Orchestral','Baroque','Symphony'] },
+  { name:'Folk & Country',     genres:['Folk','Country','Ballad'] },
+  { name:'Jazz & Blues',       genres:['Jazz','Blues','Rhythm And Blues'] },
+  { name:'Latin & Reggae',     genres:['Latin','Reggae','Ska','Dub','Dancehall','Salsa','Bossa Nova','Latin Rock'] },
+  { name:'Soul & Pop',         genres:['Soul','Pop','Funk','R&B'] },
+  { name:'Rock',               genres:['Rock','Grunge','Rockabilly'] },
+  { name:'Hard Rock & Punk',   genres:['Hard Rock','Punk','Progressive Rock','Hardcore'] },
+  { name:'Metal',              genres:['Metal'] },
+  { name:'Rap',                genres:['Rap','Hip Hop'] },
+  { name:'Dance & Electronic', genres:['Dance','Electronic','House','Techno','Disco','Trance','Electronica','EDM','Electro','Eurodance','Dance Pop','Electronic Dance Music','Club'] },
 ];
-var jmGenreFilter = null;
+var jmGenreFilter  = null; // null = no genre filter active
+var jmMoodTags   = null; // tags from last mood tap, for genre re-search
+var jmMoodLabels = [];   // persistent label elements on the disc
 
 (function() {
   var wrap         = document.getElementById('jmGenreWrap');
@@ -489,6 +553,7 @@ var jmGenreFilter = null;
   var labelsEl     = document.getElementById('jmGenreLabels');
   var n            = GENRES.length;
 
+  // Build staggered labels: even indices above bar, odd indices below
   GENRES.forEach(function(genre, i) {
     var top = document.createElement('span');
     var bot = document.createElement('span');
@@ -503,21 +568,56 @@ var jmGenreFilter = null;
     labelsEl.appendChild(bot);
   });
 
+  var genreLastIdx = -1, genreTapCount = 0, genreTapTimer = null;
+
   function handleGenreInteraction(clientX) {
     var rect = wrap.getBoundingClientRect();
     var rel  = (clientX - rect.left) / rect.width;
     var idx  = Math.floor(rel * n);
     idx = Math.max(0, Math.min(n - 1, idx));
 
-    var lo = idx, hi = idx;
+    // Track tap count on same zone
+    if (idx === genreLastIdx) { genreTapCount++; } else { genreLastIdx = idx; genreTapCount = 1; }
+    clearTimeout(genreTapTimer);
+    genreTapTimer = setTimeout(function() { genreLastIdx = -1; genreTapCount = 0; }, 500);
+
+    // Triple tap — clear filter entirely
+    if (genreTapCount >= 3) {
+      jmGenreFilter = null;
+      highlight.style.display = 'none';
+      [labelsTopEl, labelsEl].forEach(function(row) {
+        row.querySelectorAll('span').forEach(function(s) { s.style.color = ''; s.style.fontWeight = ''; });
+      });
+      if (jmMoodGenres !== null) {
+        setStatus('Searching\u2026'); setTrackCount(0);
+        var moodT = jmMoodTags || [];
+        fetchTracksByTags(moodT)
+          .then(function(i) { return i.length ? i : fetchTracksByGenres(jmMoodGenres); })
+          .then(function(i) { return i.length ? i : fetchFallback(); })
+          .then(function(i) { i = i.slice(0, jmIsPremium() ? 25 : 10); setTrackCount(i.length); if (!i.length) { setStatus('No tracks found.'); return; } startPlayback(i); })
+          .catch(function() { setStatus('Could not fetch tracks.'); });
+      }
+      return;
+    }
+
+    var lo, hi;
+    if (genreTapCount === 2) {
+      lo = Math.max(0, idx - 1);
+      hi = Math.min(n - 1, idx + 1);
+    } else {
+      lo = idx;
+      hi = idx;
+    }
     var selected = GENRES.slice(lo, hi + 1);
 
+    // Position highlight over selected range
     var leftPct  = (lo / n) * 100;
     var widthPct = ((hi - lo + 1) / n) * 100;
     highlight.style.left    = leftPct + '%';
     highlight.style.width   = widthPct + '%';
     highlight.style.display = 'block';
 
+    // Dim non-selected labels, brighten selected (both rows)
     [labelsTopEl, labelsEl].forEach(function(row) {
       row.querySelectorAll('span').forEach(function(s, i) {
         var active = (i >= lo && i <= hi);
@@ -526,20 +626,22 @@ var jmGenreFilter = null;
       });
     });
 
+    // Set genre filter
     var genreMap = {};
     selected.forEach(function(e) { e.genres.forEach(function(g) { genreMap[g] = true; }); });
     jmGenreFilter = Object.keys(genreMap);
 
+    // Replay with new genre filter only if a mood was already selected
     if (jmMoodGenres !== null) {
       setStatus('Searching\u2026');
       setTrackCount(0);
-      var genreG = jmGenreFilter, moodG = jmMoodGenres;
-      jmRefetchFn = function() { return fetchTracksByGenres(genreG); };
-      fetchTracksByGenres(genreG)
+      var genreG = jmGenreFilter, moodG = jmMoodGenres, moodT = jmMoodTags || [];
+      if (jmIsPremium()) jmRefetchFn = function() { return fetchTracksByTags(moodT, genreG).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG); }); };
+      fetchTracksByTags(moodT, genreG)
+        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG); })
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
         .then(function(items) {
-          items = items.slice(0, 25);
           setTrackCount(items.length);
           if (!items.length) { setStatus('No tracks found.'); return; }
           startPlayback(items);
@@ -555,16 +657,27 @@ var jmGenreFilter = null;
   });
 })();
 
-// ── Player ───────────────────────────────────────────────────────────────────
+// ── Premium ──────────────────────────────────────────────────────────────
+function jmIsPremium() {
+  // NativeBilling injected by Android BillingManager (debug builds always true)
+  // Falls back to true in browser/Jellyfin so the web UI is never restricted
+  return window.NativeBilling ? window.NativeBilling.isPremium() : true;
+}
+function jmOnPremiumChanged(isPremium) {
+  // Next playlist load picks up the new status automatically
+}
+
+// ── Player ──────────────────────────────────────────────────────────────
 var jmPlaylist   = [];
 var jmPlayIdx    = 0;
 var jmGeneration = 0;
-var jmMoodGenres = null;
+var jmNativePlaying = true;
+var jmUserPaused = false;
+var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
-var jmRefetchFn  = null;
-var jmPlayedIds  = [];
-var jmFetching   = false;
-var jmNativePollTimer = null;
+var jmRefetchFn  = null;  // zero-arg fn returning Promise of next batch
+var jmPlayedIds  = [];    // ids of tracks already played (for dedup)
+var jmFetching   = false; // prevents concurrent background fetches
 
 function jmShowPrompt(visible) {
   var p = document.getElementById('jmWheelPrompt');
@@ -581,24 +694,15 @@ function jmAdvance(gen) {
   };
 }
 
-function startNativePoll(gen) {
-  clearInterval(jmNativePollTimer);
-  jmNativePollTimer = setInterval(function() {
-    if (gen !== jmGeneration) { clearInterval(jmNativePollTimer); return; }
-    var ni = NativeMedia.getNativeIndex();
-    if (ni >= 0 && ni !== jmPlayIdx) {
-      jmPlayIdx = ni;
-      jmPlayTrack(jmPlayIdx, gen);
-    }
-  }, 800);
-}
-
-function jmSetNativePlayState(playing) {}
-
 function jmUpdateMediaSession(item) {
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   if (!('mediaSession' in navigator)) return;
-  var meta = Backend.mediaMetadata(item);
-  navigator.mediaSession.metadata = new MediaMetadata(meta);
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title:  item.Name  || 'Musian',
+    artist: artist,
+    album:  item.Album || '',
+    artwork: JM.type === 'jellyfin' ? [{ src: JM.server + '/Items/' + item.Id + '/Images/Primary?maxHeight=256&quality=90&api_key=' + JM.token, sizes: '256x256', type: 'image/jpeg' }] : []
+  });
   navigator.mediaSession.playbackState = 'playing';
   navigator.mediaSession.setActionHandler('play', function() {
     jmAudio.play().catch(function() {});
@@ -620,9 +724,46 @@ function jmUpdateMediaSession(item) {
   });
 }
 
+// Resume audio if the browser paused it when the screen locked (web path only)
 document.addEventListener('visibilitychange', function() {
-  if (!window.NativeMedia && !document.hidden && jmPlaylist.length > 0 && jmAudio.paused && !jmAudio.ended) {
-    jmAudio.play().catch(function() {});
+  if (window.NativeMedia) return;
+  if (!document.hidden && jmPlaylist.length > 0) {
+    if (jmAudio.ended) {
+      jmPlayIdx++;
+      jmPlayTrack(jmPlayIdx, jmGeneration);
+    } else if (jmAudio.paused && !jmUserPaused) {
+      jmAudio.play().catch(function() {});
+    }
+  }
+});
+
+function jmUpdatePersistentBar(item) {
+  var bar = document.getElementById('jmPersistentPlay');
+  var btn = document.getElementById('jmPersistentPlayBtn');
+  var lbl = document.getElementById('jmPersistentTrack');
+  if (!bar) return;
+  if (item) {
+    var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+    lbl.textContent = (artist ? artist + ' \u2014 ' : '') + (item.Name || '');
+  }
+  // Only show when screen is locked/hidden
+  if (document.hidden && jmPlaylist.length > 0) {
+    bar.style.display = 'flex';
+    btn.innerHTML = jmAudio.paused ? '&#9654;' : '&#9646;&#9646;';
+  }
+}
+
+function jmHidePersistentBar() {
+  var bar = document.getElementById('jmPersistentPlay');
+  if (bar) bar.style.display = 'none';
+}
+
+// Show/hide persistent bar on screen lock/unlock
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && jmPlaylist.length > 0) {
+    jmUpdatePersistentBar(null);
+  } else {
+    jmHidePersistentBar();
   }
 });
 
@@ -633,73 +774,195 @@ function jmPlayTrack(idx, gen) {
     document.getElementById('jmSearch').placeholder = 'Search song\u2026';
     document.getElementById('jmControls').style.display = 'none';
     document.getElementById('jmUpNext').style.display = 'none';
+    if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
+    if (window.NativeMedia) window.NativeMedia.clearSession();
     if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
+    jmHidePersistentBar();
     return;
   }
+  jmUserPaused = false;
   var item = jmPlaylist[idx];
-  jmPlayedIds.push(Backend.itemId(item));
+  jmPlayedIds.push(item.Id);
+  if (jmPlayedIds.length > 500) jmPlayedIds = jmPlayedIds.slice(-500);
+  // Prefetch next batch when 2 or fewer tracks remain (including current)
   if (jmRefetchFn && !jmFetching && jmPlaylist.length - idx <= 2) {
     jmFetching = true;
     var _gen = gen;
     jmRefetchFn().then(function(more) {
-      jmFetching = false;
       if (_gen !== jmGeneration) return;
-      more = more.filter(function(t) { return jmPlayedIds.indexOf(Backend.itemId(t)) === -1; });
+      jmFetching = false;
+      var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
+      if (!filtered.length && more.length) { jmPlayedIds = []; filtered = more; }
+      more = filtered;
+      if (_gen !== jmGeneration) return;
       if (more.length) {
         jmPlaylist = jmPlaylist.concat(more);
         if (window.NativeMedia) {
           more.forEach(function(t) {
-            var meta = Backend.mediaMetadata(t);
-            NativeMedia.queueNextTrack(Backend.streamUrl(t), meta.title, meta.artist);
+            var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
+            window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Name || '', ta);
           });
         }
       }
-    }).catch(function() { jmFetching = false; });
+    }).catch(function() { if (_gen === jmGeneration) jmFetching = false; });
   }
-  if (!window.NativeMedia) {
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  var url = JM.streamUrl(item);
+  if (window.NativeMedia) {
+    if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
+    window._nativeStartIdx = idx;
+    window.NativeMedia.playTrack(url, item.Name || '', artist);
+    for (var qi = idx + 1; qi < jmPlaylist.length; qi++) {
+      var nx = jmPlaylist[qi];
+      var na = (nx.Artists && nx.Artists[0]) || nx.AlbumArtist || '';
+      window.NativeMedia.queueNextTrack(JM.streamUrl(nx), nx.Name || '', na);
+    }
+    var _pollGen = jmGeneration;
+    window._nativePollInterval = setInterval(function() {
+      if (!window.NativeMedia || jmGeneration !== _pollGen) {
+        clearInterval(window._nativePollInterval);
+        window._nativePollInterval = null;
+        return;
+      }
+      var nativeIdx = window.NativeMedia.getNativeIndex();
+      if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
+    }, 150);
+  } else {
     jmAudio.pause();
-    jmAudio.src = Backend.streamUrl(item);
+    jmAudio.src = url;
     jmAudio.play().catch(function() {});
   }
-  document.getElementById('jmSearch').placeholder = Backend.trackLabel(item);
+  document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
   var next = jmPlaylist[idx + 1];
   var upNextEl = document.getElementById('jmUpNext');
   if (next) {
-    upNextEl.textContent = 'Up next \u00b7 ' + Backend.trackLabel(next);
+    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
+    upNextEl.textContent = 'Up next \u00b7 ' + (na ? na + ' \u2014 ' : '') + next.Name;
     upNextEl.style.display = 'block';
   } else {
     upNextEl.style.display = 'none';
   }
   setStatus('Playing \u266a');
-  if (!window.NativeMedia) jmUpdateMediaSession(item);
+  jmUpdateMediaSession(item);
+  jmUpdatePersistentBar(item);
+  jmShowMoodTransition(item);
 }
 
-function attachPlayerListeners(gen) {
-  jmAudio.addEventListener('ended', jmAdvance(gen));
-  jmAudio.addEventListener('error', function() {
-    if (gen !== jmGeneration) return;
-    var code = jmAudio.error ? jmAudio.error.code : '?';
-    setStatus('Track error (code ' + code + ') — skipping\u2026');
-    jmPlayIdx++;
-    jmPlayTrack(jmPlayIdx, gen);
-  });
+function jmShowMoodTransition(item) {
+  clearMoodLabels();
+  jmShowPrompt(true);
+  placeGenreDot((item && item.Genres) || []);
 }
 
+function jmSetNativePlayState(playing) {
+  jmNativePlaying = playing;
+  document.getElementById('jmPauseBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
+  jmUpdatePersistentBar(null);
+}
+
+function jmNativeUpdateUI(idx) {
+  var item = jmPlaylist[idx];
+  if (!item) return;
+  jmPlayedIds.push(item.Id);
+  if (jmPlayedIds.length > 500) jmPlayedIds = jmPlayedIds.slice(-500);
+  var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+  document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
+  document.getElementById('jmControls').style.display = 'block';
+  var next = jmPlaylist[idx + 1];
+  var upEl = document.getElementById('jmUpNext');
+  if (next) {
+    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
+    upEl.textContent = 'Up next \u00b7 ' + (na ? na + ' \u2014 ' : '') + next.Name;
+    upEl.style.display = 'block';
+  } else { upEl.style.display = 'none'; }
+  setStatus('Playing \u266a');
+  jmUpdatePersistentBar(item);
+  jmShowMoodTransition(item);
+  if (window.NativeMedia && jmRefetchFn && !jmFetching && jmPlaylist.length - idx <= 2) {
+    jmFetching = true;
+    var _gen = jmGeneration;
+    jmRefetchFn().then(function(more) {
+      if (_gen !== jmGeneration) return;
+      jmFetching = false;
+      var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
+      if (!filtered.length && more.length) { jmPlayedIds = []; filtered = more; }
+      more = filtered;
+      if (_gen !== jmGeneration) return;
+      if (more.length) {
+        jmPlaylist = jmPlaylist.concat(more);
+        more.forEach(function(t) {
+          var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
+          window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Name || '', ta);
+        });
+      }
+    }).catch(function() { if (_gen === jmGeneration) jmFetching = false; });
+  }
+}
+
+function jmNativeOnTransition() {
+  jmPlayIdx++;
+  jmNativeUpdateUI(jmPlayIdx);
+}
+
+function jmNativeSyncIndex(nativeIdx) {
+  var target = (window._nativeStartIdx || 0) + nativeIdx;
+  if (target === jmPlayIdx) return;
+  jmPlayIdx = target;
+  jmNativeUpdateUI(jmPlayIdx);
+}
+
+
+// Single persistent listeners — no accumulation across sessions
+jmAudio.addEventListener('ended', function() { jmAdvance(jmGeneration)(); });
+jmAudio.addEventListener('play',  function() {
+  document.getElementById('jmPauseBtn').innerHTML = '&#9646;&#9646;';
+  jmUpdatePersistentBar(null);
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+});
+jmAudio.addEventListener('pause', function() {
+  document.getElementById('jmPauseBtn').innerHTML = '&#9654;';
+  jmUpdatePersistentBar(null);
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+});
+jmAudio.addEventListener('error', function() {
+  if (jmGeneration === 0 || !jmPlaylist.length) return;
+  var code = jmAudio.error ? jmAudio.error.code : '?';
+  var msg  = jmAudio.error ? jmAudio.error.message : '';
+  setStatus('Track error (code ' + code + (msg ? ': ' + msg : '') + ') — skipping\u2026');
+  jmPlayIdx++;
+  jmPlayTrack(jmPlayIdx, jmGeneration);
+});
+function attachPlayerListeners() { /* listeners are now persistent — no-op kept for call-site compat */ }
+
+document.getElementById('jmBackBtn').addEventListener('click', function() {
+  if (jmPlayIdx > 0) { jmPlayIdx--; jmPlayTrack(jmPlayIdx, jmGeneration); }
+});
+document.getElementById('jmPauseBtn').addEventListener('click', function() {
+  if (window.NativeMedia) {
+    if (jmNativePlaying) { jmUserPaused = true; window.NativeMedia.pauseTrack(); }
+    else { jmUserPaused = false; window.NativeMedia.resumeTrack(); }
+  } else {
+    if (jmAudio.paused) { jmUserPaused = false; jmAudio.play().catch(function() {}); }
+    else { jmUserPaused = true; jmAudio.pause(); }
+  }
+});
 document.getElementById('jmSkipBtn').addEventListener('click', function() {
   jmPlayIdx++;
   jmPlayTrack(jmPlayIdx, jmGeneration);
 });
 document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGeneration++;
-  if (window.NativeMedia) NativeMedia.clearSession();
+  jmUserPaused = false;
   jmAudio.pause(); jmAudio.src = '';
   jmPlaylist = [];
   document.getElementById('jmSearch').placeholder = 'Search song\u2026';
   document.getElementById('jmControls').style.display = 'none';
   document.getElementById('jmUpNext').style.display = 'none';
-  setStatus(''); setTrackCount(0); setMoodName('', '');
+  setStatus(''); setTrackCount(0); setMoodName('', ''); clearMoodLabels();
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
+  jmHidePersistentBar();
+  // Clear mood and genre state
   jmMoodGenres = null;
   jmGenreFilter = null;
   jmRefetchFn = null;
@@ -714,25 +977,30 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   });
 });
 
+document.getElementById('jmPersistentPlayBtn').addEventListener('click', function() {
+  if (jmPlaylist.length > 0) {
+    if (window.NativeMedia) {
+      var paused = document.getElementById('jmPauseBtn').innerHTML.indexOf('\u25b6') !== -1;
+      if (paused) window.NativeMedia.resumeTrack(); else window.NativeMedia.pauseTrack();
+    } else {
+      if (jmAudio.paused) jmAudio.play().catch(function() {}); else jmAudio.pause();
+    }
+  }
+});
+document.getElementById('jmPersistentSkipBtn').addEventListener('click', function() {
+  jmPlayIdx++;
+  jmPlayTrack(jmPlayIdx, jmGeneration);
+});
 function startPlayback(items) {
   jmGeneration++;
   jmAudio.pause();
   jmPlaylist = items; jmPlayIdx = 0;
   jmPlayedIds = []; jmFetching = false;
   attachPlayerListeners(jmGeneration);
-  if (window.NativeMedia) {
-    var meta0 = Backend.mediaMetadata(items[0]);
-    NativeMedia.playTrack(Backend.streamUrl(items[0]), meta0.title, meta0.artist);
-    items.slice(1).forEach(function(t) {
-      var meta = Backend.mediaMetadata(t);
-      NativeMedia.queueNextTrack(Backend.streamUrl(t), meta.title, meta.artist);
-    });
-    startNativePoll(jmGeneration);
-  }
   jmPlayTrack(0, jmGeneration);
 }
 
-// ── Mood logic ────────────────────────────────────────────────────────────────
+// ── Mood logic ───────────────────────────────────────────────────────────
 function getNearestMoods(vx, vy, count) {
   return MOODS.slice().sort(function(a, b) {
     var da = (vx-a.x)*(vx-a.x) + (vy-a.y)*(vy-a.y);
@@ -742,6 +1010,7 @@ function getNearestMoods(vx, vy, count) {
 }
 
 function handleInteraction(clientX, clientY) {
+  setMoodName('', '');
   var wrap = document.getElementById('jmWheelWrap');
   var rect = wrap.getBoundingClientRect();
   var cx = rect.left + rect.width/2, cy = rect.top + rect.height/2, r = rect.width/2;
@@ -751,9 +1020,10 @@ function handleInteraction(clientX, clientY) {
   var valence = (dx/r)*0.5 + 0.5;
   var arousal  = (-dy/r)*0.5 + 0.5;
 
-  var nearest = getNearestMoods(valence, arousal, 4);
-  var nearest1 = nearest[0];
+  var nearTags = getNearestTags(valence, arousal, 5);
+  var nearest1 = nearTags[0];
 
+  // Show dot coloured by closest tag's parent mood
   var old = wrap.querySelectorAll('.jm-dot');
   for (var i = 0; i < old.length; i++) wrap.removeChild(old[i]);
   var dot = document.createElement('div');
@@ -761,64 +1031,93 @@ function handleInteraction(clientX, clientY) {
   dot.style.cssText = 'position:absolute;width:22px;height:22px;border-radius:50%;' +
     'transform:translate(-50%,-50%);pointer-events:none;' +
     'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);';
-  dot.style.background = nearest1.col;
+  dot.style.background = nearest1.mood.col;
   dot.style.left = (clientX - rect.left) + 'px';
   dot.style.top  = (clientY - rect.top)  + 'px';
   wrap.appendChild(dot);
 
   jmShowPrompt(false);
-  setMoodName(nearest.map(function(m) { return m.name; }).join(' + '), nearest1.col);
   setTrackCount(0);
 
-  // Floating mood name animation — one per quadrant, successively
-  var old2 = wrap.querySelectorAll('.jm-mlabel');
-  for (var j = 0; j < old2.length; j++) wrap.removeChild(old2[j]);
-  var QPOS = [{qx:0.27,qy:0.30},{qx:0.73,qy:0.30},{qx:0.27,qy:0.70},{qx:0.73,qy:0.70}];
-  nearest.forEach(function(m, idx) {
-    var q = (m.x < 0.5 ? 0 : 1) + (m.y >= 0.5 ? 0 : 2);
-    var lx = QPOS[q].qx * rect.width;
-    var ly = QPOS[q].qy * rect.height;
-    var delay = idx * 650;
-    (function(mood, elx, ely, d) {
-      var el = document.createElement('div');
-      el.className = 'jm-mlabel';
-      el.textContent = mood.name;
-      el.style.cssText = 'position:absolute;pointer-events:none;font-size:0.68em;font-weight:600;' +
-        'letter-spacing:0.1em;text-transform:uppercase;color:' + mood.col + ';' +
-        'text-shadow:0 0 12px #000,0 0 4px #000;transform:translate(-50%,-50%);' +
-        'transition:opacity 0.4s;opacity:0;white-space:nowrap;';
-      el.style.left = elx + 'px';
-      el.style.top  = ely + 'px';
-      wrap.appendChild(el);
-      setTimeout(function() { el.style.opacity = '0.9'; }, d + 30);
-      setTimeout(function() { el.style.opacity = '0'; }, d + 480);
-      setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, d + 920);
-    }(m, lx, ly, delay));
+  // Labels at per-tag positions — spread to avoid overlap, furthest fades in first
+  clearMoodLabels();
+  var n = nearTags.length;
+  // Compute display positions and spread apart (min 0.15 of disc width)
+  var labelPts = nearTags.map(function(t) {
+    var dp = squareToDisc(t.x, t.y);
+    return [dp[0] * rect.width, dp[1] * rect.height];
+  });
+  var minD = rect.width * 0.15;
+  for (var iter = 0; iter < 20; iter++) {
+    for (var a = 0; a < labelPts.length; a++) {
+      for (var b = a+1; b < labelPts.length; b++) {
+        var ddx = labelPts[b][0]-labelPts[a][0], ddy = labelPts[b][1]-labelPts[a][1];
+        var dist = Math.sqrt(ddx*ddx+ddy*ddy);
+        if (dist < minD && dist > 0) {
+          var push = (minD-dist)/2+1;
+          var nx = ddx/dist*push, ny = ddy/dist*push;
+          labelPts[a][0]-=nx; labelPts[a][1]-=ny;
+          labelPts[b][0]+=nx; labelPts[b][1]+=ny;
+        }
+      }
+    }
+  }
+  nearTags.forEach(function(t, idx) {
+    var el = document.createElement('div');
+    el.className = 'jm-mlabel';
+    el.textContent = t.tag;
+    el.style.cssText = 'position:absolute;pointer-events:none;font-size:0.68em;font-weight:600;' +
+      'letter-spacing:0.1em;text-transform:uppercase;color:' + t.mood.col + ';' +
+      'text-shadow:0 0 12px #000,0 0 4px #000;transform:translate(-50%,-50%);' +
+      'transition:opacity 0.6s;opacity:0;white-space:nowrap;';
+    el.style.left = labelPts[idx][0] + 'px';
+    el.style.top  = labelPts[idx][1] + 'px';
+    wrap.appendChild(el);
+    jmMoodLabels.push(el);
+    // furthest (idx=n-1) fades in first, closest (idx=0) arrives last
+    setTimeout(function() { el.style.opacity = '0.85'; }, 30 + (n-1-idx) * 400);
   });
 
-  var genreMap = {};
-  nearest.forEach(function(m) { m.genres.forEach(function(g) { genreMap[g] = true; }); });
-  var genres = Object.keys(genreMap);
-  jmMoodGenres = genres;
+  // Search: tags and genres from 4 nearest
+  var tagMap = {}, genreMap = {};
+  nearTags.forEach(function(t) {
+    tagMap[t.tag] = true;
+    (t.mood.genres || []).forEach(function(g) { genreMap[g] = true; });
+  });
+  var moodTags   = Object.keys(tagMap);
+  var moodGenres = Object.keys(genreMap);
+  jmMoodTags   = moodTags;
+  jmMoodGenres = moodGenres;
 
-  var moodGenres = genres;
-  if (jmGenreFilter !== null) genres = jmGenreFilter;
-
-  var _refetchGenres = genres;
-  jmRefetchFn = function() { return fetchTracksByGenres(_refetchGenres); };
+  var searchGenres = jmGenreFilter !== null ? jmGenreFilter : moodGenres;
+  var _gf = jmGenreFilter;
+  function blendMoodGenre(tagPromise, genrePromise) {
+    return Promise.all([tagPromise, genrePromise]).then(function(results) {
+      var tagTracks = results[0].slice(0, 375);
+      var seen = {};
+      tagTracks.forEach(function(t) { seen[t.Id] = true; });
+      var genreTracks = results[1].filter(function(t) { return !seen[t.Id]; });
+      return tagTracks.concat(genreTracks).slice(0, 500);
+    });
+  }
+  if (jmIsPremium()) jmRefetchFn = function() {
+    return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 500); });
+  };
 
   setStatus('Searching\u2026');
 
-  fetchTracksByGenres(genres)
+  blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
+    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); })
+    .then(function(i) { return i.length ? i : fetchFallback(); })
     .then(function(items) {
-      if (items.length > 0) return items;
-      if (jmGenreFilter !== null && moodGenres.length > 0) return fetchTracksByGenres(moodGenres);
-      return fetchFallback();
-    })
-    .then(function(items) {
-      items = items.slice(0, 25);
+      for (var i = items.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = items[i]; items[i] = items[j]; items[j] = tmp;
+      }
+      items = items.slice(0, jmIsPremium() ? 25 : 10);
       setTrackCount(items.length);
-      if (!items.length) { setStatus('No tracks found — check genre tags in your library.'); return; }
+      if (!items.length) { setStatus('No tracks found — check genre/mood tags in your library.'); return; }
       startPlayback(items);
     })
     .catch(function(e) {
@@ -831,30 +1130,245 @@ var svg = document.getElementById('jmSvgWheel');
 svg.addEventListener('click',    function(e) { handleInteraction(e.clientX, e.clientY); });
 svg.addEventListener('touchend', function(e) { e.preventDefault(); var t = e.changedTouches[0]; handleInteraction(t.clientX, t.clientY); });
 
-// ── UI helpers ─────────────────────────────────────────────────────────────────
+// ── UI helpers ────────────────────────────────────────────────────────────
+function clearMoodLabels() {
+  var n = jmMoodLabels.length;
+  // furthest (idx=n-1) fades out first, closest (idx=0) last
+  jmMoodLabels.forEach(function(el, idx) {
+    var delay = (n-1-idx) * 200;
+    setTimeout(function() { el.style.opacity = '0'; }, delay);
+    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, delay + 600);
+  });
+  jmMoodLabels = [];
+}
 function setStatus(t)    { document.getElementById('jmStatus').textContent = t; }
 function setMoodName(t, col) { var el = document.getElementById('jmMoodName'); el.textContent = t; el.style.color = col || '#fff'; el.style.opacity = t ? '1' : '0'; }
 function setTrackCount(n){ var el = document.getElementById('jmTrackCount'); el.style.display = n > 0 ? 'block' : 'none'; el.textContent = n > 0 ? n + ' tracks found' : ''; }
 
-// ── API (delegates to Backend) ────────────────────────────────────────────────
-function fetchTracksByGenres(genres) { return Backend.fetchTracksByGenres(genres); }
-function fetchFallback()             { return Backend.fetchFallback(); }
+// ── API ───────────────────────────────────────────────────────────────────
+function genreWordMatch(genre, seed) {
+  var g = genre.toLowerCase();
+  var s = seed.toLowerCase();
+  return new RegExp('(?:^| )' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?= |$)').test(g);
+}
+
+function expandGenres(seeds) {
+  if (!jmGenreCache || !jmGenreCache.length) return seeds;
+  var result = {};
+  seeds.forEach(function(seed) {
+    result[seed] = true;
+    jmGenreCache.forEach(function(g) {
+      if (/^not[\s_]/i.test(g)) return;
+      if (genreWordMatch(g, seed)) result[g] = true;
+    });
+  });
+  return Object.keys(result);
+}
+
+function fetchTracksByGenres(genres) {
+  if (JM.type === 'plex') {
+    var promises = genres.map(function(g) {
+      return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
+        '/all?type=10&sort=random&X-Plex-Container-Size=10&genre=' + encodeURIComponent(g) +
+        '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
+        .then(function(r){return r.json();})
+        .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
+        .catch(function(){return [];});
+    });
+    return Promise.all(promises).then(function(results) {
+      var seen={}, merged=[];
+      results.forEach(function(items){ items.forEach(function(t){
+        if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
+      });});
+      return normalizeTracks(merged);
+    });
+  }
+  if (JM.type === 'subsonic') {
+    var promises = genres.map(function(g) {
+      return jmFetch(JM.server + '/rest/getSongsByGenre.view?genre=' +
+        encodeURIComponent(g) + '&count=500' + JM.subAuth())
+        .then(function(r){return r.json();})
+        .then(function(d){return ((d['subsonic-response']||{}).songsByGenre||{}).song||[];})
+        .catch(function(){return [];});
+    });
+    return Promise.all(promises).then(function(results) {
+      var seen={}, merged=[];
+      results.forEach(function(items){ items.forEach(function(t){
+        if(!seen[t.id]){seen[t.id]=true; merged.push(t);}
+      });});
+      return normalizeTracks(merged);
+    });
+  }
+  if (!JM.token || !JM.userId) return Promise.resolve([]);
+  var expanded = expandGenres(genres).slice(0, 12);
+  var params = new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'500', Fields:'Genres,MediaSources'});
+  if (expanded.length > 0) params.set('Genres', expanded.join('|'));
+  return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { return normalizeTracks(d.Items || []); })
+    .catch(function() { return []; });
+}
+
+function fetchFallback() {
+  if (JM.type === 'plex') {
+    return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
+      '/all?type=10&sort=random&X-Plex-Container-Size=10&X-Plex-Token=' + JM.token,
+      {headers:{'Accept':'application/json'}})
+      .then(function(r){return r.json();})
+      .then(function(d){ return normalizeTracks((d.MediaContainer&&d.MediaContainer.Metadata)||[]); });
+  }
+  if (JM.type === 'subsonic') {
+    return jmFetch(JM.server + '/rest/getRandomSongs.view?size=10' + JM.subAuth())
+      .then(function(r){return r.json();})
+      .then(function(d){ return normalizeTracks(((d['subsonic-response']||{}).randomSongs||{}).song||[]); });
+  }
+  if (!JM.token || !JM.userId) return Promise.resolve([]);
+  return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' +
+    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'25'}),
+    {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { return d.Items || []; })
+    .catch(function() { return []; });
+}
+
+function jmSupplement(base, fetchFn, limit) {
+  if (base.length >= limit) return Promise.resolve(base);
+  return fetchFn().then(function(more) {
+    var seen = {};
+    base.forEach(function(t) { seen[t.Id] = true; });
+    more = more.filter(function(t) { return !seen[t.Id]; });
+    return base.concat(more).slice(0, limit);
+  });
+}
+
+function fetchTracksByTags(tags, genres) {
+  if (!tags.length) return Promise.resolve([]);
+  if (JM.type === 'plex') {
+    var promises = tags.map(function(tag) {
+      return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
+        '/all?type=10&X-Plex-Container-Size=5&mood=' + encodeURIComponent(tag) +
+        '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
+        .then(function(r){return r.json();})
+        .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
+        .catch(function(){return [];});
+    });
+    return Promise.all(promises).then(function(results) {
+      var seen={}, merged=[];
+      results.forEach(function(items){ items.forEach(function(t){
+        if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
+      });});
+      var tracks = normalizeTracks(merged);
+      if (genres && genres.length) tracks = tracks.filter(function(t) {
+        return (t.Genres||[]).some(function(g) {
+          return genres.some(function(sg) { return genreWordMatch(g,sg)||genreWordMatch(sg,g); });
+        });
+      });
+      return tracks;
+    });
+  }
+  if (JM.type === 'subsonic') return Promise.resolve([]);
+  if (!JM.token || !JM.userId) return Promise.resolve([]);
+  var expanded = [];
+  tags.forEach(function(t) {
+    var cap = t.charAt(0).toUpperCase() + t.slice(1);
+    expanded.push(t, cap, 'Mood:' + t, 'Mood:' + cap);
+  });
+  var params = new URLSearchParams({
+    IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random',
+    Limit:'500', Fields:'Genres,MediaSources',
+    Tags: expanded.join('|')
+  });
+  if (genres && genres.length) params.set('Genres', expandGenres(genres).join('|'));
+  return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { return d.Items || []; });
+}
+
+function fetchTracksByTitleWords(tags) {
+  if (!tags.length) return Promise.resolve([]);
+  if (JM.type === 'plex') {
+    // Use /all with title filter — ensures Media.Part is included in response
+    var promises = tags.map(function(tag) {
+      return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
+        '/all?type=10&X-Plex-Container-Size=5&title=' + encodeURIComponent(tag) +
+        '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
+        .then(function(r){return r.json();})
+        .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
+        .catch(function(){return [];});
+    });
+    return Promise.all(promises).then(function(results) {
+      var seen={}, merged=[];
+      results.forEach(function(items){ items.forEach(function(t){
+        if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
+      });});
+      return normalizeTracks(merged);
+    });
+  }
+  if (JM.type === 'subsonic') {
+    var promises = tags.map(function(tag) {
+      return jmFetch(JM.server + '/rest/search3.view?query=' +
+        encodeURIComponent(tag) + '&songCount=5' + JM.subAuth())
+        .then(function(r){return r.json();})
+        .then(function(d){return (((d['subsonic-response']||{}).searchResult3)||{}).song||[];})
+        .catch(function(){return [];});
+    });
+    return Promise.all(promises).then(function(results) {
+      var seen={}, merged=[];
+      results.forEach(function(items){ items.forEach(function(t){
+        if(!seen[t.id]){seen[t.id]=true; merged.push(t);}
+      });});
+      return normalizeTracks(merged);
+    });
+  }
+  if (!JM.token || !JM.userId) return Promise.resolve([]);
+  var promises = tags.map(function(tag) {
+    return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + new URLSearchParams({
+      SearchTerm: tag, IncludeItemTypes: 'Audio', Recursive: 'true',
+      Limit: '5', Fields: 'Genres,MediaSources'
+    }), {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { return d.Items || []; })
+    .catch(function() { return []; });
+  });
+  return Promise.all(promises).then(function(results) {
+    var seen = {}, merged = [];
+    results.forEach(function(items) {
+      items.forEach(function(item) {
+        if (!seen[item.Id]) { seen[item.Id] = true; merged.push(item); }
+      });
+    });
+    return merged;
+  });
+}
 
 // ── Search ────────────────────────────────────────────────────────────────────
 function findMoodForGenres(genres) {
-  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
-  var best = MOODS[0], bestScore = -1;
+  if (!(genres || []).length) return null;
+  var best = null, bestScore = 0;
   MOODS.forEach(function(mood) {
     var score = 0;
     mood.genres.forEach(function(mg) {
-      var mn = mg.toLowerCase().replace(/[^a-z0-9]/g, '');
-      norm.forEach(function(n) { if (n.indexOf(mn) !== -1 || mn.indexOf(n) !== -1) score++; });
+      genres.forEach(function(g) { if (genreWordMatch(g, mg) || genreWordMatch(mg, g)) score++; });
     });
     if (score > bestScore) { bestScore = score; best = mood; }
   });
   return best;
 }
 
+function placeGenreDot(genres) {
+  var dot = document.getElementById('jmGenreDot');
+  var bestIdx = -1, bestScore = 0;
+  GENRES.forEach(function(genre, i) {
+    var score = 0;
+    genre.genres.forEach(function(eg) {
+      (genres || []).forEach(function(g) { if (genreWordMatch(g, eg) || genreWordMatch(eg, g)) score++; });
+    });
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  });
+  if (bestIdx === -1) { dot.style.display = 'none'; return; }
+  dot.style.left = ((bestIdx + 0.5) / GENRES.length * 100) + '%';
+  dot.style.display = 'block';
+}
 function placeDotForMood(mood) {
   var wrap = document.getElementById('jmWheelWrap');
   var rect = wrap.getBoundingClientRect();
@@ -866,33 +1380,34 @@ function placeDotForMood(mood) {
     'transform:translate(-50%,-50%);pointer-events:none;' +
     'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);';
   dot.style.background = mood.col;
-  dot.style.left = (mood.x * rect.width) + 'px';
-  dot.style.top  = ((1 - mood.y) * rect.height) + 'px';
+  var dp = squareToDisc(mood.x, mood.y);
+  dot.style.left = (dp[0] * rect.width) + 'px';
+  dot.style.top  = (dp[1] * rect.height) + 'px';
   wrap.appendChild(dot);
 }
 
 function highlightGenreBarForGenres(genres) {
-  var norm = (genres || []).map(function(g) { return g.toLowerCase().replace(/[^a-z0-9]/g, ''); });
   var bestIdx = 0, bestScore = -1;
   GENRES.forEach(function(genre, i) {
     var score = 0;
     genre.genres.forEach(function(eg) {
-      var en = eg.toLowerCase().replace(/[^a-z0-9]/g, '');
-      norm.forEach(function(n) { if (n.indexOf(en) !== -1 || en.indexOf(n) !== -1) score++; });
+      (genres || []).forEach(function(g) { if (genreWordMatch(g, eg) || genreWordMatch(eg, g)) score++; });
     });
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
-  var n = GENRES.length;
-  var hl = document.getElementById('jmGenreHighlight');
-  hl.style.left  = (bestIdx / n * 100) + '%';
-  hl.style.width = (1 / n * 100) + '%';
-  hl.style.display = 'block';
-  ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
-    document.getElementById(id).querySelectorAll('span').forEach(function(s, i) {
-      s.style.color      = i === bestIdx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
-      s.style.fontWeight = i === bestIdx ? '700' : '400';
+  if (bestScore > 0) {
+    var n = GENRES.length;
+    var hl = document.getElementById('jmGenreHighlight');
+    hl.style.left  = (bestIdx / n * 100) + '%';
+    hl.style.width = (1 / n * 100) + '%';
+    hl.style.display = 'block';
+    ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
+      document.getElementById(id).querySelectorAll('span').forEach(function(s, i) {
+        s.style.color      = i === bestIdx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
+        s.style.fontWeight = i === bestIdx ? '700' : '400';
+      });
     });
-  });
+  }
 }
 
 (function() {
@@ -912,9 +1427,42 @@ function highlightGenreBarForGenres(genres) {
   });
 
   function doSearch(q) {
-    Backend.searchTracks(q, 8)
-      .then(function(items) { renderSuggestions(items); })
-      .catch(function() {});
+    if (!JM.token) return;
+    if (JM.type === 'plex') {
+      var filters = ['title', 'grandparentTitle', 'parentTitle'];
+      var promises = filters.map(function(f) {
+        return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
+          '/all?type=10&X-Plex-Container-Size=5&' + f + '=' + encodeURIComponent(q) +
+          '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
+          .then(function(r){return r.json();})
+          .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
+          .catch(function(){return [];});
+      });
+      Promise.all(promises).then(function(results) {
+        var seen={}, merged=[];
+        results.forEach(function(items){ items.forEach(function(t){
+          if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
+        });});
+        renderSuggestions(normalizeTracks(merged));
+      });
+      return;
+    }
+    if (JM.type === 'subsonic') {
+      jmFetch(JM.server + '/rest/search3.view?query=' + encodeURIComponent(q) +
+        '&songCount=8' + JM.subAuth())
+        .then(function(r){return r.json();})
+        .then(function(d){ renderSuggestions(normalizeTracks((((d['subsonic-response']||{}).searchResult3)||{}).song||[])); })
+        .catch(function(){});
+      return;
+    }
+    if (!JM.userId) return;
+    jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + new URLSearchParams({
+      SearchTerm: q, IncludeItemTypes: 'Audio', Recursive: 'true',
+      Limit: '8', Fields: 'Genres,Artists,AlbumArtist,AlbumId'
+    }), {headers: JM.headers()})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { renderSuggestions(d.Items || []); })
+    .catch(function() {});
   }
 
   function escHtml(s) {
@@ -927,11 +1475,8 @@ function highlightGenreBarForGenres(genres) {
     items.forEach(function(item) {
       var div = document.createElement('div');
       div.className = 'jm-sug-item';
-      var label = Backend.trackLabel(item);
-      var parts = label.split(' \u2014 ');
-      var title  = parts.length > 1 ? parts.slice(1).join(' \u2014 ') : parts[0];
-      var artist = parts.length > 1 ? parts[0] : '';
-      div.innerHTML = '<div class="jm-sug-title">' + escHtml(title) + '</div>' +
+      var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
+      div.innerHTML = '<div class="jm-sug-title">' + escHtml(item.Name) + '</div>' +
         (artist ? '<div class="jm-sug-artist">' + escHtml(artist) + '</div>' : '');
       div.addEventListener('mousedown', function() { selectSong(item); });
       suggest.appendChild(div);
@@ -942,15 +1487,57 @@ function highlightGenreBarForGenres(genres) {
   function selectSong(item) {
     suggest.style.display = 'none';
     input.value = '';
-    var genres = Backend.itemGenres(item);
-    var mood = findMoodForGenres(genres);
-    var _moodGenres = mood.genres;
-    jmRefetchFn = function() { return fetchTracksByGenres(_moodGenres); };
-    startPlayback([item]);
-    placeDotForMood(mood);
-    setMoodName(mood.name, mood.col);
-    highlightGenreBarForGenres(genres);
-    jmShowPrompt(false);
+    var genres = item.Genres || [];
+    function proceed(g) {
+      var mood = null;
+      var moods = (item.Moods || []).filter(function(m) { return !/^not[\s_]/i.test(m); });
+      if (moods.length) {
+        var mn = moods[0].toLowerCase();
+        for (var mi = 0; mi < MOODS.length; mi++) {
+          if (MOODS[mi].name.toLowerCase() === mn) { mood = MOODS[mi]; break; }
+        }
+      }
+      if (!mood) mood = findMoodForGenres(g);
+      var _tags = [], _genres = [];
+      if (mood) {
+        var nearest = getNearestTags(mood.x, mood.y, 5);
+        var tagMap = {}, genreMap = {};
+        nearest.forEach(function(t) {
+          tagMap[t.tag] = true;
+          (t.mood.genres || []).forEach(function(gg) { genreMap[gg] = true; });
+        });
+        _tags   = Object.keys(tagMap);
+        _genres = Object.keys(genreMap);
+        placeDotForMood(mood);
+        highlightGenreBarForGenres(g);
+      }
+      var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
+      jmMoodTags   = _tags;
+      jmMoodGenres = _genres;
+      var seedGenres = g.length ? g : null;
+      var _refetchFn = function() {
+        return _tags.length
+          ? fetchTracksByTags(_tags, seedGenres)
+              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres); }, 25); })
+              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(_tags); }, 25); })
+          : fetchTracksByGenres(seedGenres || searchGenres);
+      };
+      if (jmIsPremium()) jmRefetchFn = _refetchFn;
+      setStatus('Searching\u2026');
+      _refetchFn().then(function(more) {
+        var seen = {}; seen[item.Id] = true;
+        var all = [item].concat(more.filter(function(t) { return !seen[t.Id]; })).slice(0, jmIsPremium() ? 25 : 10);
+        startPlayback(all);
+      }).catch(function() { startPlayback([item]); });
+    }
+    if (!genres.length && JM.type === 'jellyfin' && item.AlbumId && JM.token && JM.userId) {
+      jmFetch(JM.server + '/Users/' + JM.userId + '/Items/' + item.AlbumId + '?Fields=Genres', {headers: JM.headers()})
+        .then(function(r) { return r.json(); })
+        .then(function(d) { proceed(d.Genres || []); })
+        .catch(function() { proceed([]); });
+    } else {
+      proceed(genres);
+    }
   }
 })();
 

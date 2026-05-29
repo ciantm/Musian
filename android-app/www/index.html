@@ -90,7 +90,7 @@ button#jmPlexBtn:active { opacity:0.85; }
     <button class="type-btn" data-type="plex">Plex</button>
   </div>
 
-  <div id="jmCredFields">
+  <form id="jmCredFields" autocomplete="on" action="#" onsubmit="return false;">
     <label>Username</label>
     <input id="jmUser" type="text" autocomplete="username" autocapitalize="none"/>
     <label>Password</label>
@@ -98,8 +98,9 @@ button#jmPlexBtn:active { opacity:0.85; }
       <input id="jmPass" type="password" autocomplete="current-password" style="margin-bottom:0;padding-right:44px;width:100%;"/>
       <button type="button" id="jmTogglePass" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#666;cursor:pointer;font-size:1.1em;padding:4px;">&#128065;</button>
     </div>
-    <button id="jmSignIn">Sign In</button>
-  </div>
+    <button id="jmSignIn" type="submit">Sign In</button>
+    <p id="jmPassHint" style="display:none;text-align:center;font-size:0.78em;color:#aaa;margin-top:16px;">Signed in! If your password manager prompts to save, tap Save.</p>
+  </form>
 
   <button id="jmPlexBtn">Sign in with Plex</button>
 
@@ -115,7 +116,7 @@ button#jmPlexBtn:active { opacity:0.85; }
 
   <div id="jmError"></div>
   <div id="jmSpinner">Signing in…</div>
-  <div style="margin-top:24px;font-size:0.65em;color:#444;text-align:center;">v3.1.17.0</div>
+  <div style="margin-top:24px;font-size:0.65em;color:#444;text-align:center;">v3.1.21.0</div>
 </div>
 
 <script>
@@ -239,7 +240,9 @@ button#jmPlexBtn:active { opacity:0.85; }
 
     p.then(function(auth) {
       localStorage.setItem('jm_auth', JSON.stringify(auth));
-      window.location.replace('app.html');
+      document.getElementById('jmSpinner').style.display = 'none';
+      document.getElementById('jmPassHint').style.display = 'block';
+      setTimeout(function() { window.location.replace('app.html'); }, 1800);
     }).catch(function(e) { showError(e.message || 'Sign in failed.'); });
   }
 
