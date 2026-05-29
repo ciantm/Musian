@@ -170,13 +170,19 @@ public class MusicService extends MediaBrowserServiceCompat {
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid,
                                  @Nullable Bundle rootHints) {
+        // Debug builds: allow any caller so Auto can discover the app regardless of package name
+        if (BuildConfig.DEBUG) {
+            Bundle extras = new Bundle();
+            extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 2);
+            return new BrowserRoot("root", extras);
+        }
         if (getPackageName().equals(clientPackageName)) {
             return new BrowserRoot("root", null);
         }
         if (isAutoPackage(clientPackageName)) {
             if (!BillingManager.isPremiumStatic(this)) return null;
             Bundle extras = new Bundle();
-            extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 2); // grid
+            extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 2);
             return new BrowserRoot("root", extras);
         }
         return null;
