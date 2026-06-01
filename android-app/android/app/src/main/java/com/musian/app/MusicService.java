@@ -143,6 +143,13 @@ public class MusicService extends MediaBrowserServiceCompat {
                 fetchAndPlayForAuto(mediaId);
             }
         });
+        mSession.setPlaybackState(new PlaybackStateCompat.Builder()
+            .setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f)
+            .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+                | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .build());
         mSession.setActive(true);
         setSessionToken(mSession.getSessionToken());
 
@@ -340,7 +347,8 @@ public class MusicService extends MediaBrowserServiceCompat {
         mSession.setPlaybackState(new PlaybackStateCompat.Builder()
             .setState(playing ? PlaybackStateCompat.STATE_PLAYING
                               : PlaybackStateCompat.STATE_PAUSED, 0, 1.0f)
-            .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE
+            .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+                | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
             .build());
