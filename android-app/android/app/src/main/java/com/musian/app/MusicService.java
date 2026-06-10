@@ -177,19 +177,18 @@ public class MusicService extends MediaBrowserServiceCompat {
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid,
                                  @Nullable Bundle rootHints) {
+        Bundle extras = new Bundle();
+        extras.putInt("android.media.browse.CONTENT_STYLE_BROWSABLE_HINT", 2);
+        extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 2);
         // Debug builds: allow any caller so Auto can discover the app regardless of package name
         if (BuildConfig.DEBUG) {
-            Bundle extras = new Bundle();
-            extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 2);
             return new BrowserRoot("root", extras);
         }
         if (getPackageName().equals(clientPackageName)) {
-            return new BrowserRoot("root", null);
+            return new BrowserRoot("root", extras);
         }
         if (isAutoPackage(clientPackageName)) {
             if (!BillingManager.isPremiumStatic(this)) return null;
-            Bundle extras = new Bundle();
-            extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 2);
             return new BrowserRoot("root", extras);
         }
         return null;
@@ -212,10 +211,13 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     private MediaBrowserCompat.MediaItem buildAutoItem(String id, String title, int iconRes) {
         Bitmap icon = BitmapFactory.decodeResource(getResources(), iconRes);
+        Bundle extras = new Bundle();
+        extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 2);
         MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
             .setMediaId(id)
             .setTitle(title)
             .setIconBitmap(icon)
+            .setExtras(extras)
             .build();
         return new MediaBrowserCompat.MediaItem(desc, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
     }
@@ -229,11 +231,22 @@ public class MusicService extends MediaBrowserServiceCompat {
     // ── Auto playback ─────────────────────────────────────────────────────────
 
     private void fetchAndPlayForAuto(String quadrantId) {
+        mSession.setPlaybackState(new PlaybackStateCompat.Builder()
+            .setState(PlaybackStateCompat.STATE_BUFFERING, 0, 1.0f)
+            .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+                | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .build());
+
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         String server = prefs.getString(PREF_SERVER, null);
         String userId = prefs.getString(PREF_USER_ID, null);
         String token  = prefs.getString(PREF_TOKEN, null);
-        if (server == null || token == null || userId == null) return;
+        if (server == null || token == null || userId == null) {
+            setAutoError("Not logged in");
+            return;
+        }
 
         String[] tags = tagsForQuadrant(quadrantId);
         new Thread(() -> {
@@ -261,7 +274,10 @@ public class MusicService extends MediaBrowserServiceCompat {
                 } catch (Exception ignored) {}
                 if (tracks.size() >= 20) break;
             }
-            if (tracks.isEmpty()) return;
+            if (tracks.isEmpty()) {
+                new Handler(Looper.getMainLooper()).post(() -> setAutoError("No tracks found"));
+                return;
+            }
             Collections.shuffle(tracks);
             List<String[]> finalTracks = tracks;
             new Handler(Looper.getMainLooper()).post(() -> {
@@ -272,6 +288,14 @@ public class MusicService extends MediaBrowserServiceCompat {
                 }
             });
         }).start();
+    }
+
+    private void setAutoError(String message) {
+        mSession.setPlaybackState(new PlaybackStateCompat.Builder()
+            .setState(PlaybackStateCompat.STATE_ERROR, 0, 1.0f)
+            .setErrorMessage(PlaybackStateCompat.ERROR_CODE_NOT_SUPPORTED, message)
+            .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID)
+            .build());
     }
 
     private String[] tagsForQuadrant(String id) {
@@ -287,8 +311,8 @@ public class MusicService extends MediaBrowserServiceCompat {
     private String httpGet(String urlStr, String token) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
         conn.setRequestProperty("X-Emby-Token", token);
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(10000);
+        conn.setConnectTimeout(30000);
+        conn.setReadTimeout(30000);
         BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         StringBuilder sb = new StringBuilder();
         String line;
