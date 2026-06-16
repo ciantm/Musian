@@ -33,7 +33,7 @@ public class BillingManager implements PurchasesUpdatedListener, BillingClientSt
     // Cached check — works offline after first successful purchase validation.
     // Debug builds always return true so all features are testable without Play Store.
     public boolean isPremium() {
-        if (BuildConfig.DEBUG) return true;
+        if (BuildConfig.DEBUG || BuildConfig.ALWAYS_PREMIUM) return true;
         return mPrefs.getBoolean("is_premium", false);
     }
 
@@ -134,7 +134,7 @@ public class BillingManager implements PurchasesUpdatedListener, BillingClientSt
     }
 
     public static boolean isPremiumStatic(Context ctx) {
-        if (BuildConfig.DEBUG) return true;
+        if (BuildConfig.DEBUG || BuildConfig.ALWAYS_PREMIUM) return true;
         return ctx.getSharedPreferences("musian_billing", Context.MODE_PRIVATE)
                   .getBoolean("is_premium", false);
     }
