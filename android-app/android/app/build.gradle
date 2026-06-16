@@ -25,6 +25,7 @@ android {
             storePassword System.getenv("KEYSTORE_PASS") ?: ""
             keyAlias      System.getenv("KEY_ALIAS")     ?: "musian"
             keyPassword   System.getenv("KEY_PASS")      ?: ""
+            storeType     "PKCS12"
         }
     }
     buildTypes {
