@@ -12,6 +12,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmApp { display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px; width:100%; }
 #jmGenreArea { width:100%; max-width:min(80vw,420px); margin-top:18px; }
 #jmWheelPrompt { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:2;transition:opacity 0.4s; }
+#jmResumeBtn { pointer-events:auto;margin-top:12px;padding:8px 22px;border:none;border-radius:20px;background:rgba(255,255,255,0.18);color:rgba(255,255,255,0.8);font-size:0.78em;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;display:none; }
 #jmMoodName { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;text-align:center;pointer-events:none;z-index:3;transition:opacity 0.4s;font-size:1.2em;font-weight:300;letter-spacing:0.08em;text-shadow:0 0 32px #000,0 0 12px #000;opacity:0; }
 #jmGenreWrap { position:relative; width:100%; touch-action:none; cursor:pointer; }
 #jmGenreBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
@@ -120,6 +121,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <div id="jmWheelPrompt">
       <div id="jmWheelPromptTitle" style="font-size:1.1em;font-weight:300;letter-spacing:0.1em;color:rgba(255,255,255,0.75);text-shadow:0 0 24px #000,0 0 8px #000;">Feel your music</div>
       <div id="jmWheelPromptSub" style="font-size:0.72em;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-top:6px;text-shadow:0 0 12px #000;">Tap to play</div>
+      <button id="jmResumeBtn">&#9654; Resume</button>
     </div>
   </div>
 
@@ -160,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.28.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.29.0</div>
 </div>
 
 <script>
@@ -584,6 +586,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
     // Triple tap — clear filter entirely
     if (genreTapCount >= 3) {
       jmGenreFilter = null;
+      try { localStorage.removeItem('jmLastGenre'); } catch(e) {}
       highlight.style.display = 'none';
       [labelsTopEl, labelsEl].forEach(function(row) {
         row.querySelectorAll('span').forEach(function(s) { s.style.color = ''; s.style.fontWeight = ''; });
@@ -630,6 +633,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
     var genreMap = {};
     selected.forEach(function(e) { e.genres.forEach(function(g) { genreMap[g] = true; }); });
     jmGenreFilter = Object.keys(genreMap);
+    if (jmIsPremium()) try { localStorage.setItem('jmLastGenre', JSON.stringify({lo:lo,hi:hi})); } catch(e) {}
 
     // Replay with new genre filter only if a mood was already selected
     if (jmMoodGenres !== null) {
@@ -983,7 +987,9 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmPlayedIds = [];
   jmScopePool = null;
   jmScopeName = null;
+  try { localStorage.removeItem('jmLastMood'); localStorage.removeItem('jmLastGenre'); } catch(e) {}
   jmShowPrompt(true);
+  document.getElementById('jmResumeBtn').style.display = 'none';
   var hl = document.getElementById('jmGenreHighlight');
   if (hl) hl.style.display = 'none';
   ['jmGenreLabelsTop','jmGenreLabels'].forEach(function(id) {
@@ -1018,6 +1024,15 @@ function startPlayback(items) {
 }
 
 // ── Mood logic ───────────────────────────────────────────────────────────
+function blendMoodGenre(tagPromise, genrePromise) {
+  return Promise.all([tagPromise, genrePromise]).then(function(results) {
+    var tagTracks = results[0].slice(0, 375);
+    var seen = {};
+    tagTracks.forEach(function(t) { seen[t.Id] = true; });
+    var genreTracks = results[1].filter(function(t) { return !seen[t.Id]; });
+    return tagTracks.concat(genreTracks).slice(0, 500);
+  });
+}
 function getNearestMoods(vx, vy, count) {
   return MOODS.slice().sort(function(a, b) {
     var da = (vx-a.x)*(vx-a.x) + (vy-a.y)*(vy-a.y);
@@ -1043,6 +1058,8 @@ function handleInteraction(clientX, clientY) {
 
   var valence = (dx/r)*0.5 + 0.5;
   var arousal  = (-dy/r)*0.5 + 0.5;
+  if (jmIsPremium()) try { localStorage.setItem('jmLastMood', JSON.stringify({v:valence,a:arousal})); } catch(e) {}
+  document.getElementById('jmResumeBtn').style.display = 'none';
 
   var nearTags = getNearestTags(valence, arousal, 5);
   var nearest1 = nearTags[0];
@@ -1134,15 +1151,6 @@ function handleInteraction(clientX, clientY) {
 
   var searchGenres = jmGenreFilter !== null ? jmGenreFilter : moodGenres;
   var _gf = jmGenreFilter;
-  function blendMoodGenre(tagPromise, genrePromise) {
-    return Promise.all([tagPromise, genrePromise]).then(function(results) {
-      var tagTracks = results[0].slice(0, 375);
-      var seen = {};
-      tagTracks.forEach(function(t) { seen[t.Id] = true; });
-      var genreTracks = results[1].filter(function(t) { return !seen[t.Id]; });
-      return tagTracks.concat(genreTracks).slice(0, 500);
-    });
-  }
   if (jmIsPremium()) jmRefetchFn = function() {
     return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
       .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 500); });
@@ -1743,6 +1751,83 @@ function highlightGenreBarForGenres(genres) {
       proceed(genres);
     }
   }
+})();
+
+// ── Restore saved mood & genre (premium) ──────────────────────────────
+(function() {
+  if (!jmIsPremium()) return;
+  var savedMood, savedGenre;
+  try { savedMood = JSON.parse(localStorage.getItem('jmLastMood')); } catch(e) {}
+  try { savedGenre = JSON.parse(localStorage.getItem('jmLastGenre')); } catch(e) {}
+  if (!savedMood || typeof savedMood.v !== 'number') return;
+
+  var wrap = document.getElementById('jmWheelWrap');
+  var nearTags = getNearestTags(savedMood.v, savedMood.a, 5);
+  var nearest1 = nearTags[0];
+
+  var dot = document.createElement('div');
+  dot.className = 'jm-dot';
+  dot.style.cssText = 'position:absolute;width:22px;height:22px;border-radius:50%;' +
+    'transform:translate(-50%,-50%);pointer-events:none;' +
+    'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);opacity:0.5;';
+  dot.style.background = nearest1.mood.col;
+  dot.style.left = (savedMood.v * 100) + '%';
+  dot.style.top = ((1 - savedMood.a) * 100) + '%';
+  wrap.appendChild(dot);
+
+  var tagMap = {}, genreMap = {};
+  nearTags.forEach(function(t) {
+    tagMap[t.tag] = true;
+    (t.mood.genres || []).forEach(function(g) { genreMap[g] = true; });
+  });
+  jmMoodTags = Object.keys(tagMap);
+  jmMoodGenres = Object.keys(genreMap);
+
+  if (savedGenre && typeof savedGenre.lo === 'number') {
+    var n = GENRES.length, lo = savedGenre.lo, hi = savedGenre.hi;
+    var hl = document.getElementById('jmGenreHighlight');
+    hl.style.left = (lo / n) * 100 + '%';
+    hl.style.width = ((hi - lo + 1) / n) * 100 + '%';
+    hl.style.display = 'block';
+    ['jmGenreLabelsTop','jmGenreLabels'].forEach(function(id) {
+      document.getElementById(id).querySelectorAll('span').forEach(function(s, i) {
+        var active = (i >= lo && i <= hi);
+        s.style.color = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
+        s.style.fontWeight = active ? '700' : '400';
+      });
+    });
+    var gm = {};
+    GENRES.slice(lo, hi + 1).forEach(function(e) { e.genres.forEach(function(g) { gm[g] = true; }); });
+    jmGenreFilter = Object.keys(gm);
+  }
+
+  var resumeBtn = document.getElementById('jmResumeBtn');
+  resumeBtn.style.display = 'inline-block';
+  resumeBtn.addEventListener('click', function() {
+    resumeBtn.style.display = 'none';
+    var moodTags = jmMoodTags, moodGenres = jmMoodGenres;
+    var searchGenres = jmGenreFilter !== null ? jmGenreFilter : moodGenres;
+    var _gf = jmGenreFilter;
+    if (jmIsPremium()) jmRefetchFn = function() {
+      return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 500); });
+    };
+    setStatus('Searching…');
+    blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); })
+      .then(function(i) { return i.length ? i : fetchFallback(); })
+      .then(function(items) {
+        for (var i = items.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var tmp = items[i]; items[i] = items[j]; items[j] = tmp;
+        }
+        items = items.slice(0, jmIsPremium() ? 25 : 10);
+        setTrackCount(items.length);
+        if (!items.length) { setStatus('No tracks found.'); return; }
+        startPlayback(items);
+      })
+      .catch(function(e) { console.error('[Musian]', e); setStatus('Could not fetch tracks.'); });
+  });
 })();
 
 })();
