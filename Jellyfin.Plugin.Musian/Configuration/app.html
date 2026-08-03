@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.33.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.34.0</div>
 </div>
 
 <script>
@@ -808,6 +808,7 @@ function jmPlayTrack(idx, gen) {
     jmRefetchFn().then(function(more) {
       if (_gen !== jmGeneration) return;
       jmFetching = false;
+      more = jmGenreGate(more);
       var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
       if (!filtered.length && more.length) { jmPlayedIds = []; filtered = more; }
       more = filtered;
@@ -903,6 +904,7 @@ function jmNativeUpdateUI(idx) {
     jmRefetchFn().then(function(more) {
       if (_gen !== jmGeneration) return;
       jmFetching = false;
+      more = jmGenreGate(more);
       var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
       if (!filtered.length && more.length) { jmPlayedIds = []; filtered = more; }
       more = filtered;
@@ -1013,7 +1015,22 @@ document.getElementById('jmPersistentSkipBtn').addEventListener('click', functio
   jmPlayIdx++;
   jmPlayTrack(jmPlayIdx, jmGeneration);
 });
+// Hard genre gate: only admit tracks whose own dominant genre-bar zone (by the
+// same scoring the dot uses) is one of the currently selected zone(s). A track
+// that merely shares one overlapping tag with the selection but is dominantly
+// something else (e.g. a Blues-Rock track with a single "Folk Rock" tag) doesn't
+// belong in a Folk & Country queue even though a plain word-overlap check would
+// have let it through.
+function jmGenreGate(items) {
+  if (!jmGenreFilter || !jmGenreFilter.length) return items;
+  return items.filter(function(t) {
+    var idx = bestGenreZoneIndex(t.Genres || []);
+    return idx !== -1 && GENRES[idx].genres.some(function(g) { return jmGenreFilter.indexOf(g) !== -1; });
+  });
+}
+
 function startPlayback(items) {
+  items = jmGenreGate(items);
   jmGeneration++;
   jmAudio.pause();
   jmPlaylist = items; jmPlayIdx = 0;
@@ -1026,6 +1043,7 @@ function startPlayback(items) {
 // Stage a new mood/genre selection as "up next" instead of interrupting what's playing.
 // Falls back to starting fresh if nothing is currently loaded.
 function jmQueueAhead(items) {
+  items = jmGenreGate(items);
   if (!items.length) return;
   if (!jmPlaylist.length) { startPlayback(items); return; }
   var filtered = items.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
@@ -1500,8 +1518,11 @@ function findMoodForGenres(genres) {
   return best;
 }
 
-function placeGenreDot(genres) {
-  var dot = document.getElementById('jmGenreDot');
+// A track's dominant genre-bar zone: whichever zone's canonical genre list scores
+// the most word-matches against the track's own tags. -1 if nothing scores > 0.
+// Shared by the dot display, the genre-bar highlight, and the hard genre gate below,
+// so all three always agree on what zone a track "belongs to".
+function bestGenreZoneIndex(genres) {
   var bestIdx = -1, bestScore = 0;
   GENRES.forEach(function(genre, i) {
     var score = 0;
@@ -1510,6 +1531,12 @@ function placeGenreDot(genres) {
     });
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
+  return bestIdx;
+}
+
+function placeGenreDot(genres) {
+  var dot = document.getElementById('jmGenreDot');
+  var bestIdx = bestGenreZoneIndex(genres);
   if (bestIdx === -1) { dot.style.display = 'none'; return; }
   dot.style.left = ((bestIdx + 0.5) / GENRES.length * 100) + '%';
   dot.style.display = 'block';
@@ -1535,15 +1562,8 @@ function placeDotForMood(mood) {
 // and returns that zone's canonical genre list — the "major genre" a track
 // or mood should rebase onto, rather than the track's own (often sprawling) tags.
 function highlightGenreBarForGenres(genres) {
-  var bestIdx = 0, bestScore = -1;
-  GENRES.forEach(function(genre, i) {
-    var score = 0;
-    genre.genres.forEach(function(eg) {
-      (genres || []).forEach(function(g) { if (genreWordMatch(g, eg) || genreWordMatch(eg, g)) score++; });
-    });
-    if (score > bestScore) { bestScore = score; bestIdx = i; }
-  });
-  if (bestScore > 0) {
+  var bestIdx = bestGenreZoneIndex(genres);
+  if (bestIdx !== -1) {
     var n = GENRES.length;
     var hl = document.getElementById('jmGenreHighlight');
     hl.style.left  = (bestIdx / n * 100) + '%';
