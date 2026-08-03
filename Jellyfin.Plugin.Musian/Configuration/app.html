@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.32.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.33.0</div>
 </div>
 
 <script>
@@ -1531,6 +1531,9 @@ function placeDotForMood(mood) {
   wrap.appendChild(dot);
 }
 
+// Highlights the genre-bar zone that best matches the given raw genre tags,
+// and returns that zone's canonical genre list — the "major genre" a track
+// or mood should rebase onto, rather than the track's own (often sprawling) tags.
 function highlightGenreBarForGenres(genres) {
   var bestIdx = 0, bestScore = -1;
   GENRES.forEach(function(genre, i) {
@@ -1552,7 +1555,9 @@ function highlightGenreBarForGenres(genres) {
         s.style.fontWeight = i === bestIdx ? '700' : '400';
       });
     });
+    return GENRES[bestIdx].genres;
   }
+  return null;
 }
 
 (function() {
@@ -1767,12 +1772,15 @@ function highlightGenreBarForGenres(genres) {
         _tags   = Object.keys(tagMap);
         _genres = Object.keys(genreMap);
         placeDotForMood(mood);
-        highlightGenreBarForGenres(g);
       }
+      // Rebase onto the major genre zone the track lands in, not the track's own
+      // (often sprawling) raw tag list — same principle as the mood landing point above.
+      var majorGenre = highlightGenreBarForGenres(g);
+      if (majorGenre) jmGenreFilter = majorGenre;
       var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
-      var seedGenres = g.length ? g : null;
+      var seedGenres = jmGenreFilter;
       var _refetchFn = function() {
         return _tags.length
           ? fetchTracksByTags(_tags, seedGenres)
