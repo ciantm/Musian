@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.30.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.31.0</div>
 </div>
 
 <script>
@@ -597,7 +597,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
         fetchTracksByTags(moodT)
           .then(function(i) { return i.length ? i : fetchTracksByGenres(jmMoodGenres); })
           .then(function(i) { return i.length ? i : fetchFallback(); })
-          .then(function(i) { i = i.slice(0, jmIsPremium() ? 25 : 10); setTrackCount(i.length); if (!i.length) { setStatus('No tracks found.'); return; } startPlayback(i); })
+          .then(function(i) { i = i.slice(0, jmIsPremium() ? 25 : 10); setTrackCount(i.length); if (!i.length) { setStatus('No tracks found.'); return; } jmQueueAhead(i); })
           .catch(function() { setStatus('Could not fetch tracks.'); });
       }
       return;
@@ -648,7 +648,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
         .then(function(items) {
           setTrackCount(items.length);
           if (!items.length) { setStatus('No tracks found.'); return; }
-          startPlayback(items);
+          jmQueueAhead(items);
         })
         .catch(function() { setStatus('Could not fetch tracks.'); });
     }
@@ -1023,6 +1023,30 @@ function startPlayback(items) {
   jmShowPrompt(true);
 }
 
+// Stage a new mood/genre selection as "up next" instead of interrupting what's playing.
+// Falls back to starting fresh if nothing is currently loaded.
+function jmQueueAhead(items) {
+  if (!items.length) return;
+  if (!jmPlaylist.length) { startPlayback(items); return; }
+  var filtered = items.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
+  if (!filtered.length) filtered = items;
+  jmPlaylist = jmPlaylist.slice(0, jmPlayIdx + 1).concat(filtered);
+  var next = jmPlaylist[jmPlayIdx + 1];
+  var upNextEl = document.getElementById('jmUpNext');
+  if (next) {
+    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
+    upNextEl.textContent = 'Up next \u00b7 ' + (na ? na + ' \u2014 ' : '') + next.Name;
+    upNextEl.style.display = 'block';
+  }
+  if (window.NativeMedia) {
+    window.NativeMedia.clearQueueAhead();
+    filtered.forEach(function(t) {
+      var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
+      window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Name || '', ta);
+    });
+  }
+}
+
 // ── Mood logic ───────────────────────────────────────────────────────────
 function blendMoodGenre(tagPromise, genrePromise) {
   return Promise.all([tagPromise, genrePromise]).then(function(results) {
@@ -1145,7 +1169,7 @@ function handleInteraction(clientX, clientY) {
     };
     var sp = filtered.slice();
     for (var i = sp.length-1; i > 0; i--) { var j = Math.floor(Math.random()*(i+1)); var tmp=sp[i];sp[i]=sp[j];sp[j]=tmp; }
-    startPlayback(sp.slice(0, 25));
+    jmQueueAhead(sp.slice(0, 25));
     return;
   }
 
@@ -1169,7 +1193,7 @@ function handleInteraction(clientX, clientY) {
       items = items.slice(0, jmIsPremium() ? 25 : 10);
       setTrackCount(items.length);
       if (!items.length) { setStatus('No tracks found — check genre/mood tags in your library.'); return; }
-      startPlayback(items);
+      jmQueueAhead(items);
     })
     .catch(function(e) {
       console.error('[Musian]', e);

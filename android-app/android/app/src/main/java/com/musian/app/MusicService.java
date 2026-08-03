@@ -348,6 +348,15 @@ public class MusicService extends MediaBrowserServiceCompat {
         mPlayer.addMediaItem(MediaItem.fromUri(url));
     }
 
+    // Drop everything queued after the currently playing item, so a fresh
+    // mood/genre selection can replace what plays next without interrupting playback.
+    public void clearQueueAhead() {
+        int from = mPlayer.getCurrentMediaItemIndex() + 1;
+        int to = mPlayer.getMediaItemCount();
+        if (from < to) mPlayer.removeMediaItems(from, to);
+        while (mQueue.size() > from) mQueue.remove(mQueue.size() - 1);
+    }
+
     public void pauseTrack()  { mPlayer.pause(); }
     public void resumeTrack() { mPlayer.play(); }
 

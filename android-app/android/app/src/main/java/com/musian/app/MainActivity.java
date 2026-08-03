@@ -100,6 +100,13 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
+        public void clearQueueAhead() {
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.clearQueueAhead();
+            }});
+        }
+
+        @JavascriptInterface
         public void clearSession() {
             runOnUiThread(new Runnable() { public void run() {
                 if (mBound) mService.stopPlayback();
