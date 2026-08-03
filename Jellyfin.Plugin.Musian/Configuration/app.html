@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.34.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.35.0</div>
 </div>
 
 <script>
@@ -545,6 +545,7 @@ var GENRES = [
   { name:'Dance & Electronic', genres:['Dance','Electronic','House','Techno','Disco','Trance','Electronica','EDM','Electro','Eurodance','Dance Pop','Electronic Dance Music','Club'] },
 ];
 var jmGenreFilter  = null; // null = no genre filter active
+var jmGenreZoneIdx = null; // GENRES index the dot pins to while a genre is chosen; null = per-track dot
 var jmMoodTags   = null; // tags from last mood tap, for genre re-search
 var jmMoodLabels = [];   // persistent label elements on the disc
 
@@ -586,6 +587,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
     // Triple tap — clear filter entirely
     if (genreTapCount >= 3) {
       jmGenreFilter = null;
+      jmGenreZoneIdx = null;
       try { localStorage.removeItem('jmLastGenre'); } catch(e) {}
       highlight.style.display = 'none';
       [labelsTopEl, labelsEl].forEach(function(row) {
@@ -633,6 +635,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
     var genreMap = {};
     selected.forEach(function(e) { e.genres.forEach(function(g) { genreMap[g] = true; }); });
     jmGenreFilter = Object.keys(genreMap);
+    jmGenreZoneIdx = Math.round((lo + hi) / 2);
     if (jmIsPremium()) try { localStorage.setItem('jmLastGenre', JSON.stringify({lo:lo,hi:hi})); } catch(e) {}
 
     // Replay with new genre filter only if a mood was already selected
@@ -808,7 +811,6 @@ function jmPlayTrack(idx, gen) {
     jmRefetchFn().then(function(more) {
       if (_gen !== jmGeneration) return;
       jmFetching = false;
-      more = jmGenreGate(more);
       var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
       if (!filtered.length && more.length) { jmPlayedIds = []; filtered = more; }
       more = filtered;
@@ -871,7 +873,8 @@ function jmPlayTrack(idx, gen) {
 function jmShowMoodTransition(item) {
   clearMoodLabels();
   jmShowPrompt(true);
-  placeGenreDot((item && item.Genres) || []);
+  if (jmGenreZoneIdx !== null) { showGenreDotAtIndex(jmGenreZoneIdx); }
+  else { placeGenreDot((item && item.Genres) || []); }
 }
 
 function jmSetNativePlayState(playing) {
@@ -904,7 +907,6 @@ function jmNativeUpdateUI(idx) {
     jmRefetchFn().then(function(more) {
       if (_gen !== jmGeneration) return;
       jmFetching = false;
-      more = jmGenreGate(more);
       var filtered = more.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
       if (!filtered.length && more.length) { jmPlayedIds = []; filtered = more; }
       more = filtered;
@@ -985,6 +987,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   // Clear mood, genre, and scope state
   jmMoodGenres = null;
   jmGenreFilter = null;
+  jmGenreZoneIdx = null;
   jmRefetchFn = null;
   jmPlayedIds = [];
   jmScopePool = null;
@@ -1015,22 +1018,7 @@ document.getElementById('jmPersistentSkipBtn').addEventListener('click', functio
   jmPlayIdx++;
   jmPlayTrack(jmPlayIdx, jmGeneration);
 });
-// Hard genre gate: only admit tracks whose own dominant genre-bar zone (by the
-// same scoring the dot uses) is one of the currently selected zone(s). A track
-// that merely shares one overlapping tag with the selection but is dominantly
-// something else (e.g. a Blues-Rock track with a single "Folk Rock" tag) doesn't
-// belong in a Folk & Country queue even though a plain word-overlap check would
-// have let it through.
-function jmGenreGate(items) {
-  if (!jmGenreFilter || !jmGenreFilter.length) return items;
-  return items.filter(function(t) {
-    var idx = bestGenreZoneIndex(t.Genres || []);
-    return idx !== -1 && GENRES[idx].genres.some(function(g) { return jmGenreFilter.indexOf(g) !== -1; });
-  });
-}
-
 function startPlayback(items) {
-  items = jmGenreGate(items);
   jmGeneration++;
   jmAudio.pause();
   jmPlaylist = items; jmPlayIdx = 0;
@@ -1043,7 +1031,6 @@ function startPlayback(items) {
 // Stage a new mood/genre selection as "up next" instead of interrupting what's playing.
 // Falls back to starting fresh if nothing is currently loaded.
 function jmQueueAhead(items) {
-  items = jmGenreGate(items);
   if (!items.length) return;
   if (!jmPlaylist.length) { startPlayback(items); return; }
   var filtered = items.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
@@ -1534,12 +1521,15 @@ function bestGenreZoneIndex(genres) {
   return bestIdx;
 }
 
-function placeGenreDot(genres) {
+function showGenreDotAtIndex(idx) {
   var dot = document.getElementById('jmGenreDot');
-  var bestIdx = bestGenreZoneIndex(genres);
-  if (bestIdx === -1) { dot.style.display = 'none'; return; }
-  dot.style.left = ((bestIdx + 0.5) / GENRES.length * 100) + '%';
+  if (idx === -1 || idx === null) { dot.style.display = 'none'; return; }
+  dot.style.left = ((idx + 0.5) / GENRES.length * 100) + '%';
   dot.style.display = 'block';
+}
+
+function placeGenreDot(genres) {
+  showGenreDotAtIndex(bestGenreZoneIndex(genres));
 }
 function placeDotForMood(mood) {
   var wrap = document.getElementById('jmWheelWrap');
@@ -1559,8 +1549,8 @@ function placeDotForMood(mood) {
 }
 
 // Highlights the genre-bar zone that best matches the given raw genre tags,
-// and returns that zone's canonical genre list — the "major genre" a track
-// or mood should rebase onto, rather than the track's own (often sprawling) tags.
+// and returns that zone's index — the "major genre" a track or mood should
+// rebase onto, rather than the track's own (often sprawling) tags. -1 if none.
 function highlightGenreBarForGenres(genres) {
   var bestIdx = bestGenreZoneIndex(genres);
   if (bestIdx !== -1) {
@@ -1575,9 +1565,8 @@ function highlightGenreBarForGenres(genres) {
         s.style.fontWeight = i === bestIdx ? '700' : '400';
       });
     });
-    return GENRES[bestIdx].genres;
   }
-  return null;
+  return bestIdx;
 }
 
 (function() {
@@ -1719,7 +1708,7 @@ function highlightGenreBarForGenres(genres) {
     fetchScopePool(item, kind).then(function(tracks) {
       if (!tracks.length) { setStatus('No tracks found.'); return; }
       jmScopePool = tracks;
-      jmMoodTags = null; jmMoodGenres = null; jmGenreFilter = null;
+      jmMoodTags = null; jmMoodGenres = null; jmGenreFilter = null; jmGenreZoneIdx = null;
 
       if (kind === 'album') {
         // Play in track order; when exhausted, transition to full-library mood search
@@ -1795,8 +1784,8 @@ function highlightGenreBarForGenres(genres) {
       }
       // Rebase onto the major genre zone the track lands in, not the track's own
       // (often sprawling) raw tag list — same principle as the mood landing point above.
-      var majorGenre = highlightGenreBarForGenres(g);
-      if (majorGenre) jmGenreFilter = majorGenre;
+      var majorIdx = highlightGenreBarForGenres(g);
+      if (majorIdx !== -1) { jmGenreFilter = GENRES[majorIdx].genres; jmGenreZoneIdx = majorIdx; }
       var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
@@ -1873,6 +1862,7 @@ function highlightGenreBarForGenres(genres) {
     var gm = {};
     GENRES.slice(lo, hi + 1).forEach(function(e) { e.genres.forEach(function(g) { gm[g] = true; }); });
     jmGenreFilter = Object.keys(gm);
+    jmGenreZoneIdx = Math.round((lo + hi) / 2);
   }
 
   var resumeBtn = document.getElementById('jmResumeBtn');
