@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.31.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.32.0</div>
 </div>
 
 <script>
@@ -644,7 +644,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
       fetchTracksByTags(moodT, genreG)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG); })
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
-        .then(function(items) { return items.length > 0 ? items : fetchFallback(); })
+        .then(function(items) { return items.length > 0 ? items : fetchFallback(genreG); })
         .then(function(items) {
           setTrackCount(items.length);
           if (!items.length) { setStatus('No tracks found.'); return; }
@@ -1177,14 +1177,14 @@ function handleInteraction(clientX, clientY) {
   var _gf = jmGenreFilter;
   if (jmIsPremium()) jmRefetchFn = function() {
     return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 500); });
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf); }, 500); });
   };
 
   setStatus('Searching\u2026');
 
   blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
-    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); })
-    .then(function(i) { return i.length ? i : fetchFallback(); })
+    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, jmGenreFilter); }, 25); })
+    .then(function(i) { return i.length ? i : fetchFallback(jmGenreFilter); })
     .then(function(items) {
       for (var i = items.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
@@ -1284,7 +1284,18 @@ function fetchTracksByGenres(genres) {
     .catch(function() { return []; });
 }
 
-function fetchFallback() {
+function fetchFallback(genres) {
+  return fetchFallbackCore().then(function(items) {
+    if (!genres || !genres.length) return items;
+    return items.filter(function(t) {
+      return (t.Genres || []).some(function(g) {
+        return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
+      });
+    });
+  });
+}
+
+function fetchFallbackCore() {
   if (JM.type === 'plex') {
     return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
       '/all?type=10&sort=random&X-Plex-Container-Size=10&X-Plex-Token=' + JM.token,
@@ -1299,7 +1310,7 @@ function fetchFallback() {
   }
   if (!JM.token || !JM.userId) return Promise.resolve([]);
   return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' +
-    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'25'}),
+    new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random', Limit:'25', Fields:'Genres,MediaSources'}),
     {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { return d.Items || []; })
@@ -1359,7 +1370,18 @@ function fetchTracksByTags(tags, genres) {
     .then(function(d) { return d.Items || []; });
 }
 
-function fetchTracksByTitleWords(tags) {
+function fetchTracksByTitleWords(tags, genres) {
+  return fetchTracksByTitleWordsCore(tags).then(function(items) {
+    if (!genres || !genres.length) return items;
+    return items.filter(function(t) {
+      return (t.Genres || []).some(function(g) {
+        return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
+      });
+    });
+  });
+}
+
+function fetchTracksByTitleWordsCore(tags) {
   if (!tags.length) return Promise.resolve([]);
   if (JM.type === 'plex') {
     // Use /all with title filter — ensures Media.Part is included in response
@@ -1755,7 +1777,7 @@ function highlightGenreBarForGenres(genres) {
         return _tags.length
           ? fetchTracksByTags(_tags, seedGenres)
               .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres); }, 25); })
-              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(_tags); }, 25); })
+              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(_tags, seedGenres || searchGenres); }, 25); })
           : fetchTracksByGenres(seedGenres || searchGenres);
       };
       if (jmIsPremium()) jmRefetchFn = _refetchFn;
@@ -1834,12 +1856,12 @@ function highlightGenreBarForGenres(genres) {
     var _gf = jmGenreFilter;
     if (jmIsPremium()) jmRefetchFn = function() {
       return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
-        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 500); });
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf); }, 500); });
     };
     setStatus('Searching…');
     blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags); }, 25); })
-      .then(function(i) { return i.length ? i : fetchFallback(); })
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, jmGenreFilter); }, 25); })
+      .then(function(i) { return i.length ? i : fetchFallback(jmGenreFilter); })
       .then(function(items) {
         for (var i = items.length - 1; i > 0; i--) {
           var j = Math.floor(Math.random() * (i + 1));
