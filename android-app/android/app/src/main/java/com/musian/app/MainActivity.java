@@ -66,7 +66,7 @@ public class MainActivity extends BridgeActivity {
 
     class NativeMediaBridge {
         @JavascriptInterface
-        public void playTrack(final String url, final String title, final String artist) {
+        public void playTrack(final String url, final String id, final String title, final String artist) {
             runOnUiThread(new Runnable() { public void run() {
                 if (!mBound) {
                     Intent svc = new Intent(MainActivity.this, MusicService.class);
@@ -74,7 +74,7 @@ public class MainActivity extends BridgeActivity {
                     bindService(svc, mConn, BIND_AUTO_CREATE);
                     return;
                 }
-                mService.playTrack(url, title, artist);
+                mService.playTrack(url, id, title, artist);
             }});
         }
 
@@ -93,9 +93,23 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
-        public void queueNextTrack(final String url, final String title, final String artist) {
+        public void queueNextTrack(final String url, final String id, final String title, final String artist) {
             runOnUiThread(new Runnable() { public void run() {
-                if (mBound) mService.queueNextTrack(url, title, artist);
+                if (mBound) mService.queueNextTrack(url, id, title, artist);
+            }});
+        }
+
+        @JavascriptInterface
+        public void setRefetchSpec(final String tagsJson, final String genreConstraintJsonOrNull, final String fallbackGenresJson) {
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.setRefetchSpec(tagsJson, genreConstraintJsonOrNull, fallbackGenresJson);
+            }});
+        }
+
+        @JavascriptInterface
+        public void clearRefetchSpec() {
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.clearRefetchSpec();
             }});
         }
 

@@ -41,7 +41,9 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MusicService extends MediaBrowserServiceCompat {
 
@@ -71,12 +73,24 @@ public class MusicService extends MediaBrowserServiceCompat {
     private String mTitle  = "";
     private String mArtist = "";
 
-    private final List<String[]> mQueue = Collections.synchronizedList(new ArrayList<>());
+    private final List<String[]> mQueue = Collections.synchronizedList(new ArrayList<>()); // {id, title, artist}
     private volatile int mCurrentIndex = 0;
 
     private OnTransitionListener mTransitionListener;
     private OnPrevListener       mPrevListener;
     private OnPlayStateChanged   mPlayStateListener;
+
+    // ── Background queue refill (Premium, Jellyfin only) ────────────────────────
+    // Lets the queue keep topping itself up while the app is backgrounded/screen
+    // locked, when WebView JS timers and evaluateJavascript calls are throttled.
+    // JS still decides *what* to search for (mood/genre matching stays in app.html);
+    // native just replays the same kind of Jellyfin fetch using the last spec it was given.
+    private final List<String> mPlayedIds = Collections.synchronizedList(new ArrayList<>());
+    private volatile List<String> mSpecTags = null;
+    private volatile List<String> mSpecGenreConstraint = null; // null = no genre lock, mirrors jmGenreFilter
+    private volatile List<String> mSpecFallbackGenres = null;
+    private volatile boolean mRefilling = false; // mirrors jmFetching
+    private volatile int mGeneration = 0;        // mirrors jmGeneration
 
     // ── Binder ────────────────────────────────────────────────────────────────
 
@@ -114,11 +128,15 @@ public class MusicService extends MediaBrowserServiceCompat {
                 int idx = mPlayer.getCurrentMediaItemIndex();
                 mCurrentIndex = idx;
                 if (idx >= 0 && idx < mQueue.size()) {
-                    mTitle  = mQueue.get(idx)[0];
-                    mArtist = mQueue.get(idx)[1];
+                    String id = mQueue.get(idx)[0];
+                    mTitle  = mQueue.get(idx)[1];
+                    mArtist = mQueue.get(idx)[2];
                     setMetadata(mTitle, mArtist);
                     postNotification(mTitle, mArtist, true);
+                    mPlayedIds.add(id);
+                    if (mPlayedIds.size() > 500) mPlayedIds.remove(0);
                 }
+                maybeRefillQueue();
                 if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
                         && mTransitionListener != null) {
                     mTransitionListener.onTransition();
@@ -269,7 +287,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                             + "?UserId=" + userId
                             + "&AudioCodec=aac&AudioBitRate=192000"
                             + "&api_key=" + token;
-                        tracks.add(new String[]{stream, name, artist});
+                        tracks.add(new String[]{stream, id, name, artist});
                     }
                 } catch (Exception ignored) {}
                 if (tracks.size() >= 20) break;
@@ -282,9 +300,10 @@ public class MusicService extends MediaBrowserServiceCompat {
             List<String[]> finalTracks = tracks;
             new Handler(Looper.getMainLooper()).post(() -> {
                 String[] first = finalTracks.get(0);
-                playTrack(first[0], first[1], first[2]);
+                playTrack(first[0], first[1], first[2], first[3]);
                 for (int i = 1; i < finalTracks.size(); i++) {
-                    queueNextTrack(finalTracks.get(i)[0], finalTracks.get(i)[1], finalTracks.get(i)[2]);
+                    String[] t = finalTracks.get(i);
+                    queueNextTrack(t[0], t[1], t[2], t[3]);
                 }
             });
         }).start();
@@ -321,6 +340,123 @@ public class MusicService extends MediaBrowserServiceCompat {
         return sb.toString();
     }
 
+    // ── Background queue refill ─────────────────────────────────────────────────
+    // Runs the same tag/genre search JS would have run, but purely in native code,
+    // so it keeps working while the WebView is throttled (backgrounded/screen locked).
+    // Intentionally skips the title-word and random-fallback tiers app.html falls back
+    // to — those are the least genre-constrained tiers and this is a background top-up,
+    // not the primary queue-building experience.
+
+    private void maybeRefillQueue() {
+        if (mRefilling || mSpecTags == null) return;
+        if (mPlayer.getMediaItemCount() - mCurrentIndex > 2) return; // mirrors jmPlaylist.length - idx <= 2
+
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        final String server = prefs.getString(PREF_SERVER, null);
+        final String userId = prefs.getString(PREF_USER_ID, null);
+        final String token  = prefs.getString(PREF_TOKEN, null);
+        if (server == null || userId == null || token == null) return;
+
+        mRefilling = true;
+        final int gen = mGeneration;
+        final List<String> tags = mSpecTags;
+        final List<String> genreConstraint = mSpecGenreConstraint;
+        final List<String> fallbackGenres = mSpecFallbackGenres;
+        final List<String> playedSnapshot = new ArrayList<>(mPlayedIds);
+
+        new Thread(() -> {
+            List<String[]> fetched = new ArrayList<>();
+            try {
+                fetched = fetchByTags(server, userId, token, tags, genreConstraint);
+                if (fetched.size() < 10) {
+                    List<String> gf = (genreConstraint != null && !genreConstraint.isEmpty()) ? genreConstraint : fallbackGenres;
+                    fetched = mergeDedupe(fetched, fetchByGenres(server, userId, token, gf));
+                }
+            } catch (Exception ignored) {}
+
+            List<String[]> filtered = new ArrayList<>();
+            for (String[] t : fetched) if (!playedSnapshot.contains(t[1])) filtered.add(t); // t = {stream, id, name, artist}
+            if (filtered.isEmpty() && !fetched.isEmpty()) filtered = fetched; // exhausted-history reset, mirrors JS
+
+            List<String[]> results = filtered;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                mRefilling = false;
+                if (gen != mGeneration) return;
+                for (String[] t : results) queueNextTrack(t[0], t[1], t[2], t[3]);
+            });
+        }).start();
+    }
+
+    private List<String[]> fetchByTags(String server, String userId, String token,
+                                        List<String> tags, List<String> genres) throws Exception {
+        List<String> expanded = new ArrayList<>();
+        for (String t : tags) {
+            String cap = t.isEmpty() ? t : Character.toUpperCase(t.charAt(0)) + t.substring(1);
+            expanded.add(t); expanded.add(cap); expanded.add("Mood:" + t); expanded.add("Mood:" + cap);
+        }
+        StringBuilder url = new StringBuilder(server + "/Users/" + userId + "/Items"
+            + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=500&Fields=Genres,MediaSources"
+            + "&Tags=" + URLEncoder.encode(joinPipe(expanded), "UTF-8"));
+        if (genres != null && !genres.isEmpty()) {
+            url.append("&Genres=").append(URLEncoder.encode(joinPipe(genres), "UTF-8"));
+        }
+        url.append("&api_key=").append(token);
+        return parseItems(httpGet(url.toString(), token), server, userId, token);
+    }
+
+    private List<String[]> fetchByGenres(String server, String userId, String token, List<String> genres) throws Exception {
+        StringBuilder url = new StringBuilder(server + "/Users/" + userId + "/Items"
+            + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=500&Fields=Genres,MediaSources");
+        if (genres != null && !genres.isEmpty()) {
+            url.append("&Genres=").append(URLEncoder.encode(joinPipe(genres), "UTF-8"));
+        }
+        url.append("&api_key=").append(token);
+        return parseItems(httpGet(url.toString(), token), server, userId, token);
+    }
+
+    private List<String[]> parseItems(String json, String server, String userId, String token) throws Exception {
+        List<String[]> out = new ArrayList<>();
+        JSONArray items = new JSONObject(json).getJSONArray("Items");
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.getJSONObject(i);
+            String id     = item.getString("Id");
+            String name   = item.optString("Name", "");
+            String artist = item.optString("AlbumArtist", "");
+            out.add(new String[]{buildStreamUrl(server, id, userId, token), id, name, artist});
+        }
+        return out;
+    }
+
+    private String buildStreamUrl(String server, String id, String userId, String token) {
+        return server + "/Audio/" + id + "/universal"
+            + "?UserId=" + userId
+            + "&MaxStreamingBitrate=140000000"
+            + "&Container=mp3,aac,m4a,flac,ogg,opus,webma,webm,wav"
+            + "&AudioCodec=aac,mp3,flac,opus,vorbis"
+            + "&TranscodingContainer=mp3"
+            + "&TranscodingProtocol=http"
+            + "&api_key=" + token;
+    }
+
+    private String joinPipe(List<String> parts) {
+        return String.join("|", parts);
+    }
+
+    private List<String[]> mergeDedupe(List<String[]> a, List<String[]> b) {
+        Set<String> seen = new HashSet<>();
+        for (String[] t : a) seen.add(t[1]);
+        List<String[]> out = new ArrayList<>(a);
+        for (String[] t : b) if (!seen.contains(t[1])) out.add(t);
+        return out;
+    }
+
+    private List<String> jsonArrayToList(String json) throws Exception {
+        JSONArray arr = new JSONArray(json);
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < arr.length(); i++) out.add(arr.getString(i));
+        return out;
+    }
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     public int getCurrentIndex() { return mCurrentIndex; }
@@ -329,12 +465,14 @@ public class MusicService extends MediaBrowserServiceCompat {
     public void setOnPrevListener(OnPrevListener l)                 { mPrevListener = l; }
     public void setOnPlayStateChangedListener(OnPlayStateChanged l) { mPlayStateListener = l; }
 
-    public void playTrack(String url, String title, String artist) {
+    public void playTrack(String url, String id, String title, String artist) {
         mCurrentIndex = 0;
         mQueue.clear();
-        mQueue.add(new String[]{title, artist});
+        mQueue.add(new String[]{id, title, artist});
         mTitle  = title;
         mArtist = artist;
+        mPlayedIds.clear();
+        mGeneration++;
         mPlayer.clearMediaItems();
         mPlayer.setMediaItem(MediaItem.fromUri(url));
         mPlayer.prepare();
@@ -343,8 +481,8 @@ public class MusicService extends MediaBrowserServiceCompat {
         startForeground(NOTIF_ID, buildNotification(title, artist, true));
     }
 
-    public void queueNextTrack(String url, String title, String artist) {
-        mQueue.add(new String[]{title, artist});
+    public void queueNextTrack(String url, String id, String title, String artist) {
+        mQueue.add(new String[]{id, title, artist});
         mPlayer.addMediaItem(MediaItem.fromUri(url));
     }
 
@@ -361,10 +499,26 @@ public class MusicService extends MediaBrowserServiceCompat {
     public void resumeTrack() { mPlayer.play(); }
 
     public void stopPlayback() {
+        mGeneration++;
+        clearRefetchSpec();
         mPlayer.stop();
         mSession.setActive(false);
         stopForeground(true);
         stopSelf();
+    }
+
+    public void setRefetchSpec(String tagsJson, String genreConstraintJsonOrNull, String fallbackGenresJson) {
+        try {
+            mSpecTags = jsonArrayToList(tagsJson);
+            mSpecGenreConstraint = genreConstraintJsonOrNull == null ? null : jsonArrayToList(genreConstraintJsonOrNull);
+            mSpecFallbackGenres = jsonArrayToList(fallbackGenresJson);
+        } catch (Exception ignored) {}
+    }
+
+    public void clearRefetchSpec() {
+        mSpecTags = null;
+        mSpecGenreConstraint = null;
+        mSpecFallbackGenres = null;
     }
 
     // ── MediaSession ──────────────────────────────────────────────────────────

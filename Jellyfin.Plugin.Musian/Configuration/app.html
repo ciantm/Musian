@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.35.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.36.0</div>
 </div>
 
 <script>
@@ -644,6 +644,7 @@ var jmMoodLabels = [];   // persistent label elements on the disc
       setTrackCount(0);
       var genreG = jmGenreFilter, moodG = jmMoodGenres, moodT = jmMoodTags || [];
       if (jmIsPremium()) jmRefetchFn = function() { return fetchTracksByTags(moodT, genreG).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG); }); };
+      jmPushNativeSpec(moodT, genreG, moodG);
       fetchTracksByTags(moodT, genreG)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG); })
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
@@ -683,6 +684,22 @@ var jmUserPaused = false;
 var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
 var jmRefetchFn  = null;  // zero-arg fn returning Promise of next batch
+
+// Push a search recipe to native so it can independently refill the queue in the
+// background (WebView JS timers/evaluateJavascript are throttled once the screen
+// locks or the app backgrounds — native has no such limitation). JS still owns
+// deciding *what* to search for; native just replays the same kind of fetch.
+function jmPushNativeSpec(tags, genreConstraint, fallbackGenres) {
+  if (window.NativeMedia && jmIsPremium() && JM.type === 'jellyfin' && window.NativeMedia.setRefetchSpec) {
+    try {
+      window.NativeMedia.setRefetchSpec(
+        JSON.stringify(tags || []),
+        genreConstraint ? JSON.stringify(genreConstraint) : null,
+        JSON.stringify(fallbackGenres || [])
+      );
+    } catch (e) {}
+  }
+}
 var jmPlayedIds  = [];    // ids of tracks already played (for dedup)
 var jmFetching   = false; // prevents concurrent background fetches
 var jmScopePool  = null;  // tracks from artist/album scope (premium)
@@ -820,7 +837,7 @@ function jmPlayTrack(idx, gen) {
         if (window.NativeMedia) {
           more.forEach(function(t) {
             var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
-            window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Name || '', ta);
+            window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Id, t.Name || '', ta);
           });
         }
       }
@@ -831,12 +848,12 @@ function jmPlayTrack(idx, gen) {
   if (window.NativeMedia) {
     if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
     window._nativeStartIdx = idx;
-    window.NativeMedia.playTrack(url, item.Name || '', artist);
+    window.NativeMedia.playTrack(url, item.Id, item.Name || '', artist);
     jmShowMoodTransition(item);
     for (var qi = idx + 1; qi < jmPlaylist.length; qi++) {
       var nx = jmPlaylist[qi];
       var na = (nx.Artists && nx.Artists[0]) || nx.AlbumArtist || '';
-      window.NativeMedia.queueNextTrack(JM.streamUrl(nx), nx.Name || '', na);
+      window.NativeMedia.queueNextTrack(JM.streamUrl(nx), nx.Id, nx.Name || '', na);
     }
     var _pollGen = jmGeneration;
     window._nativePollInterval = setInterval(function() {
@@ -915,7 +932,7 @@ function jmNativeUpdateUI(idx) {
         jmPlaylist = jmPlaylist.concat(more);
         more.forEach(function(t) {
           var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
-          window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Name || '', ta);
+          window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Id, t.Name || '', ta);
         });
       }
     }).catch(function() { if (_gen === jmGeneration) jmFetching = false; });
@@ -989,6 +1006,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGenreFilter = null;
   jmGenreZoneIdx = null;
   jmRefetchFn = null;
+  if (window.NativeMedia && window.NativeMedia.clearRefetchSpec) window.NativeMedia.clearRefetchSpec();
   jmPlayedIds = [];
   jmScopePool = null;
   jmScopeName = null;
@@ -1047,7 +1065,7 @@ function jmQueueAhead(items) {
     window.NativeMedia.clearQueueAhead();
     filtered.forEach(function(t) {
       var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
-      window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Name || '', ta);
+      window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Id, t.Name || '', ta);
     });
   }
 }
@@ -1184,6 +1202,7 @@ function handleInteraction(clientX, clientY) {
     return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
       .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf); }, 500); });
   };
+  jmPushNativeSpec(moodTags, _gf, searchGenres);
 
   setStatus('Searching\u2026');
 
@@ -1725,11 +1744,12 @@ function highlightGenreBarForGenres(genres) {
             jmMoodGenres = Object.keys(genreMap);
             placeDotForMood(mood);
             jmRefetchFn = function() { return fetchTracksByTags(jmMoodTags, null).then(function(i){ return i.length?i:fetchTracksByGenres(jmMoodGenres); }); };
+            jmPushNativeSpec(jmMoodTags, null, jmMoodGenres);
             return fetchTracksByTags(jmMoodTags, null).then(function(i){ return i.length?i:fetchTracksByGenres(jmMoodGenres); });
           }
           return fetchFallback();
         };
-        startPlayback(tracks.slice(0, 50));
+        startPlayback(tracks);
       } else {
         // Artist: auto-detect mood, filter pool, shuffle immediately
         var genres = poolGenres(tracks);
@@ -1749,7 +1769,7 @@ function highlightGenreBarForGenres(genres) {
           if (pool.length < 5) pool = jmScopePool;
           return Promise.resolve(jmShuffle(pool.slice()).slice(0, 25));
         };
-        startPlayback(jmShuffle(filtered.slice()).slice(0, 25));
+        startPlayback(jmShuffle(filtered.slice()));
       }
     }).catch(function() { setStatus('Could not load tracks.'); });
   }
@@ -1798,6 +1818,7 @@ function highlightGenreBarForGenres(genres) {
           : fetchTracksByGenres(seedGenres || searchGenres);
       };
       if (jmIsPremium()) jmRefetchFn = _refetchFn;
+      jmPushNativeSpec(_tags, seedGenres, searchGenres);
       setStatus('Searching\u2026');
       _refetchFn().then(function(more) {
         var seen = {}; seen[item.Id] = true;
@@ -1876,6 +1897,7 @@ function highlightGenreBarForGenres(genres) {
       return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
         .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf); }, 500); });
     };
+    jmPushNativeSpec(moodTags, _gf, searchGenres);
     setStatus('Searching…');
     blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
       .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, jmGenreFilter); }, 25); })
