@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'build.yaml'
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -87,6 +88,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout gh-pages
@@ -120,3 +126,19 @@ jobs:
           git add manifest.json
           git commit -m "chore: update manifest for ${{ needs.build.outputs.tag }}" || echo "No changes"
           git push
+
+      # Pages source is now "GitHub Actions" (switched 2026-08-06 after the legacy
+      # branch-deploy builder started failing outright — see git history for context).
+      # Committing manifest.json to gh-pages above is kept for history/audit trail,
+      # but no longer auto-publishes anything by itself; these steps do the actual deploy.
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
