@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.36.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.37.0</div>
 </div>
 
 <script>
@@ -1817,12 +1817,20 @@ function highlightGenreBarForGenres(genres) {
               .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(_tags, seedGenres || searchGenres); }, 25); })
           : fetchTracksByGenres(seedGenres || searchGenres);
       };
-      if (jmIsPremium()) jmRefetchFn = _refetchFn;
+      if (jmIsPremium()) {
+        // jmRefetchFn already knows how to find more tracks like this one \u2014 queue just the
+        // searched song now and let the normal low-queue trigger fetch the rest once it's
+        // actually playing, instead of blocking "up next" on a network round-trip.
+        jmRefetchFn = _refetchFn;
+        jmPushNativeSpec(_tags, seedGenres, searchGenres);
+        jmQueueAhead([item]);
+        return;
+      }
       jmPushNativeSpec(_tags, seedGenres, searchGenres);
       setStatus('Searching\u2026');
       _refetchFn().then(function(more) {
         var seen = {}; seen[item.Id] = true;
-        var all = [item].concat(more.filter(function(t) { return !seen[t.Id]; })).slice(0, jmIsPremium() ? 25 : 10);
+        var all = [item].concat(more.filter(function(t) { return !seen[t.Id]; })).slice(0, 10);
         startPlayback(all);
       }).catch(function() { startPlayback([item]); });
     }
