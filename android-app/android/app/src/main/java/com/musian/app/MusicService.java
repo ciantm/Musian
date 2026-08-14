@@ -256,6 +256,10 @@ public class MusicService extends MediaBrowserServiceCompat {
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
             .build());
+        // Must go foreground before the fetch, not after: if the phone screen is off
+        // (the normal driving case), a plain background Thread can get frozen by the
+        // OS's cached-app freezer before the network call finishes, hanging the spinner.
+        startForeground(NOTIF_ID, buildNotification("Loading…", "", true));
 
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         String server = prefs.getString(PREF_SERVER, null);
@@ -315,6 +319,7 @@ public class MusicService extends MediaBrowserServiceCompat {
             .setErrorMessage(PlaybackStateCompat.ERROR_CODE_NOT_SUPPORTED, message)
             .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID)
             .build());
+        stopForeground(true);
     }
 
     private String[] tagsForQuadrant(String id) {
