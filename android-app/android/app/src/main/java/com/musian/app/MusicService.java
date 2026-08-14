@@ -196,8 +196,8 @@ public class MusicService extends MediaBrowserServiceCompat {
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid,
                                  @Nullable Bundle rootHints) {
         Bundle extras = new Bundle();
-        extras.putInt("android.media.browse.CONTENT_STYLE_BROWSABLE_HINT", 4);
-        extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 4);
+        extras.putInt("android.media.browse.CONTENT_STYLE_BROWSABLE_HINT", 1);
+        extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 1);
         // Debug builds: allow any caller so Auto can discover the app regardless of package name
         if (BuildConfig.DEBUG) {
             return new BrowserRoot("root", extras);
@@ -230,7 +230,7 @@ public class MusicService extends MediaBrowserServiceCompat {
     private MediaBrowserCompat.MediaItem buildAutoItem(String id, String title, int iconRes) {
         Bitmap icon = BitmapFactory.decodeResource(getResources(), iconRes);
         Bundle extras = new Bundle();
-        extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 4);
+        extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 1);
         MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
             .setMediaId(id)
             .setTitle(title)
