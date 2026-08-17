@@ -273,29 +273,37 @@ public class MusicService extends MediaBrowserServiceCompat {
         String[] tags = tagsForQuadrant(quadrantId);
         new Thread(() -> {
             List<String[]> tracks = new ArrayList<>();
-            for (String tag : tags) {
-                try {
-                    String urlStr = server + "/Users/" + userId + "/Items"
-                        + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=15"
-                        + "&Fields=MediaSources"
-                        + "&Tags=" + URLEncoder.encode(tag, "UTF-8")
+            try {
+                // Mirror app.html's fetchTracksByTags(): expand each mood word into
+                // lowercase/Capitalized and Mood:-prefixed variants, OR'd in one request,
+                // since libraries commonly tag moods as e.g. "Mood:Aggressive".
+                List<String> expanded = new ArrayList<>();
+                for (String tag : tags) {
+                    String cap = Character.toUpperCase(tag.charAt(0)) + tag.substring(1);
+                    expanded.add(tag);
+                    expanded.add(cap);
+                    expanded.add("Mood:" + tag);
+                    expanded.add("Mood:" + cap);
+                }
+                String urlStr = server + "/Users/" + userId + "/Items"
+                    + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=40"
+                    + "&Fields=MediaSources"
+                    + "&Tags=" + URLEncoder.encode(String.join("|", expanded), "UTF-8")
+                    + "&api_key=" + token;
+                String json = httpGet(urlStr, token);
+                JSONArray items = new JSONObject(json).getJSONArray("Items");
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.getJSONObject(i);
+                    String id     = item.getString("Id");
+                    String name   = item.optString("Name", "");
+                    String artist = item.optString("AlbumArtist", "");
+                    String stream = server + "/Audio/" + id + "/universal"
+                        + "?UserId=" + userId
+                        + "&AudioCodec=aac&AudioBitRate=192000"
                         + "&api_key=" + token;
-                    String json = httpGet(urlStr, token);
-                    JSONArray items = new JSONObject(json).getJSONArray("Items");
-                    for (int i = 0; i < items.length(); i++) {
-                        JSONObject item = items.getJSONObject(i);
-                        String id     = item.getString("Id");
-                        String name   = item.optString("Name", "");
-                        String artist = item.optString("AlbumArtist", "");
-                        String stream = server + "/Audio/" + id + "/universal"
-                            + "?UserId=" + userId
-                            + "&AudioCodec=aac&AudioBitRate=192000"
-                            + "&api_key=" + token;
-                        tracks.add(new String[]{stream, id, name, artist});
-                    }
-                } catch (Exception ignored) {}
-                if (tracks.size() >= 20) break;
-            }
+                    tracks.add(new String[]{stream, id, name, artist});
+                }
+            } catch (Exception ignored) {}
             if (tracks.isEmpty()) {
                 new Handler(Looper.getMainLooper()).post(() -> setAutoError("No tracks found"));
                 return;
@@ -322,13 +330,32 @@ public class MusicService extends MediaBrowserServiceCompat {
         stopForeground(true);
     }
 
+    // Mirrors the mood-group tag arrays in app.html so Android Auto's quadrant
+    // taps match as many library tag conventions as the main app's mood wheel does.
     private String[] tagsForQuadrant(String id) {
         switch (id) {
-            case AUTO_TL: return new String[]{"angry", "aggression", "anxiety"};
-            case AUTO_TR: return new String[]{"excitement", "upbeat", "cheerful"};
-            case AUTO_BL: return new String[]{"sad", "depressed", "grief"};
-            case AUTO_BR: return new String[]{"calm", "dreamy", "romantic"};
-            default:      return new String[]{"happy"};
+            case AUTO_TL: return new String[]{
+                "aggressive", "aggression",
+                "angry", "anger", "choleric", "fury", "outraged", "rage", "angry music",
+                "anxious", "angst", "anxiety", "jumpy", "nervous", "angsty"};
+            case AUTO_TR: return new String[]{
+                "cheerful", "cheer up", "festive", "jolly", "jovial", "merry", "party",
+                "cheer", "cheering", "cheery", "get happy", "rejoice", "songs that are cheerful", "sunny",
+                "upbeat", "gleeful", "high spirits", "zest", "enthusiastic", "buoyancy", "elation",
+                "excitement", "exciting", "exhilarating", "thrill", "ardor", "stimulating", "thrilling", "titillating"};
+            case AUTO_BL: return new String[]{
+                "grief", "heartbreak", "mournful", "sorrow", "sorry", "doleful", "heartache",
+                "heartbreaking", "heartsick", "lachrymose", "mourning", "plaintive", "regret", "sorrowful",
+                "depressed", "blue", "dark", "depressive", "dreary", "gloom", "darkness", "depress",
+                "depression", "depressing", "gloomy",
+                "sad", "sadness", "unhappy", "melancholic", "melancholy", "feeling sad", "sad song"};
+            case AUTO_BR: return new String[]{
+                "dreamy", "romantic", "romantic music",
+                "calm", "comfort", "quiet", "serene", "mellow", "relaxed", "chill out", "calm down",
+                "calming", "chillout", "comforting", "content", "cool down", "mellow music", "mellow rock",
+                "peace of mind", "quietness", "relaxation", "serenity", "solace", "soothe", "soothing",
+                "still", "tranquil", "tranquility"};
+            default: return new String[]{"happy"};
         }
     }
 
