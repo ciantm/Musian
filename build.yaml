@@ -7,4 +7,4 @@ artifactDir: "artifacts"
 
 projects:
   - Jellyfin.Plugin.Musian/Jellyfin.Plugin.Musian.csproj
-# retrigger: publish via Pages Actions deploy (retry after deploy-pages timeout)
+# retrigger: publish v3.1.41.0 via Pages Actions deploy (retry after deploy-pages timeout)
