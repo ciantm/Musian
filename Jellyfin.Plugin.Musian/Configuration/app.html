@@ -162,7 +162,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.39.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.40.0</div>
 </div>
 
 <script>
@@ -807,6 +807,7 @@ document.addEventListener('visibilitychange', function() {
 function jmPlayTrack(idx, gen) {
   if (gen !== jmGeneration) return;
   if (idx >= jmPlaylist.length) {
+    jmPlaylist = [];
     setStatus('Playlist ended — tap the wheel to play again.');
     document.getElementById('jmSearch').placeholder = 'Search song\u2026';
     document.getElementById('jmControls').style.display = 'none';
