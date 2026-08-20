@@ -123,6 +123,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <div id="jmWheelPromptSub" style="font-size:0.72em;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-top:6px;text-shadow:0 0 12px #000;">Tap to play</div>
       <button id="jmResumeBtn">&#9654; Resume</button>
     </div>
+    <img id="jmNowPlayingArt" style="display:none;position:absolute;top:61%;left:50%;transform:translate(-50%,0);width:22%;height:22%;border-radius:50%;object-fit:cover;box-shadow:0 4px 22px rgba(0,0,0,0.65);border:2px solid rgba(255,255,255,0.22);pointer-events:none;z-index:2;"/>
   </div>
 
   <div id="jmGenreArea">
@@ -147,7 +148,6 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <input id="jmSearch" type="search" placeholder="Search song…" autocomplete="off" autocapitalize="none" spellcheck="false"/>
       <div id="jmSuggest"></div>
     </div>
-    <img id="jmNowPlayingArt" style="display:none;width:44px;height:44px;border-radius:10px;object-fit:cover;box-shadow:0 2px 14px rgba(0,0,0,0.55);margin:0 auto 10px;"/>
     <div id="jmControls" style="display:none;margin-top:16px;">
       <button id="jmBackBtn"  class="jm-btn">&#9198;</button>
       <button id="jmPauseBtn" class="jm-btn">&#9646;&#9646;</button>
@@ -164,7 +164,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.42.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.43.0</div>
 </div>
 
 <script>
@@ -1764,6 +1764,11 @@ function highlightGenreBarForGenres(genres) {
       jmScopePool = tracks;
       jmMoodTags = null; jmMoodGenres = null; jmGenreFilter = null; jmGenreZoneIdx = null;
 
+      // Show the mood dot right away for both albums and artists, same as a
+      // single-track search — no need to wait for the pool to play out first.
+      var scopeMood = findMoodForGenres(poolGenres(tracks));
+      if (scopeMood) { placeDotForMood(scopeMood); jmMoodGenres = scopeMood.genres; }
+
       if (kind === 'album') {
         // Play in track order; when exhausted, transition to full-library mood search
         jmRefetchFn = function() {
@@ -1784,18 +1789,14 @@ function highlightGenreBarForGenres(genres) {
           }
           return fetchFallback();
         };
-        startPlayback(tracks);
+        jmQueueAhead(tracks);
       } else {
-        // Artist: auto-detect mood, filter pool, shuffle immediately
-        var genres = poolGenres(tracks);
-        var mood = findMoodForGenres(genres);
+        // Artist: filter pool to the detected mood's genres, shuffle
         var filtered = tracks;
-        if (mood) {
-          var mg = mood.genres.map(function(g){return g.toLowerCase();});
+        if (scopeMood) {
+          var mg = scopeMood.genres.map(function(g){return g.toLowerCase();});
           var mf = tracks.filter(function(t){ return (t.Genres||[]).some(function(g){return mg.indexOf(g.toLowerCase())!==-1;}); });
           if (mf.length >= 5) filtered = mf;
-          placeDotForMood(mood);
-          jmMoodGenres = mood.genres;
         }
         jmRefetchFn = function() {
           var pool = (jmMoodGenres ? jmScopePool.filter(function(t){
@@ -1804,7 +1805,7 @@ function highlightGenreBarForGenres(genres) {
           if (pool.length < 5) pool = jmScopePool;
           return Promise.resolve(jmShuffle(pool.slice()).slice(0, 25));
         };
-        startPlayback(jmShuffle(filtered.slice()));
+        jmQueueAhead(jmShuffle(filtered.slice()));
       }
     }).catch(function() { setStatus('Could not load tracks.'); });
   }
