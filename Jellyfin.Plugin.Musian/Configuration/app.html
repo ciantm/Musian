@@ -147,6 +147,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <input id="jmSearch" type="search" placeholder="Search song…" autocomplete="off" autocapitalize="none" spellcheck="false"/>
       <div id="jmSuggest"></div>
     </div>
+    <img id="jmNowPlayingArt" style="display:none;width:44px;height:44px;border-radius:10px;object-fit:cover;box-shadow:0 2px 14px rgba(0,0,0,0.55);margin:0 auto 10px;"/>
     <div id="jmControls" style="display:none;margin-top:16px;">
       <button id="jmBackBtn"  class="jm-btn">&#9198;</button>
       <button id="jmPauseBtn" class="jm-btn">&#9646;&#9646;</button>
@@ -155,6 +156,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     </div>
   </div>
   <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border-radius:24px;display:none;align-items:center;gap:10px;z-index:100;max-width:90vw;">
+    <img id="jmPersistentArt" style="display:none;width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>
     <span id="jmPersistentTrack" style="font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;"></span>
     <button id="jmPersistentPlayBtn" class="jm-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9654;</button>
     <button id="jmPersistentSkipBtn" class="jm-btn" style="background:rgba(255,255,255,0.12);border:none;color:#fff;padding:6px 14px;border-radius:20px;flex-shrink:0;">&#9197;</button>
@@ -162,7 +164,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.41.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.42.0</div>
 </div>
 
 <script>
@@ -258,6 +260,11 @@ var JM = {
       '&TranscodingContainer=mp3' +
       '&TranscodingProtocol=http' +
       '&api_key=' + this.token;
+  },
+  artUrl: function(item) {
+    if (this.type !== 'jellyfin') return null;
+    var id = typeof item === 'object' ? item.Id : item;
+    return this.server + '/Items/' + id + '/Images/Primary?maxHeight=160&quality=90&api_key=' + this.token;
   }
 };
 JM.init();
@@ -774,14 +781,36 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+function jmSetNowPlayingArt(item) {
+  var el = document.getElementById('jmNowPlayingArt');
+  if (!el) return;
+  var url = item ? JM.artUrl(item) : null;
+  if (url) {
+    el.onerror = function() { el.style.display = 'none'; };
+    el.src = url;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 function jmUpdatePersistentBar(item) {
   var bar = document.getElementById('jmPersistentPlay');
   var btn = document.getElementById('jmPersistentPlayBtn');
   var lbl = document.getElementById('jmPersistentTrack');
+  var art = document.getElementById('jmPersistentArt');
   if (!bar) return;
   if (item) {
     var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
     lbl.textContent = (artist ? artist + ' \u2014 ' : '') + (item.Name || '');
+    var artUrl = JM.artUrl(item);
+    if (artUrl) {
+      art.onerror = function() { art.style.display = 'none'; };
+      art.src = artUrl;
+      art.style.display = 'block';
+    } else {
+      art.style.display = 'none';
+    }
   }
   // Only show when screen is locked/hidden
   if (document.hidden && jmPlaylist.length > 0) {
@@ -812,6 +841,7 @@ function jmPlayTrack(idx, gen) {
     document.getElementById('jmSearch').placeholder = 'Search song\u2026';
     document.getElementById('jmControls').style.display = 'none';
     document.getElementById('jmUpNext').style.display = 'none';
+    jmSetNowPlayingArt(null);
     if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
     if (window.NativeMedia) window.NativeMedia.clearSession();
     if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
@@ -873,6 +903,7 @@ function jmPlayTrack(idx, gen) {
   }
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
+  jmSetNowPlayingArt(item);
   var next = jmPlaylist[idx + 1];
   var upNextEl = document.getElementById('jmUpNext');
   if (next) {
@@ -909,6 +940,7 @@ function jmNativeUpdateUI(idx) {
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
+  jmSetNowPlayingArt(item);
   var next = jmPlaylist[idx + 1];
   var upEl = document.getElementById('jmUpNext');
   if (next) {
@@ -999,6 +1031,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   document.getElementById('jmSearch').placeholder = 'Search song\u2026';
   document.getElementById('jmControls').style.display = 'none';
   document.getElementById('jmUpNext').style.display = 'none';
+  jmSetNowPlayingArt(null);
   setStatus(''); setTrackCount(0); setMoodName('', ''); clearMoodLabels();
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
   jmHidePersistentBar();
@@ -1008,6 +1041,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGenreZoneIdx = null;
   jmRefetchFn = null;
   if (window.NativeMedia && window.NativeMedia.clearRefetchSpec) window.NativeMedia.clearRefetchSpec();
+  if (window.NativeMedia && window.NativeMedia.clearResumeSpec) window.NativeMedia.clearResumeSpec();
   jmPlayedIds = [];
   jmScopePool = null;
   jmScopeName = null;

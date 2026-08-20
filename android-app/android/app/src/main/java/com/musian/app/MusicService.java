@@ -40,6 +40,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -58,11 +59,18 @@ public class MusicService extends MediaBrowserServiceCompat {
     static final String PREF_SERVER  = "server";
     static final String PREF_USER_ID = "user_id";
     static final String PREF_TOKEN   = "token";
+    // Last mood/genre search recipe, persisted across service/app restarts so the
+    // Android Auto "Resume" tile works even after a cold start (mirrors app.html's
+    // jmLastMood/jmLastGenre, but stores the already-resolved tag/genre lists).
+    private static final String PREF_RESUME_TAGS     = "resume_tags";
+    private static final String PREF_RESUME_GENRE    = "resume_genre_constraint";
+    private static final String PREF_RESUME_FALLBACK = "resume_fallback_genres";
 
-    private static final String AUTO_TL = "auto_tl";
-    private static final String AUTO_TR = "auto_tr";
-    private static final String AUTO_BL = "auto_bl";
-    private static final String AUTO_BR = "auto_br";
+    private static final String AUTO_TL     = "auto_tl";
+    private static final String AUTO_TR     = "auto_tr";
+    private static final String AUTO_BL     = "auto_bl";
+    private static final String AUTO_BR     = "auto_br";
+    private static final String AUTO_RESUME = "auto_resume";
 
     public interface OnTransitionListener { void onTransition(); }
     public interface OnPrevListener       { void onPrev(); }
@@ -75,6 +83,10 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     private final List<String[]> mQueue = Collections.synchronizedList(new ArrayList<>()); // {id, title, artist}
     private volatile int mCurrentIndex = 0;
+
+    private volatile Bitmap mCurrentArt = null;
+    private volatile String mCurrentArtId = null;
+    private volatile int mArtGeneration = 0;
 
     private OnTransitionListener mTransitionListener;
     private OnPrevListener       mPrevListener;
@@ -131,7 +143,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                     String id = mQueue.get(idx)[0];
                     mTitle  = mQueue.get(idx)[1];
                     mArtist = mQueue.get(idx)[2];
-                    setMetadata(mTitle, mArtist);
+                    setNowPlaying(id, mTitle, mArtist);
                     postNotification(mTitle, mArtist, true);
                     mPlayedIds.add(id);
                     if (mPlayedIds.size() > 500) mPlayedIds.remove(0);
@@ -148,6 +160,19 @@ public class MusicService extends MediaBrowserServiceCompat {
                 updateSession(isPlaying);
                 if (mPlayStateListener != null) mPlayStateListener.onPlayStateChanged(isPlaying);
             }
+            @Override
+            public void onPlayerError(@NonNull androidx.media3.common.PlaybackException error) {
+                // Without this, a stream that fails to load (bad URL, network blip,
+                // unsupported container) leaves mSession stuck at STATE_BUFFERING
+                // forever — Android Auto and the in-app spinner then never resolve.
+                if (mPlayer.hasNextMediaItem()) {
+                    mPlayer.seekToNextMediaItem();
+                    mPlayer.prepare();
+                    mPlayer.play();
+                } else {
+                    setAutoError("Playback error");
+                }
+            }
         });
 
         mSession = new MediaSessionCompat(this, "Musian");
@@ -158,7 +183,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             @Override public void onSkipToPrevious()     { if (mPrevListener != null) mPrevListener.onPrev(); }
             @Override public void onStop()               { stopPlayback(); }
             @Override public void onPlayFromMediaId(String mediaId, Bundle extras) {
-                fetchAndPlayForAuto(mediaId);
+                if (AUTO_RESUME.equals(mediaId)) fetchAndPlayForResume();
+                else fetchAndPlayForAuto(mediaId);
             }
         });
         mSession.setPlaybackState(new PlaybackStateCompat.Builder()
@@ -224,6 +250,9 @@ public class MusicService extends MediaBrowserServiceCompat {
         items.add(buildAutoItem(AUTO_TR, "Happy · Excited", R.drawable.wheel_tr));
         items.add(buildAutoItem(AUTO_BL, "Sad · Lonely",   R.drawable.wheel_bl));
         items.add(buildAutoItem(AUTO_BR, "Calm · Serene",  R.drawable.wheel_br));
+        if (getSharedPreferences(PREFS, MODE_PRIVATE).contains(PREF_RESUME_TAGS)) {
+            items.add(buildAutoItem(AUTO_RESUME, "Resume", R.drawable.musian_logo));
+        }
         result.sendResult(items);
     }
 
@@ -270,55 +299,127 @@ public class MusicService extends MediaBrowserServiceCompat {
             return;
         }
 
-        String[] tags = tagsForQuadrant(quadrantId);
+        List<String> tags = Arrays.asList(tagsForQuadrant(quadrantId));
         new Thread(() -> {
             List<String[]> tracks = new ArrayList<>();
             try {
-                // Mirror app.html's fetchTracksByTags(): expand each mood word into
-                // lowercase/Capitalized and Mood:-prefixed variants, OR'd in one request,
-                // since libraries commonly tag moods as e.g. "Mood:Aggressive".
-                List<String> expanded = new ArrayList<>();
-                for (String tag : tags) {
-                    String cap = Character.toUpperCase(tag.charAt(0)) + tag.substring(1);
-                    expanded.add(tag);
-                    expanded.add(cap);
-                    expanded.add("Mood:" + tag);
-                    expanded.add("Mood:" + cap);
+                tracks = fetchTracksByTags(server, userId, token, tags, null, 40);
+            } catch (Exception ignored) {}
+            finishAutoFetch(tracks);
+        }).start();
+    }
+
+    // Reads the last mood/genre search recipe (persisted by setRefetchSpec whenever
+    // the in-app mood wheel or genre bar is used) and replays it, same as tapping
+    // Resume in the app.
+    private void fetchAndPlayForResume() {
+        mSession.setPlaybackState(new PlaybackStateCompat.Builder()
+            .setState(PlaybackStateCompat.STATE_BUFFERING, 0, 1.0f)
+            .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+                | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .build());
+        startForeground(NOTIF_ID, buildNotification("Loading…", "", true));
+
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String server = prefs.getString(PREF_SERVER, null);
+        String userId = prefs.getString(PREF_USER_ID, null);
+        String token  = prefs.getString(PREF_TOKEN, null);
+        if (server == null || token == null || userId == null) {
+            setAutoError("Not logged in");
+            return;
+        }
+        String tagsJson     = prefs.getString(PREF_RESUME_TAGS, null);
+        String genreJson    = prefs.getString(PREF_RESUME_GENRE, null);
+        String fallbackJson = prefs.getString(PREF_RESUME_FALLBACK, null);
+        if (tagsJson == null) {
+            setAutoError("No tracks found");
+            return;
+        }
+
+        new Thread(() -> {
+            List<String[]> tracks = new ArrayList<>();
+            try {
+                List<String> tags     = jsonArrayToList(tagsJson);
+                List<String> genres   = genreJson == null ? null : jsonArrayToList(genreJson);
+                List<String> fallback = fallbackJson == null ? new ArrayList<>() : jsonArrayToList(fallbackJson);
+                tracks = fetchTracksByTags(server, userId, token, tags, genres, 40);
+                if (tracks.isEmpty() && genres != null) {
+                    tracks = fetchTracksByTags(server, userId, token, tags, null, 40);
                 }
-                String urlStr = server + "/Users/" + userId + "/Items"
-                    + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=40"
-                    + "&Fields=MediaSources"
-                    + "&Tags=" + URLEncoder.encode(String.join("|", expanded), "UTF-8")
-                    + "&api_key=" + token;
-                String json = httpGet(urlStr, token);
-                JSONArray items = new JSONObject(json).getJSONArray("Items");
-                for (int i = 0; i < items.length(); i++) {
-                    JSONObject item = items.getJSONObject(i);
-                    String id     = item.getString("Id");
-                    String name   = item.optString("Name", "");
-                    String artist = item.optString("AlbumArtist", "");
-                    String stream = server + "/Audio/" + id + "/universal"
-                        + "?UserId=" + userId
-                        + "&AudioCodec=aac&AudioBitRate=192000"
-                        + "&api_key=" + token;
-                    tracks.add(new String[]{stream, id, name, artist});
+                if (tracks.isEmpty()) {
+                    tracks = fetchTracksByGenres(server, userId, token, fallback, 40);
                 }
             } catch (Exception ignored) {}
-            if (tracks.isEmpty()) {
-                new Handler(Looper.getMainLooper()).post(() -> setAutoError("No tracks found"));
-                return;
-            }
-            Collections.shuffle(tracks);
-            List<String[]> finalTracks = tracks;
-            new Handler(Looper.getMainLooper()).post(() -> {
-                String[] first = finalTracks.get(0);
-                playTrack(first[0], first[1], first[2], first[3]);
-                for (int i = 1; i < finalTracks.size(); i++) {
-                    String[] t = finalTracks.get(i);
-                    queueNextTrack(t[0], t[1], t[2], t[3]);
-                }
-            });
+            finishAutoFetch(tracks);
         }).start();
+    }
+
+    private void finishAutoFetch(List<String[]> tracks) {
+        if (tracks.isEmpty()) {
+            new Handler(Looper.getMainLooper()).post(() -> setAutoError("No tracks found"));
+            return;
+        }
+        Collections.shuffle(tracks);
+        List<String[]> finalTracks = tracks;
+        new Handler(Looper.getMainLooper()).post(() -> {
+            String[] first = finalTracks.get(0);
+            playTrack(first[0], first[1], first[2], first[3]);
+            for (int i = 1; i < finalTracks.size(); i++) {
+                String[] t = finalTracks.get(i);
+                queueNextTrack(t[0], t[1], t[2], t[3]);
+            }
+        });
+    }
+
+    // Mirrors app.html's fetchTracksByTags(): expand each mood word into
+    // lowercase/Capitalized and Mood:-prefixed variants, OR'd in one request,
+    // since libraries commonly tag moods as e.g. "Mood:Aggressive". An optional
+    // genre list is AND'd in via Jellyfin's separate Genres= filter.
+    private List<String[]> fetchTracksByTags(String server, String userId, String token,
+                                              List<String> tags, List<String> genres, int limit) throws Exception {
+        List<String> expanded = new ArrayList<>();
+        for (String tag : tags) {
+            String cap = Character.toUpperCase(tag.charAt(0)) + tag.substring(1);
+            expanded.add(tag);
+            expanded.add(cap);
+            expanded.add("Mood:" + tag);
+            expanded.add("Mood:" + cap);
+        }
+        String urlStr = server + "/Users/" + userId + "/Items"
+            + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=" + limit
+            + "&Fields=MediaSources"
+            + "&Tags=" + URLEncoder.encode(String.join("|", expanded), "UTF-8");
+        if (genres != null && !genres.isEmpty()) {
+            urlStr += "&Genres=" + URLEncoder.encode(String.join("|", genres), "UTF-8");
+        }
+        urlStr += "&api_key=" + token;
+        return parseTrackItems(httpGet(urlStr, token), server, userId, token);
+    }
+
+    private List<String[]> fetchTracksByGenres(String server, String userId, String token,
+                                                List<String> genres, int limit) throws Exception {
+        if (genres == null || genres.isEmpty()) return new ArrayList<>();
+        String urlStr = server + "/Users/" + userId + "/Items"
+            + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=" + limit
+            + "&Fields=MediaSources"
+            + "&Genres=" + URLEncoder.encode(String.join("|", genres), "UTF-8")
+            + "&api_key=" + token;
+        return parseTrackItems(httpGet(urlStr, token), server, userId, token);
+    }
+
+    private List<String[]> parseTrackItems(String json, String server, String userId, String token) throws Exception {
+        List<String[]> tracks = new ArrayList<>();
+        JSONArray items = new JSONObject(json).getJSONArray("Items");
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.getJSONObject(i);
+            String id     = item.getString("Id");
+            String name   = item.optString("Name", "");
+            String artist = item.optString("AlbumArtist", "");
+            tracks.add(new String[]{buildStreamUrl(server, id, userId, token), id, name, artist});
+        }
+        return tracks;
     }
 
     private void setAutoError(String message) {
@@ -509,7 +610,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         mPlayer.setMediaItem(MediaItem.fromUri(url));
         mPlayer.prepare();
         mPlayer.play();
-        setMetadata(title, artist);
+        setNowPlaying(id, title, artist);
         startForeground(NOTIF_ID, buildNotification(title, artist, true));
     }
 
@@ -544,6 +645,13 @@ public class MusicService extends MediaBrowserServiceCompat {
             mSpecTags = jsonArrayToList(tagsJson);
             mSpecGenreConstraint = genreConstraintJsonOrNull == null ? null : jsonArrayToList(genreConstraintJsonOrNull);
             mSpecFallbackGenres = jsonArrayToList(fallbackGenresJson);
+            if (!mSpecTags.isEmpty()) {
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                    .putString(PREF_RESUME_TAGS, tagsJson)
+                    .putString(PREF_RESUME_GENRE, genreConstraintJsonOrNull)
+                    .putString(PREF_RESUME_FALLBACK, fallbackGenresJson)
+                    .apply();
+            }
         } catch (Exception ignored) {}
     }
 
@@ -553,13 +661,61 @@ public class MusicService extends MediaBrowserServiceCompat {
         mSpecFallbackGenres = null;
     }
 
+    // Only called from the explicit Stop button — natural playlist end and other
+    // internal stops should NOT forget the last mood, same as jmLastMood in app.html.
+    public void clearResumeSpec() {
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .remove(PREF_RESUME_TAGS)
+            .remove(PREF_RESUME_GENRE)
+            .remove(PREF_RESUME_FALLBACK)
+            .apply();
+    }
+
     // ── MediaSession ──────────────────────────────────────────────────────────
 
     private void setMetadata(String title, String artist) {
-        mSession.setMetadata(new MediaMetadataCompat.Builder()
+        MediaMetadataCompat.Builder b = new MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE,  title)
-            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-            .build());
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist);
+        if (mCurrentArt != null) b.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, mCurrentArt);
+        mSession.setMetadata(b.build());
+    }
+
+    // Sets title/artist immediately, then fetches cover art in the background and
+    // re-pushes metadata + notification once it lands (Android Auto and the lock
+    // screen both read album art off the session, not just the notification).
+    private void setNowPlaying(String id, String title, String artist) {
+        if (!id.equals(mCurrentArtId)) {
+            mCurrentArtId = id;
+            mCurrentArt = null;
+            loadArt(id, title, artist);
+        }
+        setMetadata(title, artist);
+    }
+
+    private void loadArt(String id, String title, String artist) {
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String server = prefs.getString(PREF_SERVER, null);
+        String token  = prefs.getString(PREF_TOKEN, null);
+        if (server == null || token == null) return;
+        final int gen = ++mArtGeneration;
+        new Thread(() -> {
+            try {
+                String url = server + "/Items/" + id + "/Images/Primary?maxHeight=256&quality=90&api_key=" + token;
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setRequestProperty("X-Emby-Token", token);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                Bitmap bmp = BitmapFactory.decodeStream(conn.getInputStream());
+                if (bmp == null || gen != mArtGeneration || !id.equals(mCurrentArtId)) return;
+                mCurrentArt = bmp;
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (gen != mArtGeneration) return;
+                    setMetadata(title, artist);
+                    postNotification(title, artist, mPlayer.isPlaying());
+                });
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void updateSession(boolean playing) {
@@ -596,6 +752,7 @@ public class MusicService extends MediaBrowserServiceCompat {
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
+            .setLargeIcon(mCurrentArt)
             .setContentTitle(title)
             .setContentText(artist)
             .setContentIntent(launchPi)

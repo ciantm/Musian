@@ -114,6 +114,13 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
+        public void clearResumeSpec() {
+            runOnUiThread(new Runnable() { public void run() {
+                if (mBound) mService.clearResumeSpec();
+            }});
+        }
+
+        @JavascriptInterface
         public void clearQueueAhead() {
             runOnUiThread(new Runnable() { public void run() {
                 if (mBound) mService.clearQueueAhead();

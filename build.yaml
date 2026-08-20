@@ -1,5 +1,5 @@
 ---
-version: "3.1.41.0"
+version: "3.1.42.0"
 
 dotnetVersion: "net8.0"
 
@@ -7,4 +7,3 @@ artifactDir: "artifacts"
 
 projects:
   - Jellyfin.Plugin.Musian/Jellyfin.Plugin.Musian.csproj
-# retrigger: publish v3.1.41.0 via Pages Actions deploy (retry after deploy-pages timeout)
