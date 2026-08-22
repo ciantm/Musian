@@ -186,6 +186,16 @@ public class MusicService extends MediaBrowserServiceCompat {
                 if (AUTO_RESUME.equals(mediaId)) fetchAndPlayForResume();
                 else fetchAndPlayForAuto(mediaId);
             }
+            @Override public void onPlayFromSearch(String query, Bundle extras) {
+                // Defense in depth: onGetRoot already gates the connection, but that
+                // check only runs once at connect time — re-check here too in case
+                // premium status changed (refund/lapse) during a long-lived session.
+                if (!BillingManager.isPremiumStatic(MusicService.this)) {
+                    setAutoError("Musian Premium required for voice playback");
+                    return;
+                }
+                fetchAndPlayForSearch(query == null ? "" : query);
+            }
         });
         mSession.setPlaybackState(new PlaybackStateCompat.Builder()
             .setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f)
@@ -231,7 +241,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         if (getPackageName().equals(clientPackageName)) {
             return new BrowserRoot("root", extras);
         }
-        if (isAutoPackage(clientPackageName)) {
+        if (isVoiceOrAutoPackage(clientPackageName)) {
             if (!BillingManager.isPremiumStatic(this)) return null;
             return new BrowserRoot("root", extras);
         }
@@ -269,10 +279,15 @@ public class MusicService extends MediaBrowserServiceCompat {
         return new MediaBrowserCompat.MediaItem(desc, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
     }
 
-    private boolean isAutoPackage(String pkg) {
+    // Android Auto/driving-mode callers, plus Assistant/Gemini (for voice playback via
+    // onPlayFromSearch below). Exact Assistant caller package isn't documented by Google;
+    // both candidates are allow-listed until confirmed on-device (see MUSIAN-DEV notes).
+    private boolean isVoiceOrAutoPackage(String pkg) {
         return "com.google.android.projection.gearhead".equals(pkg)
             || "com.google.android.carassistant".equals(pkg)
-            || "com.google.android.autosimulator".equals(pkg);
+            || "com.google.android.autosimulator".equals(pkg)
+            || "com.google.android.googlequicksearchbox".equals(pkg)
+            || "com.google.android.apps.bard".equals(pkg);
     }
 
     // ── Auto playback ─────────────────────────────────────────────────────────
@@ -350,6 +365,61 @@ public class MusicService extends MediaBrowserServiceCompat {
                 }
                 if (tracks.isEmpty()) {
                     tracks = fetchTracksByGenres(server, userId, token, fallback, 40);
+                }
+            } catch (Exception ignored) {}
+            finishAutoFetch(tracks);
+        }).start();
+    }
+
+    // Google Assistant/Gemini voice playback ("play happy music on Musian"). Matches
+    // the free-text query against the same mood/genre vocabulary as the in-app mood
+    // wheel (see MOODS/GENRE_ZONES below), then reuses the same fetch/playback pipeline
+    // as fetchAndPlayForAuto/fetchAndPlayForResume.
+    private void fetchAndPlayForSearch(String query) {
+        mSession.setPlaybackState(new PlaybackStateCompat.Builder()
+            .setState(PlaybackStateCompat.STATE_BUFFERING, 0, 1.0f)
+            .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+                | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .build());
+        startForeground(NOTIF_ID, buildNotification("Loading…", "", true));
+
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String server = prefs.getString(PREF_SERVER, null);
+        String userId = prefs.getString(PREF_USER_ID, null);
+        String token  = prefs.getString(PREF_TOKEN, null);
+        if (server == null || token == null || userId == null) {
+            setAutoError("Not logged in");
+            return;
+        }
+
+        QueryMatch match = matchQueryToMood(query);
+        if (match == null) {
+            setAutoError("Couldn't match that to a mood or genre");
+            return;
+        }
+        // Persist as the resume/refill spec too, same as every other mood-selection
+        // path (wheel tap, genre bar, Auto quadrants) — a voice-triggered session then
+        // behaves identically for background queue refill and the Auto Resume tile.
+        // Only for mood matches: mSpecGenreConstraint is meant to narrow a tag search,
+        // not stand alone, and fetchByTags/fetchTracksByTags don't special-case an
+        // empty tag list the way app.html's JS fetchTracksByTags does — so a genre-only
+        // voice match (e.g. "play jazz") is played but not persisted as a refill spec.
+        if (match.tags != null) {
+            setRefetchSpec(toJsonArray(match.tags), toJsonArray(match.genres), toJsonArray(new ArrayList<>()));
+        }
+
+        new Thread(() -> {
+            List<String[]> tracks = new ArrayList<>();
+            try {
+                if (match.tags != null) {
+                    tracks = fetchTracksByTags(server, userId, token, match.tags, match.genres, 40);
+                    if (tracks.isEmpty() && match.genres != null) {
+                        tracks = fetchTracksByTags(server, userId, token, match.tags, null, 40);
+                    }
+                } else {
+                    tracks = fetchTracksByGenres(server, userId, token, match.genres, 40);
                 }
             } catch (Exception ignored) {}
             finishAutoFetch(tracks);
@@ -458,6 +528,114 @@ public class MusicService extends MediaBrowserServiceCompat {
                 "still", "tranquil", "tranquility"};
             default: return new String[]{"happy"};
         }
+    }
+
+    // ── Voice search vocabulary (Assistant/Gemini) ───────────────────────────────
+    // Mirrors app.html's MOODS (Configuration/app.html:382-449) and GENRES
+    // (Configuration/app.html:547-558) — keep in sync by hand when moods/genres change
+    // there. Kept separate from tagsForQuadrant() above: that's a deliberate 4-tile
+    // Auto UI mapping, not meant to be derived from this fuller vocabulary.
+
+    private static final class Mood {
+        final String name; final String[] tags; final String[] genres;
+        Mood(String name, String[] tags, String[] genres) { this.name = name; this.tags = tags; this.genres = genres; }
+    }
+
+    private static final Mood[] MOODS = {
+        new Mood("Aggressive", new String[]{"aggressive","aggression"}, new String[]{"Metal","Punk","Hard Rock","Hardcore"}),
+        new Mood("Angry", new String[]{"angry","anger","choleric","fury","outraged","rage","angry music"}, new String[]{"Metal","Hard Rock","Punk"}),
+        new Mood("Anxious", new String[]{"anxious","angst","anxiety","jumpy","nervous","angsty"}, new String[]{"Punk","Alternative Rock","Grunge","Indie Rock"}),
+        new Mood("Pessimistic", new String[]{"pessimistic","pessimism","cynical","weltschmerz","cynical/sarcastic"}, new String[]{"Blues","Alternative Rock","Grunge"}),
+        new Mood("Brooding", new String[]{"brooding","contemplative","meditative","reflective","broody","pensive","pondering","wistful"}, new String[]{"Alternative Rock","Grunge","Blues","Psychedelic Rock"}),
+        new Mood("Grief", new String[]{"grief","heartbreak","mournful","sorrow","sorry","doleful","heartache","heartbreaking","heartsick","lachrymose","mourning","plaintive","regret","sorrowful"}, new String[]{"Blues","Soul","Folk"}),
+        new Mood("Depressed", new String[]{"depressed","blue","dark","depressive","dreary","gloom","darkness","depress","depression","depressing","gloomy"}, new String[]{"Blues","Metal","Grunge","Alternative Rock"}),
+        new Mood("Sad", new String[]{"sad","sadness","unhappy","melancholic","melancholy","feeling sad","sad song"}, new String[]{"Blues","Soul","Folk","Country"}),
+        new Mood("Earnest", new String[]{"earnest","heartfelt"}, new String[]{"Folk","Soul","Country","Indie Rock"}),
+        new Mood("Dreamy", new String[]{"dreamy"}, new String[]{"Psychedelic Rock","Space Rock","Jazz","Folk"}),
+        new Mood("Romantic", new String[]{"romantic","romantic music"}, new String[]{"Jazz","Soul","Ballad","Folk"}),
+        new Mood("Calm", new String[]{"calm","comfort","quiet","serene","mellow","relaxed","chill out","calm down","calming","chillout","comforting","content","cool down","mellow music","mellow rock","peace of mind","quietness","relaxation","serenity","solace","soothe","soothing","still","tranquil","tranquility"}, new String[]{"Jazz","Folk","Country","Soul","Reggae"}),
+        new Mood("Hopeful", new String[]{"hopeful","desire","hope"}, new String[]{"Folk","Pop","Soul","Indie Rock","Country"}),
+        new Mood("Confident", new String[]{"confident","encouraging","encouragement","optimism","optimistic"}, new String[]{"Rock","Hard Rock","Soul","Rap"}),
+        new Mood("Happy", new String[]{"happy","happiness","happy songs","happy music","glad"}, new String[]{"Pop","Soul","Funk","Reggae","Ska"}),
+        new Mood("Cheerful", new String[]{"cheerful","cheer up","festive","jolly","jovial","merry","party","cheer","cheering","cheery","get happy","rejoice","songs that are cheerful","sunny"}, new String[]{"Pop","Folk","Soul","Funk"}),
+        new Mood("Upbeat", new String[]{"upbeat","gleeful","high spirits","zest","enthusiastic","buoyancy","elation"}, new String[]{"Pop","Ska","Funk","Reggae"}),
+        new Mood("Excited", new String[]{"excitement","exciting","exhilarating","thrill","ardor","stimulating","thrilling","titillating"}, new String[]{"Pop","Punk","Alternative Rock","Rap"}),
+        new Mood("Restless", new String[]{"restless","tense","unsettled","charged","edgy","alert","agitated","stirred"}, new String[]{"Rock","Alternative Rock","Electronic","Indie Rock"}),
+        new Mood("Frustrated", new String[]{"frustrated","irritable","impatient","discontent","disgruntled","bitter","sullen"}, new String[]{"Rock","Grunge","Alternative Rock","Punk"}),
+        new Mood("Tender", new String[]{"tender","warm","affectionate","sweet","gentle","loving","nurturing","intimate"}, new String[]{"Jazz","Soul","Folk","Pop","Ballad"}),
+        new Mood("Nostalgic", new String[]{"nostalgic","bittersweet","longing","yearning","sentimental","reminiscent","poignant","aching"}, new String[]{"Folk","Country","Soul","Indie Rock","Singer-Songwriter"}),
+    };
+
+    private static final class GenreZone {
+        final String name; final String[] genres;
+        GenreZone(String name, String[] genres) { this.name = name; this.genres = genres; }
+    }
+
+    private static final GenreZone[] GENRE_ZONES = {
+        new GenreZone("Classical", new String[]{"Classical","Opera","Orchestral","Baroque","Symphony"}),
+        new GenreZone("Folk & Country", new String[]{"Folk","Country","Ballad"}),
+        new GenreZone("Jazz & Blues", new String[]{"Jazz","Blues","Rhythm And Blues"}),
+        new GenreZone("Latin & Reggae", new String[]{"Latin","Reggae","Ska","Dub","Dancehall","Salsa","Bossa Nova","Latin Rock"}),
+        new GenreZone("Soul & Pop", new String[]{"Soul","Pop","Funk","R&B"}),
+        new GenreZone("Rock", new String[]{"Rock","Grunge","Rockabilly"}),
+        new GenreZone("Hard Rock & Punk", new String[]{"Hard Rock","Punk","Progressive Rock","Hardcore"}),
+        new GenreZone("Metal", new String[]{"Metal"}),
+        new GenreZone("Rap", new String[]{"Rap","Hip Hop"}),
+        new GenreZone("Dance & Electronic", new String[]{"Dance","Electronic","House","Techno","Disco","Trance","Electronica","EDM","Electro","Eurodance","Dance Pop","Electronic Dance Music","Club"}),
+    };
+
+    private static final Set<String> SEARCH_STOPWORDS = new HashSet<>(Arrays.asList(
+        "play", "some", "music", "songs", "song", "on", "musian", "the", "a", "please", "me"));
+
+    private static final class QueryMatch {
+        final List<String> tags;   // null => genre-only match
+        final List<String> genres;
+        QueryMatch(List<String> tags, List<String> genres) { this.tags = tags; this.genres = genres; }
+    }
+
+    // Word-boundary containment, adapted from app.html's genreWordMatch (Configuration/app.html:1310-1314).
+    private boolean wordMatch(String haystack, String needle) {
+        if (haystack.isEmpty() || needle.isEmpty()) return false;
+        String h = haystack.toLowerCase();
+        String n = java.util.regex.Pattern.quote(needle.toLowerCase());
+        return java.util.regex.Pattern.compile("(?:^| )" + n + "(?= |$)").matcher(h).find();
+    }
+
+    // Scores a free-text voice query against MOODS first, then GENRE_ZONES as a
+    // fallback (for queries that name a genre rather than a mood, e.g. "play jazz").
+    // Returns null if nothing scores at all, so the caller can report an error
+    // instead of guessing.
+    private QueryMatch matchQueryToMood(String query) {
+        List<String> words = new ArrayList<>();
+        for (String w : query.toLowerCase().trim().split("\\s+")) {
+            if (!w.isEmpty() && !SEARCH_STOPWORDS.contains(w)) words.add(w);
+        }
+        if (words.isEmpty()) return null;
+
+        Mood best = null; int bestScore = 0;
+        for (Mood mood : MOODS) {
+            int score = 0;
+            for (String tag : mood.tags) {
+                for (String w : words) if (wordMatch(tag, w) || wordMatch(w, tag)) score++;
+            }
+            if (score > bestScore) { bestScore = score; best = mood; }
+        }
+        if (best != null) return new QueryMatch(Arrays.asList(best.tags), Arrays.asList(best.genres));
+
+        for (GenreZone zone : GENRE_ZONES) {
+            for (String g : zone.genres) {
+                for (String w : words) {
+                    if (wordMatch(g, w)) return new QueryMatch(null, Arrays.asList(zone.genres));
+                }
+            }
+        }
+        return null;
+    }
+
+    private String toJsonArray(List<String> items) {
+        JSONArray arr = new JSONArray();
+        for (String s : items) arr.put(s);
+        return arr.toString();
     }
 
     private String httpGet(String urlStr, String token) throws Exception {
