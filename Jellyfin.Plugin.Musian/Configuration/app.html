@@ -170,7 +170,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.48.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.49.0</div>
 </div>
 
 <script>
@@ -1693,18 +1693,24 @@ function highlightGenreBarForGenres(genres) {
     var seen = {}, hits = [];
     MOODS.forEach(function(m) {
       var idx = m.name.toLowerCase().indexOf(ql);
+      var tag = null;
       if (idx === -1) {
         (m.tags || []).some(function(t) {
           var ti = t.toLowerCase().indexOf(ql);
-          if (ti !== -1) { idx = ti; return true; }
+          if (ti !== -1) { idx = ti; tag = t; return true; }
           return false;
         });
       }
-      if (idx !== -1 && !seen[m.name]) { seen[m.name] = true; hits.push({m:m, idx:idx}); }
+      if (idx !== -1 && !seen[m.name]) { seen[m.name] = true; hits.push({m:m, idx:idx, tag:tag}); }
     });
     return hits.sort(function(a, b) { return a.idx - b.idx; })
       .slice(0, 3)
-      .map(function(h) { return {_kind:'mood', Name:h.m.name, _mood:h.m}; });
+      .map(function(h) {
+        // Matched via a finer tag word: show the tag first (what actually
+        // matched), the parent mood second — e.g. "Choleric — Angry".
+        var name = h.tag ? h.tag.charAt(0).toUpperCase() + h.tag.slice(1) : h.m.name;
+        return {_kind:'mood', Name:name, _mood:h.m, _viaTag:!!h.tag};
+      });
   }
 
   function doSearch(q) {
@@ -1788,7 +1794,7 @@ function highlightGenreBarForGenres(genres) {
       var kind = item._kind || (item.Type === 'MusicArtist' ? 'artist' : item.Type === 'MusicAlbum' ? 'album' : 'track');
       var subtitle = '', titleHtml = escHtml(item.Name||'');
       if (kind === 'mood') {
-        subtitle = 'Mood';
+        subtitle = item._viaTag ? escHtml(item._mood.name) + ' · Mood' : 'Mood';
         titleHtml = '<span class="jm-sug-dot" style="background:' + item._mood.col + '"></span>' + titleHtml;
       } else if (kind === 'artist') {
         subtitle = 'Artist';
