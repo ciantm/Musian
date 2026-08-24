@@ -43,6 +43,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 .jm-sug-item:hover, .jm-sug-item:active { background:#2a2a2a; }
 .jm-sug-title { font-size:0.85em; color:#fff; }
 .jm-sug-artist { font-size:0.75em; color:#888; margin-top:2px; }
+.jm-sug-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
 #jmSplash { position:fixed; inset:0; background:#111; display:flex; flex-direction:column; align-items:center; padding:24px 16px 0; z-index:999; transition:opacity 0.8s ease; }
 #jmSplash.fade { opacity:0; pointer-events:none; }
 </style>
@@ -169,7 +170,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="history.back();return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.46.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.47.0</div>
 </div>
 
 <script>
@@ -1167,9 +1168,18 @@ function handleInteraction(clientX, clientY) {
 
   var valence = (dx/r)*0.5 + 0.5;
   var arousal  = (-dy/r)*0.5 + 0.5;
+  selectMoodPoint(valence, arousal, clientX - rect.left, clientY - rect.top);
+}
+
+// Drives the wheel search from a valence/arousal point, with the dot placed at
+// dotX/dotY (pixels within jmWheelWrap). Shared by wheel taps (handleInteraction),
+// the search box's mood-word suggestions (selectMoodByName), and mood restore.
+function selectMoodPoint(valence, arousal, dotX, dotY) {
   if (jmIsPremium()) try { localStorage.setItem('jmLastMood', JSON.stringify({v:valence,a:arousal})); } catch(e) {}
   document.getElementById('jmResumeBtn').style.display = 'none';
 
+  var wrap = document.getElementById('jmWheelWrap');
+  var rect = wrap.getBoundingClientRect();
   var nearTags = getNearestTags(valence, arousal, 5);
   var nearest1 = nearTags[0];
 
@@ -1182,8 +1192,8 @@ function handleInteraction(clientX, clientY) {
     'transform:translate(-50%,-50%);pointer-events:none;' +
     'box-shadow:0 0 0 3px rgba(0,0,0,0.5),0 0 14px rgba(255,255,255,0.8);';
   dot.style.background = nearest1.mood.col;
-  dot.style.left = (clientX - rect.left) + 'px';
-  dot.style.top  = (clientY - rect.top)  + 'px';
+  dot.style.left = dotX + 'px';
+  dot.style.top  = dotY + 'px';
   wrap.appendChild(dot);
 
   jmShowPrompt(false);
@@ -1285,6 +1295,15 @@ function handleInteraction(clientX, clientY) {
       console.error('[Musian]', e);
       setStatus('Could not fetch tracks.');
     });
+}
+
+// Drives the wheel from a named mood (search-box mood suggestion), placing the
+// dot at that mood's disc position rather than a literal click point.
+function selectMoodByName(mood) {
+  var wrap = document.getElementById('jmWheelWrap');
+  var rect = wrap.getBoundingClientRect();
+  var dp = squareToDisc(mood.x, mood.y);
+  selectMoodPoint(mood.x, mood.y, dp[0] * rect.width, dp[1] * rect.height);
 }
 
 var svg = document.getElementById('jmSvgWheel');
@@ -1666,8 +1685,17 @@ function highlightGenreBarForGenres(genres) {
     setTimeout(function() { suggest.style.display = 'none'; }, 150);
   });
 
+  function matchMoods(q) {
+    var ql = q.toLowerCase();
+    return MOODS.filter(function(m) { return m.name.toLowerCase().indexOf(ql) !== -1; })
+      .sort(function(a, b) { return a.name.toLowerCase().indexOf(ql) - b.name.toLowerCase().indexOf(ql); })
+      .slice(0, 3)
+      .map(function(m) { return {_kind:'mood', Name:m.name, _mood:m}; });
+  }
+
   function doSearch(q) {
     if (!JM.token) return;
+    var moods = matchMoods(q);
     if (JM.type === 'plex') {
       var trackFilters = ['title', 'grandparentTitle', 'parentTitle'];
       var trackPromises = trackFilters.map(function(f) {
@@ -1701,7 +1729,7 @@ function highlightGenreBarForGenres(genres) {
         results.slice(0, trackPromises.length).forEach(function(items){ items.forEach(function(t){
           if(!seen[t.Id]){seen[t.Id]=true; merged.push(t);}
         });});
-        renderSuggestions(artists.concat(albums).concat(merged));
+        renderSuggestions(moods.concat(artists).concat(albums).concat(merged));
       });
       return;
     }
@@ -1718,7 +1746,7 @@ function highlightGenreBarForGenres(genres) {
             return {_kind:'album', Id:a.id, Name:a.name, _artistName:a.artist||''};
           });
           var songs = normalizeTracks(sr.song||[]);
-          renderSuggestions(artists.concat(albums).concat(songs));
+          renderSuggestions(moods.concat(artists).concat(albums).concat(songs));
         })
         .catch(function(){});
       return;
@@ -1729,7 +1757,7 @@ function highlightGenreBarForGenres(genres) {
       Limit: '12', Fields: 'Genres,Artists,AlbumArtist,AlbumId'
     }), {headers: JM.headers()})
     .then(function(r) { return r.json(); })
-    .then(function(d) { renderSuggestions(d.Items || []); })
+    .then(function(d) { renderSuggestions(moods.concat(d.Items || [])); })
     .catch(function() {});
   }
 
@@ -1744,8 +1772,11 @@ function highlightGenreBarForGenres(genres) {
       var div = document.createElement('div');
       div.className = 'jm-sug-item';
       var kind = item._kind || (item.Type === 'MusicArtist' ? 'artist' : item.Type === 'MusicAlbum' ? 'album' : 'track');
-      var subtitle = '';
-      if (kind === 'artist') {
+      var subtitle = '', titleHtml = escHtml(item.Name||'');
+      if (kind === 'mood') {
+        subtitle = 'Mood';
+        titleHtml = '<span class="jm-sug-dot" style="background:' + item._mood.col + '"></span>' + titleHtml;
+      } else if (kind === 'artist') {
         subtitle = 'Artist';
       } else if (kind === 'album') {
         var aname = item._artistName || item.AlbumArtist || (item.Artists && item.Artists[0]) || '';
@@ -1754,9 +1785,14 @@ function highlightGenreBarForGenres(genres) {
         var trackArtist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
         subtitle = trackArtist ? escHtml(trackArtist) : '';
       }
-      div.innerHTML = '<div class="jm-sug-title">' + escHtml(item.Name||'') + '</div>' +
+      div.innerHTML = '<div class="jm-sug-title">' + titleHtml + '</div>' +
         (subtitle ? '<div class="jm-sug-artist">' + subtitle + '</div>' : '');
-      if (kind === 'track') {
+      if (kind === 'mood') {
+        div.addEventListener('mousedown', function() {
+          suggest.style.display = 'none'; input.value = '';
+          selectMoodByName(item._mood);
+        });
+      } else if (kind === 'track') {
         div.addEventListener('mousedown', function() { selectSong(item); });
       } else {
         div.addEventListener('mousedown', function() {
