@@ -170,7 +170,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.54.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.55.0</div>
 </div>
 
 <script>
@@ -1461,7 +1461,7 @@ function fetchTracksByTags(tags, genres) {
   var expanded = [];
   tags.forEach(function(t) {
     var cap = t.charAt(0).toUpperCase() + t.slice(1);
-    expanded.push(t, cap, 'Mood:' + t, 'Mood:' + cap);
+    expanded.push(t, cap, 'Mood:' + t, 'Mood:' + cap, 'AlbumMood:' + t, 'AlbumMood:' + cap);
   });
   var params = new URLSearchParams({
     IncludeItemTypes:'Audio', Recursive:'true', SortBy:'Random',
@@ -1639,8 +1639,8 @@ MOODS.forEach(function(m) { (m.tags || []).forEach(function(t) { TAG_TO_MOOD[t] 
 // field, which most taggers leave empty. Returns null if no tag matched.
 function deriveTagMood(item) {
   var tags = (item.Tags || [])
-    .filter(function(t) { return /^mood:/i.test(t); })
-    .map(function(t) { return t.slice(5).toLowerCase(); })
+    .filter(function(t) { return /^(album)?mood:/i.test(t); })
+    .map(function(t) { return t.slice(t.indexOf(':')+1).toLowerCase(); })
     .filter(function(t) { return !/^not[\s_]/i.test(t); });
   var best = null, bestScore = 0, scores = {};
   tags.forEach(function(t) {
