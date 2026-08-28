@@ -65,7 +65,7 @@ jobs:
           TAG="${GITHUB_REF_NAME#v}"
           IFS='.' read -r a b c d <<< "$TAG"
           VERSION_CODE=$(( a * 1000000 + b * 10000 + c * 100 + ${d:-0} ))
-          ./gradlew assembleRelease \
+          ./gradlew assembleRelease bundleRelease \
             -PversionCode=$VERSION_CODE \
             -PversionName=$TAG
 
@@ -90,3 +90,15 @@ jobs:
           rclone moveto \
             "gdrive:Businesses & Projects/Musian/app-release.apk" \
             "gdrive:Businesses & Projects/Musian/Musian-${TAG}.apk"
+
+      - name: Upload AAB to Google Drive
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          rclone copy \
+            android-app/android/app/build/outputs/bundle/release/app-release.aab \
+            "gdrive:Businesses & Projects/Musian/" \
+            --drive-use-trash=false \
+            --no-update-modtime
+          rclone moveto \
+            "gdrive:Businesses & Projects/Musian/app-release.aab" \
+            "gdrive:Businesses & Projects/Musian/Musian-${TAG}.aab"
