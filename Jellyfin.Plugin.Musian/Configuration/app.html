@@ -170,7 +170,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.53.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.54.0</div>
 </div>
 
 <script>
@@ -1687,12 +1687,22 @@ function filterPoolByGenres(pool, genres) {
 
 // Shared "find more tracks like this" continuation: tag search, then
 // supplement with a genre-only fetch, then a title-word fetch, up to 25.
-function librarywideMoodSearch(tags, seedGenres, searchGenres) {
-  return tags.length
+// A remix often keeps the original track's (possibly rock-ish) genre tags
+// even when it's musically electronic — a permissive genre-zone match can
+// let it through into an unrelated zone's results. Only exempt it when the
+// zone we're actually searching for IS Dance & Electronic.
+function isRemixTitle(name) {
+  return /\bremix\b/i.test(name || '');
+}
+
+function librarywideMoodSearch(tags, seedGenres, searchGenres, isElectronicZone) {
+  var chain = tags.length
     ? fetchTracksByTags(tags, seedGenres)
         .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres); }, 25); })
         .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(tags, seedGenres || searchGenres); }, 25); })
     : fetchTracksByGenres(seedGenres || searchGenres);
+  if (isElectronicZone) return chain;
+  return chain.then(function(items) { return items.filter(function(t) { return !isRemixTitle(t.Name); }); });
 }
 
 // Shared "scope pool exhausted, hand off to the library" transition used by
@@ -1712,13 +1722,14 @@ function transitionToLibraryWideMoodSearch(pool) {
   var moodGenres = Object.keys(genreMap);
   var majorIdx = bestGenreZoneIndex(genres);
   var seedGenres = majorIdx !== -1 ? GENRES[majorIdx].genres : null;
+  var isElectronicZone = majorIdx !== -1 && GENRES[majorIdx].name === 'Dance & Electronic';
   if (majorIdx !== -1) { jmGenreFilter = GENRES[majorIdx].genres; jmGenreZoneIdx = majorIdx; }
   jmMoodTags = tags;
   jmMoodGenres = moodGenres;
   placeDotForMood(mood);
-  jmRefetchFn = function() { return librarywideMoodSearch(tags, seedGenres, moodGenres); };
+  jmRefetchFn = function() { return librarywideMoodSearch(tags, seedGenres, moodGenres, isElectronicZone); };
   jmPushNativeSpec(tags, seedGenres, moodGenres);
-  return librarywideMoodSearch(tags, seedGenres, moodGenres);
+  return librarywideMoodSearch(tags, seedGenres, moodGenres, isElectronicZone);
 }
 
 function showGenreDotAtIndex(idx) {
@@ -1998,10 +2009,11 @@ function highlightGenreBarForGenres(genres) {
       var majorIdx = highlightGenreBarForGenres(g);
       if (majorIdx !== -1) { jmGenreFilter = GENRES[majorIdx].genres; jmGenreZoneIdx = majorIdx; }
       var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
+      var isElectronicZone = majorIdx !== -1 && GENRES[majorIdx].name === 'Dance & Electronic';
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
       var seedGenres = jmGenreFilter;
-      var _refetchFn = function() { return librarywideMoodSearch(_tags, seedGenres, searchGenres); };
+      var _refetchFn = function() { return librarywideMoodSearch(_tags, seedGenres, searchGenres, isElectronicZone); };
       if (jmIsPremium()) {
         // jmRefetchFn already knows how to find more tracks like this one \u2014 queue just the
         // searched song now and let the normal low-queue trigger fetch the rest once it's
