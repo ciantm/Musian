@@ -170,7 +170,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.51.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.52.0</div>
 </div>
 
 <script>
@@ -1250,10 +1250,7 @@ function selectMoodPoint(valence, arousal, dotX, dotY) {
   jmMoodGenres = moodGenres;
 
   if (jmScopePool) {
-    var mg = moodGenres.map(function(g) { return g.toLowerCase(); });
-    var filtered = jmScopePool.filter(function(t) {
-      return (t.Genres||[]).some(function(g) { return mg.indexOf(g.toLowerCase()) !== -1; });
-    });
+    var filtered = filterPoolByGenres(jmScopePool, moodGenres);
     if (filtered.length < 5) filtered = jmScopePool;
     jmMoodGenres = moodGenres;
     var _pool = filtered;
@@ -1581,9 +1578,9 @@ function fetchScopePool(item, kind) {
   if (!JM.token || !JM.userId) return Promise.resolve([]);
   var params;
   if (kind === 'artist') {
-    params = new URLSearchParams({ArtistIds:item.Id, IncludeItemTypes:'Audio', Recursive:'true', Limit:'500', Fields:'Genres,MediaSources,Artists,AlbumArtist', SortBy:'Random'});
+    params = new URLSearchParams({ArtistIds:item.Id, IncludeItemTypes:'Audio', Recursive:'true', Limit:'500', Fields:'Genres,Tags,MediaSources,Artists,AlbumArtist', SortBy:'Random'});
   } else {
-    params = new URLSearchParams({ParentId:item.Id, IncludeItemTypes:'Audio', Fields:'Genres,MediaSources,Artists,AlbumArtist', SortBy:'ParentIndexNumber,IndexNumber'});
+    params = new URLSearchParams({ParentId:item.Id, IncludeItemTypes:'Audio', Fields:'Genres,Tags,MediaSources,Artists,AlbumArtist', SortBy:'ParentIndexNumber,IndexNumber'});
   }
   return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r){return r.json();})
@@ -1619,6 +1616,107 @@ function bestGenreZoneIndex(genres) {
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   });
   return bestIdx;
+}
+
+function poolGenres(tracks) {
+  var seen = {}, out = [];
+  tracks.forEach(function(t) { (t.Genres||[]).forEach(function(g) { if (!seen[g]) { seen[g]=true; out.push(g); } }); });
+  return out;
+}
+
+// ── Real per-track/pool mood detection ──────────────────────────────────────
+// Reverse lookup tag word -> mood, built once from the same ~161-word
+// vocabulary matchMoods() searches (MOODS[].tags) — a tagger's own mood
+// words (e.g. AcousticBrainz's "Mood:Relaxed") resolve without a separate
+// mapping table.
+var TAG_TO_MOOD = {};
+MOODS.forEach(function(m) { (m.tags || []).forEach(function(t) { TAG_TO_MOOD[t] = m; }); });
+
+// A track's own mood tags live in Tags as "Mood:X" (and often "Mood:Not X"
+// for the attribute's negative case) — not in Jellyfin's structured Moods
+// field, which most taggers leave empty. Returns null if no tag matched.
+function deriveTagMood(item) {
+  var tags = (item.Tags || [])
+    .filter(function(t) { return /^mood:/i.test(t); })
+    .map(function(t) { return t.slice(5).toLowerCase(); })
+    .filter(function(t) { return !/^not[\s_]/i.test(t); });
+  var best = null, bestScore = 0, scores = {};
+  tags.forEach(function(t) {
+    var m = TAG_TO_MOOD[t];
+    if (!m) return;
+    scores[m.name] = (scores[m.name] || 0) + 1;
+    if (scores[m.name] > bestScore) { bestScore = scores[m.name]; best = m; }
+  });
+  return best;
+}
+
+function deriveTrackMood(item) {
+  return deriveTagMood(item) || findMoodForGenres(item.Genres);
+}
+
+// Majority-vote real tag moods across a pool (album/artist); falls back to
+// the pooled-genre guess when too few tracks in the pool carry tag data.
+function derivePoolMood(tracks) {
+  var counts = {}, moodByName = {}, bestName = null, bestCount = 0, tagged = 0;
+  tracks.forEach(function(t) {
+    var m = deriveTagMood(t);
+    if (!m) return;
+    tagged++;
+    moodByName[m.name] = m;
+    counts[m.name] = (counts[m.name] || 0) + 1;
+    if (counts[m.name] > bestCount) { bestCount = counts[m.name]; bestName = m.name; }
+  });
+  if (!bestName || tagged < Math.min(5, tracks.length)) {
+    return findMoodForGenres(poolGenres(tracks));
+  }
+  return moodByName[bestName];
+}
+
+// Same word-boundary genre matching as everywhere else in the app (unlike
+// the old exact-match pool filters this replaces).
+function filterPoolByGenres(pool, genres) {
+  if (!genres || !genres.length) return pool;
+  return pool.filter(function(t) {
+    return (t.Genres || []).some(function(g) {
+      return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
+    });
+  });
+}
+
+// Shared "find more tracks like this" continuation: tag search, then
+// supplement with a genre-only fetch, then a title-word fetch, up to 25.
+function librarywideMoodSearch(tags, seedGenres, searchGenres) {
+  return tags.length
+    ? fetchTracksByTags(tags, seedGenres)
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres); }, 25); })
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(tags, seedGenres || searchGenres); }, 25); })
+    : fetchTracksByGenres(seedGenres || searchGenres);
+}
+
+// Shared "scope pool exhausted, hand off to the library" transition used by
+// both album and artist continuation once their own pool runs dry — mirrors
+// selectSong's genre-zone rebase so all three converge once past their own
+// bounded set.
+function transitionToLibraryWideMoodSearch(pool) {
+  var mood = derivePoolMood(pool);
+  var genres = poolGenres(pool);
+  jmScopePool = null; jmScopeName = null;
+  document.getElementById('jmSearch').placeholder = 'Search song…';
+  if (!mood) return fetchFallback();
+  var nearest = getNearestTags(mood.x, mood.y, 4);
+  var tagMap = {}, genreMap = {};
+  nearest.forEach(function(t) { tagMap[t.tag]=true; (t.mood.genres||[]).forEach(function(g){genreMap[g]=true;}); });
+  var tags = Object.keys(tagMap);
+  var moodGenres = Object.keys(genreMap);
+  var majorIdx = bestGenreZoneIndex(genres);
+  var seedGenres = majorIdx !== -1 ? GENRES[majorIdx].genres : null;
+  if (majorIdx !== -1) { jmGenreFilter = GENRES[majorIdx].genres; jmGenreZoneIdx = majorIdx; }
+  jmMoodTags = tags;
+  jmMoodGenres = moodGenres;
+  placeDotForMood(mood);
+  jmRefetchFn = function() { return librarywideMoodSearch(tags, seedGenres, moodGenres); };
+  jmPushNativeSpec(tags, seedGenres, moodGenres);
+  return librarywideMoodSearch(tags, seedGenres, moodGenres);
 }
 
 function showGenreDotAtIndex(idx) {
@@ -1774,7 +1872,7 @@ function highlightGenreBarForGenres(genres) {
     if (!JM.userId) return;
     jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + new URLSearchParams({
       SearchTerm: q, IncludeItemTypes: 'MusicArtist,MusicAlbum,Audio', Recursive: 'true',
-      Limit: '12', Fields: 'Genres,Artists,AlbumArtist,AlbumId'
+      Limit: '12', Fields: 'Genres,Tags,Artists,AlbumArtist,AlbumId'
     }), {headers: JM.headers()})
     .then(function(r) { return r.json(); })
     .then(function(d) { renderSuggestions(moods.concat(d.Items || [])); })
@@ -1830,12 +1928,6 @@ function highlightGenreBarForGenres(genres) {
     return arr;
   }
 
-  function poolGenres(tracks) {
-    var seen = {}, out = [];
-    tracks.forEach(function(t) { (t.Genres||[]).forEach(function(g) { if (!seen[g]) { seen[g]=true; out.push(g); } }); });
-    return out;
-  }
-
   function selectScope(item, kind) {
     suggest.style.display = 'none';
     input.value = '';
@@ -1849,43 +1941,27 @@ function highlightGenreBarForGenres(genres) {
 
       // Show the mood dot right away for both albums and artists, same as a
       // single-track search — no need to wait for the pool to play out first.
-      var scopeMood = findMoodForGenres(poolGenres(tracks));
+      // Real per-track Mood: tags, majority-voted across the pool, take
+      // priority over the pooled-genre guess (derivePoolMood falls back to
+      // that guess itself when too few tracks in the pool carry tag data).
+      var scopeMood = derivePoolMood(tracks);
       if (scopeMood) { placeDotForMood(scopeMood); jmMoodGenres = scopeMood.genres; }
 
       if (kind === 'album') {
         // Play in track order; when exhausted, transition to full-library mood search
-        jmRefetchFn = function() {
-          var genres = poolGenres(jmScopePool);
-          var mood = findMoodForGenres(genres);
-          jmScopePool = null; jmScopeName = null;
-          document.getElementById('jmSearch').placeholder = 'Search song…';
-          if (mood) {
-            var nearest = getNearestTags(mood.x, mood.y, 4);
-            var tagMap = {}, genreMap = {};
-            nearest.forEach(function(t) { tagMap[t.tag]=true; (t.mood.genres||[]).forEach(function(g){genreMap[g]=true;}); });
-            jmMoodTags = Object.keys(tagMap);
-            jmMoodGenres = Object.keys(genreMap);
-            placeDotForMood(mood);
-            jmRefetchFn = function() { return fetchTracksByTags(jmMoodTags, null).then(function(i){ return i.length?i:fetchTracksByGenres(jmMoodGenres); }); };
-            jmPushNativeSpec(jmMoodTags, null, jmMoodGenres);
-            return fetchTracksByTags(jmMoodTags, null).then(function(i){ return i.length?i:fetchTracksByGenres(jmMoodGenres); });
-          }
-          return fetchFallback();
-        };
+        jmRefetchFn = function() { return transitionToLibraryWideMoodSearch(jmScopePool); };
         jmQueueAhead(tracks);
       } else {
         // Artist: filter pool to the detected mood's genres, shuffle
-        var filtered = tracks;
-        if (scopeMood) {
-          var mg = scopeMood.genres.map(function(g){return g.toLowerCase();});
-          var mf = tracks.filter(function(t){ return (t.Genres||[]).some(function(g){return mg.indexOf(g.toLowerCase())!==-1;}); });
-          if (mf.length >= 5) filtered = mf;
-        }
+        var filtered = filterPoolByGenres(tracks, scopeMood ? scopeMood.genres : null);
+        if (filtered.length < 5) filtered = tracks;
         jmRefetchFn = function() {
-          var pool = (jmMoodGenres ? jmScopePool.filter(function(t){
-            return (t.Genres||[]).some(function(g){ return jmMoodGenres.indexOf(g.toLowerCase())!==-1; });
-          }) : jmScopePool);
-          if (pool.length < 5) pool = jmScopePool;
+          var pool = filterPoolByGenres(jmScopePool, jmMoodGenres);
+          if (pool.length < 5) {
+            // Artist's own catalog is exhausted — hand off to the library,
+            // same as album does, instead of reshuffling the same pool forever.
+            return transitionToLibraryWideMoodSearch(jmScopePool);
+          }
           return Promise.resolve(jmShuffle(pool.slice()).slice(0, 25));
         };
         jmQueueAhead(jmShuffle(filtered.slice()));
@@ -1900,15 +1976,9 @@ function highlightGenreBarForGenres(genres) {
     jmScopePool = null; jmScopeName = null;
     var genres = item.Genres || [];
     function proceed(g) {
-      var mood = null;
-      var moods = (item.Moods || []).filter(function(m) { return !/^not[\s_]/i.test(m); });
-      if (moods.length) {
-        var mn = moods[0].toLowerCase();
-        for (var mi = 0; mi < MOODS.length; mi++) {
-          if (MOODS[mi].name.toLowerCase() === mn) { mood = MOODS[mi]; break; }
-        }
-      }
-      if (!mood) mood = findMoodForGenres(g);
+      // Real per-track Mood: tag first (e.g. AcousticBrainz's "Mood:Relaxed"),
+      // genre-only guess as fallback — same priority order as pool searches.
+      var mood = deriveTagMood(item) || findMoodForGenres(g);
       var _tags = [], _genres = [];
       if (mood) {
         var nearest = getNearestTags(mood.x, mood.y, 5);
@@ -1929,13 +1999,7 @@ function highlightGenreBarForGenres(genres) {
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
       var seedGenres = jmGenreFilter;
-      var _refetchFn = function() {
-        return _tags.length
-          ? fetchTracksByTags(_tags, seedGenres)
-              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres); }, 25); })
-              .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(_tags, seedGenres || searchGenres); }, 25); })
-          : fetchTracksByGenres(seedGenres || searchGenres);
-      };
+      var _refetchFn = function() { return librarywideMoodSearch(_tags, seedGenres, searchGenres); };
       if (jmIsPremium()) {
         // jmRefetchFn already knows how to find more tracks like this one \u2014 queue just the
         // searched song now and let the normal low-queue trigger fetch the rest once it's
