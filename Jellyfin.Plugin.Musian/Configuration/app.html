@@ -170,7 +170,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.52.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.53.0</div>
 </div>
 
 <script>
@@ -861,6 +861,22 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+// Refreshes the "Up next" text from jmPlaylist[idx+1] — called both when a
+// track starts (idx+1 may not exist yet) and again once a background
+// refetch lands more tracks, so it doesn't stay hidden for the rest of the
+// current track just because nothing was queued at start time.
+function jmUpdateUpNext(idx) {
+  var next = jmPlaylist[idx + 1];
+  var upNextEl = document.getElementById('jmUpNext');
+  if (next) {
+    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
+    upNextEl.textContent = 'Up next · ' + (na ? na + ' — ' : '') + next.Name;
+    upNextEl.style.display = 'block';
+  } else {
+    upNextEl.style.display = 'none';
+  }
+}
+
 function jmPlayTrack(idx, gen) {
   if (gen !== jmGeneration) return;
   if (idx >= jmPlaylist.length) {
@@ -899,6 +915,9 @@ function jmPlayTrack(idx, gen) {
             window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Id, t.Name || '', ta);
           });
         }
+        // Freshly-appended tracks may fill an "Up next" that was empty when
+        // this track started (e.g. a fresh single-song search) — refresh it.
+        jmUpdateUpNext(idx);
       }
     }).catch(function() { if (_gen === jmGeneration) jmFetching = false; });
   }
@@ -932,15 +951,7 @@ function jmPlayTrack(idx, gen) {
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
   jmSetNowPlayingArt(item);
-  var next = jmPlaylist[idx + 1];
-  var upNextEl = document.getElementById('jmUpNext');
-  if (next) {
-    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
-    upNextEl.textContent = 'Up next \u00b7 ' + (na ? na + ' \u2014 ' : '') + next.Name;
-    upNextEl.style.display = 'block';
-  } else {
-    upNextEl.style.display = 'none';
-  }
+  jmUpdateUpNext(idx);
   setStatus('Playing \u266a');
   jmUpdateMediaSession(item);
   jmUpdatePersistentBar(item);
@@ -969,13 +980,7 @@ function jmNativeUpdateUI(idx) {
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
   jmSetNowPlayingArt(item);
-  var next = jmPlaylist[idx + 1];
-  var upEl = document.getElementById('jmUpNext');
-  if (next) {
-    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
-    upEl.textContent = 'Up next \u00b7 ' + (na ? na + ' \u2014 ' : '') + next.Name;
-    upEl.style.display = 'block';
-  } else { upEl.style.display = 'none'; }
+  jmUpdateUpNext(idx);
   setStatus('Playing \u266a');
   jmUpdatePersistentBar(item);
   jmShowMoodTransition(item);
@@ -995,6 +1000,9 @@ function jmNativeUpdateUI(idx) {
           var ta = (t.Artists && t.Artists[0]) || t.AlbumArtist || '';
           window.NativeMedia.queueNextTrack(JM.streamUrl(t), t.Id, t.Name || '', ta);
         });
+        // Freshly-appended tracks may fill an "Up next" that was empty when
+        // this track started (e.g. a fresh single-song search) \u2014 refresh it.
+        jmUpdateUpNext(idx);
       }
     }).catch(function() { if (_gen === jmGeneration) jmFetching = false; });
   }
@@ -1117,13 +1125,7 @@ function jmQueueAhead(items) {
   var filtered = items.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
   if (!filtered.length) filtered = items;
   jmPlaylist = jmPlaylist.slice(0, jmPlayIdx + 1).concat(filtered);
-  var next = jmPlaylist[jmPlayIdx + 1];
-  var upNextEl = document.getElementById('jmUpNext');
-  if (next) {
-    var na = (next.Artists && next.Artists[0]) || next.AlbumArtist || '';
-    upNextEl.textContent = 'Up next \u00b7 ' + (na ? na + ' \u2014 ' : '') + next.Name;
-    upNextEl.style.display = 'block';
-  }
+  jmUpdateUpNext(jmPlayIdx);
   if (window.NativeMedia) {
     window.NativeMedia.clearQueueAhead();
     filtered.forEach(function(t) {
