@@ -170,7 +170,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.55.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.56.0</div>
 </div>
 
 <script>
@@ -1762,22 +1762,31 @@ function placeDotForMood(mood) {
 // Highlights the genre-bar zone that best matches the given raw genre tags,
 // and returns that zone's index — the "major genre" a track or mood should
 // rebase onto, rather than the track's own (often sprawling) tags. -1 if none.
+// Widens to the zone either side of the best match (same window a manual
+// double-tap on the genre bar produces) so a single-song search doesn't
+// collapse onto whichever few artists/albums sit in one narrow zone.
 function highlightGenreBarForGenres(genres) {
   var bestIdx = bestGenreZoneIndex(genres);
+  var widened = [];
   if (bestIdx !== -1) {
     var n = GENRES.length;
+    var lo = Math.max(0, bestIdx - 1), hi = Math.min(n - 1, bestIdx + 1);
+    var genreMap = {};
+    GENRES.slice(lo, hi + 1).forEach(function(z) { z.genres.forEach(function(g) { genreMap[g] = true; }); });
+    widened = Object.keys(genreMap);
     var hl = document.getElementById('jmGenreHighlight');
-    hl.style.left  = (bestIdx / n * 100) + '%';
-    hl.style.width = (1 / n * 100) + '%';
+    hl.style.left  = (lo / n * 100) + '%';
+    hl.style.width = ((hi - lo + 1) / n * 100) + '%';
     hl.style.display = 'block';
     ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
       document.getElementById(id).querySelectorAll('span').forEach(function(s, i) {
-        s.style.color      = i === bestIdx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
-        s.style.fontWeight = i === bestIdx ? '700' : '400';
+        var active = (i >= lo && i <= hi);
+        s.style.color      = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
+        s.style.fontWeight = active ? '700' : '400';
       });
     });
   }
-  return bestIdx;
+  return {idx: bestIdx, genres: widened};
 }
 
 (function() {
@@ -2006,8 +2015,9 @@ function highlightGenreBarForGenres(genres) {
       }
       // Rebase onto the major genre zone the track lands in, not the track's own
       // (often sprawling) raw tag list — same principle as the mood landing point above.
-      var majorIdx = highlightGenreBarForGenres(g);
-      if (majorIdx !== -1) { jmGenreFilter = GENRES[majorIdx].genres; jmGenreZoneIdx = majorIdx; }
+      var zone = highlightGenreBarForGenres(g);
+      var majorIdx = zone.idx;
+      if (majorIdx !== -1) { jmGenreFilter = zone.genres; jmGenreZoneIdx = majorIdx; }
       var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
       var isElectronicZone = majorIdx !== -1 && GENRES[majorIdx].name === 'Dance & Electronic';
       jmMoodTags   = _tags;
