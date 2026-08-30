@@ -22,6 +22,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmGenreBar { width:100%; height:44px; border-radius:10px; background:linear-gradient(to right,#c8b860,#1a5070,#6a7840,#b040a0,#c06020,#b02010,#806000,#200010); }
 #jmGenreHighlight { position:absolute; top:0; height:44px; border-radius:10px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.7); pointer-events:none; transition:left 0.15s,width 0.15s; display:none; }
 #jmGenreDot { position:absolute; top:50%; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,0.5),0 0 8px rgba(255,255,255,0.9); pointer-events:none; transition:left 0.35s ease; display:none; }
+#jmGenreAnchorDot { position:absolute; top:50%; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); background:#fff; opacity:0.5; box-shadow:0 0 0 2px rgba(0,0,0,0.5); pointer-events:none; transition:left 0.35s ease; display:none; }
 #jmGenreLabelsTop, #jmGenreLabels { display:flex; width:100%; }
 #jmGenreLabelsTop { margin-bottom:4px; }
 #jmGenreLabels { margin-top:4px; }
@@ -137,6 +138,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <div id="jmGenreWrap">
       <div id="jmGenreBar"></div>
       <div id="jmGenreHighlight"></div>
+      <div id="jmGenreAnchorDot"></div>
       <div id="jmGenreDot"></div>
     </div>
     <div id="jmGenreLabels"></div>
@@ -170,7 +172,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.56.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.57.0</div>
 </div>
 
 <script>
@@ -961,8 +963,8 @@ function jmPlayTrack(idx, gen) {
 function jmShowMoodTransition(item) {
   clearMoodLabels();
   jmShowPrompt(true);
-  if (jmGenreZoneIdx !== null) { showGenreDotAtIndex(jmGenreZoneIdx); }
-  else { placeGenreDot((item && item.Genres) || []); }
+  showAnchorDotAtIndex(jmGenreZoneIdx);
+  placeGenreDot((item && item.Genres) || []);
 }
 
 function jmSetNativePlayState(playing) {
@@ -1086,6 +1088,8 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   document.getElementById('jmResumeBtn').style.display = 'none';
   var hl = document.getElementById('jmGenreHighlight');
   if (hl) hl.style.display = 'none';
+  showAnchorDotAtIndex(null);
+  showGenreDotAtIndex(null);
   ['jmGenreLabelsTop','jmGenreLabels'].forEach(function(id) {
     document.getElementById(id).querySelectorAll('span').forEach(function(s) {
       s.style.color = ''; s.style.fontWeight = '';
@@ -1734,6 +1738,15 @@ function transitionToLibraryWideMoodSearch(pool) {
 
 function showGenreDotAtIndex(idx) {
   var dot = document.getElementById('jmGenreDot');
+  if (idx === -1 || idx === null) { dot.style.display = 'none'; return; }
+  dot.style.left = ((idx + 0.5) / GENRES.length * 100) + '%';
+  dot.style.display = 'block';
+}
+
+// Faded "ground zero" marker for the zone a genre-locked session started
+// from — stays fixed while the active dot (placeGenreDot) moves per track.
+function showAnchorDotAtIndex(idx) {
+  var dot = document.getElementById('jmGenreAnchorDot');
   if (idx === -1 || idx === null) { dot.style.display = 'none'; return; }
   dot.style.left = ((idx + 0.5) / GENRES.length * 100) + '%';
   dot.style.display = 'block';
