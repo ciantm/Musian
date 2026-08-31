@@ -172,7 +172,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.58.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.59.0</div>
 </div>
 
 <script>
@@ -2130,6 +2130,18 @@ function highlightGenreBarForGenres(genres) {
     jmGenreZoneIdx = Math.round((lo + hi) / 2);
     jmGenreZoneLo = lo;
     jmGenreZoneHi = hi;
+  } else {
+    // No genre-bar tap was saved (the last selection was mood-only) — derive
+    // the major zone the same way a single-song search would, treating the
+    // recorded mood point as if it were the track: widen ±1 around the
+    // dominant zone of the mood's own associated genres.
+    var zone = highlightGenreBarForGenres(jmMoodGenres);
+    if (zone.idx !== -1) {
+      jmGenreFilter = zone.genres;
+      jmGenreZoneIdx = zone.idx;
+      jmGenreZoneLo = zone.lo;
+      jmGenreZoneHi = zone.hi;
+    }
   }
 
   var resumeBtn = document.getElementById('jmResumeBtn');
