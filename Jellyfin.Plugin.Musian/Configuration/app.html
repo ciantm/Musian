@@ -172,7 +172,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.59.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.60.0</div>
 </div>
 
 <script>
@@ -2173,6 +2173,17 @@ function highlightGenreBarForGenres(genres) {
       .catch(function(e) { console.error('[Musian]', e); setStatus('Could not fetch tracks.'); });
   });
 })();
+
+// The Android app calls these via WebView evaluateJavascript() from outside
+// this closure (MainActivity.java) — must be reachable on window, or the
+// native bridge silently no-ops (evaluateJavascript swallows the lookup
+// failure instead of throwing, so the callback appears to succeed).
+window.jmSetNativePlayState = jmSetNativePlayState;
+window.jmOnPremiumChanged   = jmOnPremiumChanged;
+window.jmNativePrev = function() {
+  jmPlayIdx = Math.max(0, jmPlayIdx - 1);
+  jmPlayTrack(jmPlayIdx, jmGeneration);
+};
 
 })();
 </script>

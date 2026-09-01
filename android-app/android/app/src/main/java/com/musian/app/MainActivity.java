@@ -26,7 +26,7 @@ public class MainActivity extends BridgeActivity {
 
             mService.setOnPrevListener(() ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
-                    "jmPlayIdx=Math.max(0,jmPlayIdx-1);jmPlayTrack(jmPlayIdx,jmGeneration);", null)));
+                    "if(typeof jmNativePrev==='function')jmNativePrev();", null)));
 
             mService.setOnPlayStateChangedListener(playing ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
