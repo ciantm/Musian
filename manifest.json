@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/ciantm/Jellymoods/main/assets/logo.png",
     "versions": [
       {
+        "version": "3.1.60.0",
+        "changelog": "Release 3.1.60.0",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/ciantm/Musian/releases/download/v3.1.60.0/Jellyfin.Plugin.Musian_3.1.60.0.zip",
+        "checksum": "06abc43cb047c98d1d3a0eda4e64dd1e",
+        "timestamp": "2026-09-01T05:47:08Z"
+      },
+      {
         "version": "3.1.59.0",
         "changelog": "Release 3.1.59.0",
         "targetAbi": "10.8.0.0",
