@@ -172,7 +172,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.60.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.61.0</div>
 </div>
 
 <script>
@@ -287,10 +287,23 @@ if (window.NativeMedia && JM.token && JM.userId && JM.type !== 'plex' && JM.type
     setTimeout(function() { splash.style.display = 'none'; }, 850);
   }, 1400);
 })();
+// Once a stored token is rejected, the Android login screen (index.html)
+// otherwise has no way to notice — it only checks that *something* is
+// saved, not that it still works — so the app is stuck retrying a dead
+// token forever. Clear it and bounce back to sign-in on the first 401.
+var jmAuthFailureHandled = false;
 function jmFetch(url, opts) {
   var ctrl = new AbortController();
   var tid = setTimeout(function() { ctrl.abort(); }, 30000);
   return fetch(url, Object.assign({}, opts || {}, {signal: ctrl.signal}))
+    .then(function(r) {
+      if (r.status === 401 && JM.token && !jmAuthFailureHandled) {
+        jmAuthFailureHandled = true;
+        try { localStorage.removeItem('jm_auth'); } catch(e) {}
+        if (window.Capacitor) window.location.href = 'index.html';
+      }
+      return r;
+    })
     .finally(function() { clearTimeout(tid); });
 }
 function normalizeTracks(items) {
@@ -664,11 +677,11 @@ var jmMoodLabels = [];   // persistent label elements on the disc
       setStatus('Searching\u2026');
       setTrackCount(0);
       var genreG = jmGenreFilter, moodG = jmMoodGenres, moodT = jmMoodTags || [];
-      if (jmIsPremium()) jmRefetchFn = function() { return fetchTracksByTags(moodT, genreG).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG); }); };
+      if (jmIsPremium()) jmRefetchFn = function() { return fetchTracksByTags(moodT, genreG, lo, hi).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG, lo, hi); }); };
       jmPushNativeSpec(moodT, genreG, moodG);
-      fetchTracksByTags(moodT, genreG)
-        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG); })
-        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG); })
+      fetchTracksByTags(moodT, genreG, lo, hi)
+        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG, lo, hi); })
+        .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(moodG, lo, hi); })
         .then(function(items) { return items.length > 0 ? items : fetchFallback(genreG); })
         .then(function(items) {
           setTrackCount(items.length);
@@ -1134,6 +1147,11 @@ function startPlayback(items) {
 function jmQueueAhead(items) {
   if (!items.length) return;
   if (!jmPlaylist.length) { startPlayback(items); return; }
+  // Bump generation so a still-in-flight fetch from whatever selection was
+  // active before this one can no longer pass its _gen check and append
+  // tracks from the abandoned selection onto this new queue.
+  jmGeneration++;
+  jmFetching = false;
   var filtered = items.filter(function(t) { return jmPlayedIds.indexOf(t.Id) === -1; });
   if (!filtered.length) filtered = items;
   jmPlaylist = jmPlaylist.slice(0, jmPlayIdx + 1).concat(filtered);
@@ -1280,18 +1298,18 @@ function selectMoodPoint(valence, arousal, dotX, dotY) {
   }
 
   var searchGenres = jmGenreFilter !== null ? jmGenreFilter : moodGenres;
-  var _gf = jmGenreFilter;
+  var _gf = jmGenreFilter, _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
   if (jmIsPremium()) jmRefetchFn = function() {
-    return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf); }, 500); });
+    return blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); });
   };
   jmPushNativeSpec(moodTags, _gf, searchGenres);
 
   setStatus('Searching\u2026');
 
-  blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
-    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, jmGenreFilter); }, 25); })
-    .then(function(i) { return i.length ? i : fetchFallback(jmGenreFilter); })
+  blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
+    .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 25); })
+    .then(function(i) { return i.length ? i : fetchFallback(_gf); })
     .then(function(items) {
       for (var i = items.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
@@ -1356,30 +1374,36 @@ function expandGenres(seeds) {
   return Object.keys(result);
 }
 
-// Admits a track into a genre-constrained search. When jmGenreZoneLo/Hi
-// describe a widened multi-zone window (Hi > Lo — the ±1 neighbor widening
-// from a single-song search or a genre-bar double-tap), require the track's
-// own DOMINANT zone (bestGenreZoneIndex) to fall inside that window, instead
-// of admitting on any tag overlap. Measured against the real library: this
+// Admits a track into a genre-constrained search. When lo/hi describe a
+// widened multi-zone window (hi > lo — the ±1 neighbor widening from a
+// single-song search or a genre-bar double-tap), require the track's own
+// DOMINANT zone (bestGenreZoneIndex) to fall inside that window, instead of
+// admitting on any tag overlap. Measured against the real library: this
 // keeps 76.6% of the previously-admitted pool while dropping the Country-Rock-
 // tagged-but-Folk&Country-dominant false positives (e.g. a Kenny Rogers track
 // surfacing in a Rock search purely because "Country Rock" contains "Rock").
-// For a single tapped zone (Hi === Lo) or no window, keep the original
-// permissive any-word-overlap test — a single-zone dominant-only gate was
-// already tried and reverted for gutting queue sizes (see
-// feedback_genre_hard_constraint.md).
-function passesGenreZone(trackGenres, genres) {
+// For a single tapped zone (hi === lo) or no window (lo/hi omitted — e.g.
+// fetchFallback's last-resort sample, which must stay maximally permissive),
+// keep the original permissive any-word-overlap test — a single-zone
+// dominant-only gate was already tried and reverted for gutting queue sizes
+// (see feedback_genre_hard_constraint.md).
+//
+// lo/hi are passed explicitly (a snapshot of jmGenreZoneLo/Hi taken when the
+// search was dispatched) rather than read live off the globals here, so a
+// user switching zones while a fetch is still in flight can't retroactively
+// change which window an already-issued request gets filtered against.
+function passesGenreZone(trackGenres, genres, lo, hi) {
   if (!genres || !genres.length) return true;
-  if (jmGenreZoneLo != null && jmGenreZoneHi != null && jmGenreZoneHi > jmGenreZoneLo) {
+  if (lo != null && hi != null && hi > lo) {
     var idx = bestGenreZoneIndex(trackGenres || []);
-    return idx >= jmGenreZoneLo && idx <= jmGenreZoneHi;
+    return idx >= lo && idx <= hi;
   }
   return (trackGenres || []).some(function(g) {
     return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
   });
 }
 
-function fetchTracksByGenres(genres) {
+function fetchTracksByGenres(genres, lo, hi) {
   if (JM.type === 'plex') {
     var promises = genres.map(function(g) {
       return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
@@ -1394,7 +1418,7 @@ function fetchTracksByGenres(genres) {
       results.forEach(function(items){ items.forEach(function(t){
         if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
       });});
-      return normalizeTracks(merged).filter(function(t) { return passesGenreZone(t.Genres, genres); });
+      return normalizeTracks(merged).filter(function(t) { return passesGenreZone(t.Genres, genres, lo, hi); });
     });
   }
   if (JM.type === 'subsonic') {
@@ -1410,7 +1434,7 @@ function fetchTracksByGenres(genres) {
       results.forEach(function(items){ items.forEach(function(t){
         if(!seen[t.id]){seen[t.id]=true; merged.push(t);}
       });});
-      return normalizeTracks(merged).filter(function(t) { return passesGenreZone(t.Genres, genres); });
+      return normalizeTracks(merged).filter(function(t) { return passesGenreZone(t.Genres, genres, lo, hi); });
     });
   }
   if (!JM.token || !JM.userId) return Promise.resolve([]);
@@ -1419,10 +1443,16 @@ function fetchTracksByGenres(genres) {
   if (expanded.length > 0) params.set('Genres', expanded.join('|'));
   return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
-    .then(function(d) { return normalizeTracks(d.Items || []).filter(function(t) { return passesGenreZone(t.Genres, genres); }); })
+    .then(function(d) { return normalizeTracks(d.Items || []).filter(function(t) { return passesGenreZone(t.Genres, genres, lo, hi); }); })
     .catch(function() { return []; });
 }
 
+// The last-resort "guarantee something plays" fetch — always uses the
+// permissive any-word-overlap test (passesGenreZone with no lo/hi) even if a
+// widened zone window is active. fetchFallbackCore only samples 10-25 random
+// tracks; gating that tiny sample against a narrow 2-3-zone dominant-zone
+// window could plausibly admit none of them, defeating the one guarantee
+// this function exists to provide.
 function fetchFallback(genres) {
   return fetchFallbackCore().then(function(items) {
     return items.filter(function(t) { return passesGenreZone(t.Genres, genres); });
@@ -1461,7 +1491,7 @@ function jmSupplement(base, fetchFn, limit) {
   });
 }
 
-function fetchTracksByTags(tags, genres) {
+function fetchTracksByTags(tags, genres, lo, hi) {
   if (!tags.length) return Promise.resolve([]);
   if (JM.type === 'plex') {
     var promises = tags.map(function(tag) {
@@ -1477,7 +1507,7 @@ function fetchTracksByTags(tags, genres) {
       results.forEach(function(items){ items.forEach(function(t){
         if(!seen[t.ratingKey]){seen[t.ratingKey]=true; merged.push(t);}
       });});
-      var tracks = normalizeTracks(merged).filter(function(t) { return passesGenreZone(t.Genres, genres); });
+      var tracks = normalizeTracks(merged).filter(function(t) { return passesGenreZone(t.Genres, genres, lo, hi); });
       return tracks;
     });
   }
@@ -1496,12 +1526,12 @@ function fetchTracksByTags(tags, genres) {
   if (genres && genres.length) params.set('Genres', expandGenres(genres).join('|'));
   return jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + params, {headers: JM.headers()})
     .then(function(r) { return r.json(); })
-    .then(function(d) { return (d.Items || []).filter(function(t) { return passesGenreZone(t.Genres, genres); }); });
+    .then(function(d) { return (d.Items || []).filter(function(t) { return passesGenreZone(t.Genres, genres, lo, hi); }); });
 }
 
-function fetchTracksByTitleWords(tags, genres) {
+function fetchTracksByTitleWords(tags, genres, lo, hi) {
   return fetchTracksByTitleWordsCore(tags).then(function(items) {
-    return items.filter(function(t) { return passesGenreZone(t.Genres, genres); });
+    return items.filter(function(t) { return passesGenreZone(t.Genres, genres, lo, hi); });
   });
 }
 
@@ -1715,12 +1745,12 @@ function isRemixTitle(name) {
   return /\bremix\b/i.test(name || '');
 }
 
-function librarywideMoodSearch(tags, seedGenres, searchGenres, isElectronicZone) {
+function librarywideMoodSearch(tags, seedGenres, searchGenres, isElectronicZone, lo, hi) {
   var chain = tags.length
-    ? fetchTracksByTags(tags, seedGenres)
-        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres); }, 25); })
-        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(tags, seedGenres || searchGenres); }, 25); })
-    : fetchTracksByGenres(seedGenres || searchGenres);
+    ? fetchTracksByTags(tags, seedGenres, lo, hi)
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres, lo, hi); }, 25); })
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(tags, seedGenres || searchGenres, lo, hi); }, 25); })
+    : fetchTracksByGenres(seedGenres || searchGenres, lo, hi);
   if (isElectronicZone) return chain;
   return chain.then(function(items) { return items.filter(function(t) { return !isRemixTitle(t.Name); }); });
 }
@@ -1743,13 +1773,17 @@ function transitionToLibraryWideMoodSearch(pool) {
   var majorIdx = bestGenreZoneIndex(genres);
   var seedGenres = majorIdx !== -1 ? GENRES[majorIdx].genres : null;
   var isElectronicZone = majorIdx !== -1 && GENRES[majorIdx].name === 'Dance & Electronic';
-  if (majorIdx !== -1) { jmGenreFilter = GENRES[majorIdx].genres; jmGenreZoneIdx = majorIdx; jmGenreZoneLo = majorIdx; jmGenreZoneHi = majorIdx; }
+  if (majorIdx !== -1) {
+    jmGenreFilter = GENRES[majorIdx].genres; jmGenreZoneIdx = majorIdx; jmGenreZoneLo = majorIdx; jmGenreZoneHi = majorIdx;
+  } else {
+    jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
+  }
   jmMoodTags = tags;
   jmMoodGenres = moodGenres;
   placeDotForMood(mood);
-  jmRefetchFn = function() { return librarywideMoodSearch(tags, seedGenres, moodGenres, isElectronicZone); };
+  jmRefetchFn = function() { return librarywideMoodSearch(tags, seedGenres, moodGenres, isElectronicZone, majorIdx, majorIdx); };
   jmPushNativeSpec(tags, seedGenres, moodGenres);
-  return librarywideMoodSearch(tags, seedGenres, moodGenres, isElectronicZone);
+  return librarywideMoodSearch(tags, seedGenres, moodGenres, isElectronicZone, majorIdx, majorIdx);
 }
 
 function showGenreDotAtIndex(idx) {
@@ -2046,13 +2080,26 @@ function highlightGenreBarForGenres(genres) {
       // (often sprawling) raw tag list — same principle as the mood landing point above.
       var zone = highlightGenreBarForGenres(g);
       var majorIdx = zone.idx;
-      if (majorIdx !== -1) { jmGenreFilter = zone.genres; jmGenreZoneIdx = majorIdx; jmGenreZoneLo = zone.lo; jmGenreZoneHi = zone.hi; }
+      if (majorIdx !== -1) {
+        jmGenreFilter = zone.genres; jmGenreZoneIdx = majorIdx; jmGenreZoneLo = zone.lo; jmGenreZoneHi = zone.hi;
+      } else {
+        // Track's own genres don't score against any zone — don't let a
+        // genre lock from an earlier, unrelated selection leak into this
+        // search.
+        jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
+        var hl = document.getElementById('jmGenreHighlight');
+        if (hl) hl.style.display = 'none';
+        ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
+          document.getElementById(id).querySelectorAll('span').forEach(function(s) { s.style.color = ''; s.style.fontWeight = ''; });
+        });
+      }
       var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
       var isElectronicZone = majorIdx !== -1 && GENRES[majorIdx].name === 'Dance & Electronic';
       jmMoodTags   = _tags;
       jmMoodGenres = _genres;
       var seedGenres = jmGenreFilter;
-      var _refetchFn = function() { return librarywideMoodSearch(_tags, seedGenres, searchGenres, isElectronicZone); };
+      var _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
+      var _refetchFn = function() { return librarywideMoodSearch(_tags, seedGenres, searchGenres, isElectronicZone, _lo, _hi); };
       if (jmIsPremium()) {
         // jmRefetchFn already knows how to find more tracks like this one \u2014 queue just the
         // searched song now and let the normal low-queue trigger fetch the rest once it's
@@ -2150,16 +2197,16 @@ function highlightGenreBarForGenres(genres) {
     resumeBtn.style.display = 'none';
     var moodTags = jmMoodTags, moodGenres = jmMoodGenres;
     var searchGenres = jmGenreFilter !== null ? jmGenreFilter : moodGenres;
-    var _gf = jmGenreFilter;
+    var _gf = jmGenreFilter, _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
     if (jmIsPremium()) jmRefetchFn = function() {
-      return blendMoodGenre(fetchTracksByTags(moodTags, _gf), fetchTracksByGenres(searchGenres))
-        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf); }, 500); });
+      return blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); });
     };
     jmPushNativeSpec(moodTags, _gf, searchGenres);
     setStatus('Searching…');
-    blendMoodGenre(fetchTracksByTags(moodTags, jmGenreFilter), fetchTracksByGenres(searchGenres))
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, jmGenreFilter); }, 25); })
-      .then(function(i) { return i.length ? i : fetchFallback(jmGenreFilter); })
+    blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 25); })
+      .then(function(i) { return i.length ? i : fetchFallback(_gf); })
       .then(function(items) {
         for (var i = items.length - 1; i > 0; i--) {
           var j = Math.floor(Math.random() * (i + 1));

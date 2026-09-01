@@ -140,8 +140,39 @@ button#jmPlexBtn:active { opacity:0.85; }
       if (m[2]) document.getElementById('jmPort').value = m[2];
     }
   }
-  if (saved && saved.type && saved.serverUrl) { window.location.replace('app.html'); return; }
+  // Only skip the login form once the saved token is confirmed to still
+  // work — a stored blob existing isn't enough, since a server restart or
+  // revoked session leaves it stale, and app.html's own 401 handler already
+  // clears jm_auth and sends us back here; if we skipped straight to
+  // app.html on presence alone, that would just bounce right back, forever.
+  if (saved && saved.type && saved.serverUrl) {
+    validateSavedAuth(saved).then(function(ok) {
+      if (ok) { window.location.replace('app.html'); return; }
+      try { localStorage.removeItem('jm_auth'); } catch(e) {}
+      document.getElementById('jmDetectMsg').textContent = 'Session expired — please sign in again.';
+    });
+  }
   if (saved && saved.type) setType(saved.type);
+
+  function validateSavedAuth(saved) {
+    if (saved.type === 'jellyfin' && saved.accessToken) {
+      return fetchQuick(saved.serverUrl + '/Users/Me', { headers: {
+        'X-Emby-Authorization': 'MediaBrowser Client="Musian",Device="Musian",DeviceId="jm1",Version="1.0",Token="' + saved.accessToken + '"'
+      }}).then(function(r) { return r.ok; }).catch(function() { return false; });
+    }
+    if (saved.type === 'subsonic' && saved.username) {
+      var url = saved.serverUrl + '/rest/ping.view?u=' + encodeURIComponent(saved.username) +
+        '&p=' + encodeURIComponent(saved.password) + '&v=1.16.1&c=Musian&f=json';
+      return fetchQuick(url).then(function(r) { return r.json(); }).then(function(d) {
+        return !!(d['subsonic-response'] && d['subsonic-response'].status === 'ok');
+      }).catch(function() { return false; });
+    }
+    if (saved.type === 'plex' && saved.token) {
+      return fetchQuick(saved.serverUrl + '/library/sections?X-Plex-Token=' + saved.token,
+        { headers: { 'Accept': 'application/json' } }).then(function(r) { return r.ok; }).catch(function() { return false; });
+    }
+    return Promise.resolve(false);
+  }
 
   // Type selector
   document.querySelector('.type-row').addEventListener('click', function(e) {
@@ -175,10 +206,10 @@ button#jmPlexBtn:active { opacity:0.85; }
     detect(getServerUrl());
   });
 
-  function fetchQuick(url) {
+  function fetchQuick(url, opts) {
     var ctrl = new AbortController();
     setTimeout(function() { ctrl.abort(); }, 4000);
-    return fetch(url, { signal: ctrl.signal });
+    return fetch(url, Object.assign({}, opts || {}, { signal: ctrl.signal }));
   }
 
   function detect(url) {
