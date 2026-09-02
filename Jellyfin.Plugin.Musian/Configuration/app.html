@@ -172,7 +172,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.63.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.64.0</div>
 </div>
 
 <script>
@@ -677,7 +677,11 @@ var jmMoodLabels = [];   // persistent label elements on the disc
       setStatus('Searching\u2026');
       setTrackCount(0);
       var genreG = jmGenreFilter, moodG = jmMoodGenres, moodT = jmMoodTags || [];
-      if (jmIsPremium()) jmRefetchFn = function() { return fetchTracksByTags(moodT, genreG, lo, hi).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG, lo, hi); }); };
+      if (jmIsPremium()) jmRefetchFn = function() {
+        return fetchTracksByTags(moodT, genreG, lo, hi)
+          .then(function(i) { return i.length ? i : fetchTracksByGenres(genreG, lo, hi); })
+          .then(function(i) { return i.length ? i : fetchFallback(genreG); });
+      };
       jmPushNativeSpec(moodT, genreG, moodG);
       fetchTracksByTags(moodT, genreG, lo, hi)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG, lo, hi); })
@@ -1301,7 +1305,8 @@ function selectMoodPoint(valence, arousal, dotX, dotY) {
   var _gf = jmGenreFilter, _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
   if (jmIsPremium()) jmRefetchFn = function() {
     return blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); });
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); })
+      .then(function(i) { return i.length ? i : fetchFallback(_gf); });
   };
   jmPushNativeSpec(moodTags, _gf, searchGenres);
 
@@ -1751,6 +1756,11 @@ function librarywideMoodSearch(tags, seedGenres, searchGenres, isElectronicZone,
         .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres, lo, hi); }, 25); })
         .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(tags, seedGenres || searchGenres, lo, hi); }, 25); })
     : fetchTracksByGenres(seedGenres || searchGenres, lo, hi);
+  // Guarantee something plays: the dominant-zone gate can legitimately empty
+  // out (e.g. every remaining zone-matching track already played) — this is
+  // the ongoing "queue running low" refetch, not just the initial dispatch,
+  // so it needs the same last-resort fallback or playback just stops dead.
+  chain = chain.then(function(items) { return items.length ? items : fetchFallback(seedGenres || searchGenres); });
   if (isElectronicZone) return chain;
   return chain.then(function(items) { return items.filter(function(t) { return !isRemixTitle(t.Name); }); });
 }
@@ -2192,8 +2202,8 @@ function highlightGenreBarForGenres(genres) {
   } else {
     // No genre-bar tap was saved (the last selection was mood-only) — derive
     // the major zone the same way a single-song search would, treating the
-    // recorded mood point as if it were the track: widen ±1 around the
-    // dominant zone of the mood's own associated genres.
+    // recorded mood point as if it were the track: lock onto the dominant
+    // zone of the mood's own associated genres.
     var zone = highlightGenreBarForGenres(jmMoodGenres);
     if (zone.idx !== -1) {
       jmGenreFilter = zone.genres;
@@ -2212,7 +2222,8 @@ function highlightGenreBarForGenres(genres) {
     var _gf = jmGenreFilter, _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
     if (jmIsPremium()) jmRefetchFn = function() {
       return blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
-        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); });
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); })
+        .then(function(i) { return i.length ? i : fetchFallback(_gf); });
     };
     jmPushNativeSpec(moodTags, _gf, searchGenres);
     setStatus('Searching…');
