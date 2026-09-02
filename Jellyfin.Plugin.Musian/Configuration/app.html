@@ -171,8 +171,8 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </div>
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
-  <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.61.0</div>
+  <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.62.0</div>
 </div>
 
 <script>
@@ -1825,15 +1825,14 @@ function placeDotForMood(mood) {
 // Highlights the genre-bar zone that best matches the given raw genre tags,
 // and returns that zone's index — the "major genre" a track or mood should
 // rebase onto, rather than the track's own (often sprawling) tags. -1 if none.
-// Widens to the zone either side of the best match (same window a manual
-// double-tap on the genre bar produces) so a single-song search doesn't
-// collapse onto whichever few artists/albums sit in one narrow zone.
+// Locks onto that single zone only — testing showed widening to neighbor
+// zones let dominantly-wrong-zone tracks slip in via compound genre tags.
 function highlightGenreBarForGenres(genres) {
   var bestIdx = bestGenreZoneIndex(genres);
   var widened = [], lo = null, hi = null;
   if (bestIdx !== -1) {
     var n = GENRES.length;
-    lo = Math.max(0, bestIdx - 1); hi = Math.min(n - 1, bestIdx + 1);
+    lo = bestIdx; hi = bestIdx;
     var genreMap = {};
     GENRES.slice(lo, hi + 1).forEach(function(z) { z.genres.forEach(function(g) { genreMap[g] = true; }); });
     widened = Object.keys(genreMap);
