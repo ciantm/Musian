@@ -172,7 +172,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.62.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.63.0</div>
 </div>
 
 <script>
@@ -1374,19 +1374,19 @@ function expandGenres(seeds) {
   return Object.keys(result);
 }
 
-// Admits a track into a genre-constrained search. When lo/hi describe a
-// widened multi-zone window (hi > lo — the ±1 neighbor widening from a
-// single-song search or a genre-bar double-tap), require the track's own
-// DOMINANT zone (bestGenreZoneIndex) to fall inside that window, instead of
-// admitting on any tag overlap. Measured against the real library: this
-// keeps 76.6% of the previously-admitted pool while dropping the Country-Rock-
-// tagged-but-Folk&Country-dominant false positives (e.g. a Kenny Rogers track
-// surfacing in a Rock search purely because "Country Rock" contains "Rock").
-// For a single tapped zone (hi === lo) or no window (lo/hi omitted — e.g.
-// fetchFallback's last-resort sample, which must stay maximally permissive),
-// keep the original permissive any-word-overlap test — a single-zone
-// dominant-only gate was already tried and reverted for gutting queue sizes
-// (see feedback_genre_hard_constraint.md).
+// Admits a track into a genre-constrained search. Whenever lo/hi describe an
+// active genre-zone lock (single-song/album/artist search, or a manual
+// genre-bar tap), require the track's own DOMINANT zone (bestGenreZoneIndex)
+// to fall inside that window — not just any tag overlap — so continuation
+// only pulls tracks whose own major genre matches the original search,
+// regardless of entry point. This replaced a permissive any-word-overlap
+// test that let compound tags admit dominantly-wrong-zone tracks (e.g. a
+// Kenny Rogers track tagged "Country Rock" surfacing in a Rock search purely
+// because the tag contains "Rock").
+//
+// lo/hi omitted entirely (undefined/null) means no genre-zone lock is active
+// at all — a pure mood search, or fetchFallback's last-resort "guarantee
+// something plays" sample — and stays maximally permissive on purpose.
 //
 // lo/hi are passed explicitly (a snapshot of jmGenreZoneLo/Hi taken when the
 // search was dispatched) rather than read live off the globals here, so a
@@ -1394,13 +1394,13 @@ function expandGenres(seeds) {
 // change which window an already-issued request gets filtered against.
 function passesGenreZone(trackGenres, genres, lo, hi) {
   if (!genres || !genres.length) return true;
-  if (lo != null && hi != null && hi > lo) {
-    var idx = bestGenreZoneIndex(trackGenres || []);
-    return idx >= lo && idx <= hi;
+  if (lo == null || hi == null) {
+    return (trackGenres || []).some(function(g) {
+      return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
+    });
   }
-  return (trackGenres || []).some(function(g) {
-    return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
-  });
+  var idx = bestGenreZoneIndex(trackGenres || []);
+  return idx >= lo && idx <= hi;
 }
 
 function fetchTracksByGenres(genres, lo, hi) {
@@ -2021,7 +2021,7 @@ function highlightGenreBarForGenres(genres) {
     fetchScopePool(item, kind).then(function(tracks) {
       if (!tracks.length) { setStatus('No tracks found.'); return; }
       jmScopePool = tracks;
-      jmMoodTags = null; jmMoodGenres = null; jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
+      jmMoodTags = null; jmMoodGenres = null;
 
       // Show the mood dot right away for both albums and artists, same as a
       // single-track search — no need to wait for the pool to play out first.
@@ -2031,16 +2031,29 @@ function highlightGenreBarForGenres(genres) {
       var scopeMood = derivePoolMood(tracks);
       if (scopeMood) { placeDotForMood(scopeMood); jmMoodGenres = scopeMood.genres; }
 
+      // Rebase onto the pool's own major genre zone — same call as a
+      // single-song search — so continuation only pulls tracks whose own
+      // dominant genre matches this album/artist's, regardless of entry point.
+      var zone = highlightGenreBarForGenres(poolGenres(tracks));
+      if (zone.idx !== -1) {
+        jmGenreFilter = zone.genres; jmGenreZoneIdx = zone.idx; jmGenreZoneLo = zone.lo; jmGenreZoneHi = zone.hi;
+      } else {
+        jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
+      }
+      var zGenres = zone.genres, zLo = zone.lo, zHi = zone.hi;
+      function inZone(t) { return zone.idx === -1 || passesGenreZone(t.Genres, zGenres, zLo, zHi); }
+
       if (kind === 'album') {
         // Play in track order; when exhausted, transition to full-library mood search
         jmRefetchFn = function() { return transitionToLibraryWideMoodSearch(jmScopePool); };
         jmQueueAhead(tracks);
       } else {
-        // Artist: filter pool to the detected mood's genres, shuffle
-        var filtered = filterPoolByGenres(tracks, scopeMood ? scopeMood.genres : null);
+        // Artist: filter pool to tracks whose own dominant genre matches the
+        // artist's major zone, shuffle
+        var filtered = tracks.filter(inZone);
         if (filtered.length < 5) filtered = tracks;
         jmRefetchFn = function() {
-          var pool = filterPoolByGenres(jmScopePool, jmMoodGenres);
+          var pool = jmScopePool.filter(inZone);
           if (pool.length < 5) {
             // Artist's own catalog is exhausted — hand off to the library,
             // same as album does, instead of reshuffling the same pool forever.
