@@ -76,6 +76,21 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <text x="204" y="318" font-family="sans-serif" font-size="22" font-weight="300" letter-spacing="16" fill="white" fill-opacity="0.48" text-anchor="middle">musian</text>
   </svg>
 </div>
+<button id="jmPremiumBadge" style="display:none;position:fixed;top:14px;right:14px;z-index:50;background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:6px 12px;font-size:0.72em;font-weight:700;letter-spacing:0.02em;cursor:pointer;">Get Premium</button>
+<div id="jmPremiumModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#161616;border:1px solid rgba(255,255,255,0.1);border-radius:16px;max-width:340px;width:100%;padding:24px;text-align:center;">
+    <div style="font-size:1.1em;font-weight:600;color:#fff;margin-bottom:4px;">Musian Premium</div>
+    <div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:18px;">Keep the music going.</div>
+    <ul style="list-style:none;padding:0;margin:0 0 22px;text-align:left;font-size:0.82em;color:rgba(255,255,255,0.82);line-height:1.9;">
+      <li>&#8226; Continuous 25-track queue &mdash; no more stopping at 10</li>
+      <li>&#8226; Search by album or artist, not just song</li>
+      <li>&#8226; Resume your last mood exactly where you left off</li>
+      <li>&#8226; Play Similar &mdash; reseed what's next from any track</li>
+    </ul>
+    <button id="jmPremiumBuyBtn" class="jm-btn" style="background:#ffd700;color:#111;width:100%;padding:12px;font-size:0.9em;margin-bottom:8px;">Unlock Premium</button>
+    <button id="jmPremiumCloseBtn" class="jm-btn" style="background:transparent;color:rgba(255,255,255,0.5);width:100%;padding:8px;font-size:0.82em;">Not now</button>
+  </div>
+</div>
 <div id="jmApp">
   <h2 style="font-size:1.92em;font-weight:300;margin:0 0 32px;text-align:center;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span></h2>
 
@@ -174,7 +189,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.67.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.68.0</div>
 </div>
 
 <script>
@@ -713,7 +728,28 @@ function jmIsPremium() {
 }
 function jmOnPremiumChanged(isPremium) {
   // Next playlist load picks up the new status automatically
+  document.getElementById('jmPremiumBadge').style.display = isPremium ? 'none' : 'block';
 }
+
+// "Get Premium" badge + comparison modal — the only passive discovery point
+// for the paid tier; every other premium gate gets here too instead of
+// jumping straight to Google Play's checkout.
+function jmShowPremiumModal() {
+  document.getElementById('jmPremiumModal').style.display = 'flex';
+}
+function jmHidePremiumModal() {
+  document.getElementById('jmPremiumModal').style.display = 'none';
+}
+document.getElementById('jmPremiumBadge').style.display = jmIsPremium() ? 'none' : 'block';
+document.getElementById('jmPremiumBadge').addEventListener('click', jmShowPremiumModal);
+document.getElementById('jmPremiumCloseBtn').addEventListener('click', jmHidePremiumModal);
+document.getElementById('jmPremiumModal').addEventListener('click', function(e) {
+  if (e.target === this) jmHidePremiumModal();
+});
+document.getElementById('jmPremiumBuyBtn').addEventListener('click', function() {
+  jmHidePremiumModal();
+  if (window.NativeBilling) window.NativeBilling.purchase();
+});
 
 // ── Player ──────────────────────────────────────────────────────────────
 var jmPlaylist   = [];
@@ -1132,7 +1168,7 @@ document.getElementById('jmSimilarBtn').addEventListener('click', function() {
   var item = jmPlaylist[jmPlayIdx];
   if (!jmIsPremium()) {
     setStatus('"Play Similar" is a premium feature');
-    if (window.NativeBilling) window.NativeBilling.purchase();
+    jmShowPremiumModal();
     return;
   }
   withResolvedGenres(item, function(g) {
@@ -2100,7 +2136,7 @@ function withResolvedGenres(item, cb) {
       } else {
         div.addEventListener('mousedown', function() {
           if (jmIsPremium()) { selectScope(item, kind); }
-          else if (window.NativeBilling) { window.NativeBilling.purchase(); suggest.style.display = 'none'; input.value = ''; }
+          else { jmShowPremiumModal(); suggest.style.display = 'none'; input.value = ''; }
         });
       }
       suggest.appendChild(div);
