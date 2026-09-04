@@ -77,17 +77,79 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </svg>
 </div>
 <div id="jmPremiumModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#161616;border:1px solid rgba(255,255,255,0.1);border-radius:16px;max-width:340px;width:100%;padding:24px;text-align:center;">
+  <div style="background:#161616;border:1px solid rgba(255,255,255,0.1);border-radius:16px;max-width:360px;width:100%;padding:24px;text-align:center;">
     <div style="font-size:1.1em;font-weight:600;color:#fff;margin-bottom:4px;">Musian Premium</div>
     <div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:18px;">Keep the music going.</div>
-    <ul style="list-style:none;padding:0;margin:0 0 22px;text-align:left;font-size:0.82em;color:rgba(255,255,255,0.82);line-height:1.9;">
-      <li>&#8226; Continuous 25-track queue &mdash; no more stopping at 10</li>
-      <li>&#8226; Search by album or artist, not just song</li>
-      <li>&#8226; Resume your last mood exactly where you left off</li>
-      <li>&#8226; Play Similar &mdash; reseed what's next from any track</li>
-    </ul>
-    <button id="jmPremiumBuyBtn" class="jm-btn" style="background:#ffd700;color:#111;width:100%;padding:12px;font-size:0.9em;margin-bottom:8px;">Unlock Premium</button>
-    <button id="jmPremiumCloseBtn" class="jm-btn" style="background:transparent;color:rgba(255,255,255,0.5);width:100%;padding:8px;font-size:0.82em;">Not now</button>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 4px;font-size:0.78em;color:rgba(255,255,255,0.82);text-align:left;">
+      <thead>
+        <tr style="color:rgba(255,255,255,0.45);font-size:0.9em;">
+          <th style="font-weight:500;padding:0 0 8px;">Feature</th>
+          <th style="font-weight:500;padding:0 0 8px;text-align:center;">Lite</th>
+          <th style="font-weight:500;padding:0 0 8px;text-align:center;color:#ffd700;">Premium</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Mood-wheel discovery</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Genre bar filter</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Single-track search</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Multi-server support</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Lock screen controls</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Track queue</td>
+          <td style="padding:7px 0;text-align:center;">10</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">25, continuous</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Search by album/artist</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Resume last mood</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Play Similar</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Android Auto</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"></td>
+          <td style="padding:14px 0 0;text-align:center;">
+            <button id="jmPremiumBuyBtn" class="jm-btn" style="background:#ffd700;color:#111;width:100%;padding:8px 4px;font-size:0.82em;white-space:nowrap;">Unlock</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    <button id="jmPremiumCloseBtn" class="jm-btn" style="background:transparent;color:rgba(255,255,255,0.5);width:100%;padding:8px;font-size:0.82em;margin-top:14px;">Not now</button>
   </div>
 </div>
 <div id="jmApp">
@@ -188,7 +250,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.69.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.70.0</div>
   <button id="jmPremiumBadge" style="display:none;margin:10px auto 0;background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:6px 14px;font-size:0.72em;font-weight:700;letter-spacing:0.02em;cursor:pointer;">Get Premium</button>
 </div>
 
