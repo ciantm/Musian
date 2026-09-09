@@ -147,6 +147,15 @@ public class MainActivity extends BridgeActivity {
                 .putString(MusicService.PREF_TOKEN,   token)
                 .apply();
         }
+
+        @JavascriptInterface
+        public void clearCredentials() {
+            getSharedPreferences(MusicService.PREFS, MODE_PRIVATE).edit()
+                .remove(MusicService.PREF_SERVER)
+                .remove(MusicService.PREF_USER_ID)
+                .remove(MusicService.PREF_TOKEN)
+                .apply();
+        }
     }
 
     @Override
