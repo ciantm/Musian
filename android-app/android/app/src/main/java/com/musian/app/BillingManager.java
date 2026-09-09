@@ -73,7 +73,8 @@ public class BillingManager implements PurchasesUpdatedListener, BillingClientSt
         );
         mBilling.queryProductDetailsAsync(
             QueryProductDetailsParams.newBuilder().setProductList(products).build(),
-            (res, detailsList) -> {
+            (res, result) -> {
+                List<ProductDetails> detailsList = result != null ? result.getProductDetailsList() : null;
                 if (res.getResponseCode() != BillingClient.BillingResponseCode.OK
                         || detailsList == null || detailsList.isEmpty()) return;
                 BillingFlowParams flow = BillingFlowParams.newBuilder()
