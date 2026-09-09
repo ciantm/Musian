@@ -33,7 +33,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
-            buildConfigField "boolean", "ALWAYS_PREMIUM", "false"
+            buildConfigField "boolean", "ALWAYS_PREMIUM", "true"
         }
         debug {
             buildConfigField "boolean", "ALWAYS_PREMIUM", "true"
