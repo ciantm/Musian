@@ -200,13 +200,21 @@ public class MusicService extends MediaBrowserServiceCompat {
             @Override public void onCustomAction(String action, Bundle extras) {
                 if (ACTION_PLAY_SIMILAR.equals(action)) playSimilar();
             }
+            @Override public void onSkipToQueueItem(long id) {
+                int idx = (int) id;
+                if (idx >= 0 && idx < mPlayer.getMediaItemCount()) {
+                    mPlayer.seekToDefaultPosition(idx);
+                    mPlayer.play();
+                }
+            }
         });
         mSession.setPlaybackState(new PlaybackStateCompat.Builder()
             .setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f)
             .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM)
             .addCustomAction(buildPlaySimilarAction())
             .build());
         mSession.setActive(true);
@@ -303,7 +311,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM)
             .addCustomAction(buildPlaySimilarAction())
             .build());
         // Must go foreground before the fetch, not after: if the phone screen is off
@@ -339,7 +348,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM)
             .addCustomAction(buildPlaySimilarAction())
             .build());
         startForeground(NOTIF_ID, buildNotification("Loading…", "", true));
@@ -388,7 +398,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM)
             .addCustomAction(buildPlaySimilarAction())
             .build());
         startForeground(NOTIF_ID, buildNotification("Loading…", "", true));
@@ -881,11 +892,13 @@ public class MusicService extends MediaBrowserServiceCompat {
         mPlayer.play();
         setNowPlaying(id, title, artist);
         startForeground(NOTIF_ID, buildNotification(title, artist, true));
+        updateQueue();
     }
 
     public void queueNextTrack(String url, String id, String title, String artist) {
         mQueue.add(new String[]{id, title, artist});
         mPlayer.addMediaItem(MediaItem.fromUri(url));
+        updateQueue();
     }
 
     // Drop everything queued after the currently playing item, so a fresh
@@ -895,6 +908,30 @@ public class MusicService extends MediaBrowserServiceCompat {
         int to = mPlayer.getMediaItemCount();
         if (from < to) mPlayer.removeMediaItems(from, to);
         while (mQueue.size() > from) mQueue.remove(mQueue.size() - 1);
+        updateQueue();
+    }
+
+    // Powers Android Auto's "Up Next" queue panel (the list/queue icon on its
+    // now-playing screen only appears once a queue is set) — otherwise there's
+    // no visible confirmation that Play Similar (or any queueing) did anything.
+    // queueId is just the position in mQueue at the time of this snapshot;
+    // onSkipToQueueItem below reads it back the same way, and both always run
+    // against a freshly rebuilt list, so a stale id from a previous snapshot
+    // can't silently resolve to the wrong track.
+    private void updateQueue() {
+        List<MediaSessionCompat.QueueItem> items = new ArrayList<>();
+        List<String[]> snapshot = new ArrayList<>(mQueue);
+        for (int i = 0; i < snapshot.size(); i++) {
+            String[] t = snapshot.get(i);
+            MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
+                .setMediaId(t[0])
+                .setTitle(t[1])
+                .setSubtitle(t[2])
+                .build();
+            items.add(new MediaSessionCompat.QueueItem(desc, i));
+        }
+        mSession.setQueue(items);
+        mSession.setQueueTitle("Up Next");
     }
 
     public void pauseTrack()  { mPlayer.pause(); }
@@ -994,7 +1031,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             .setActions(PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM)
             .addCustomAction(buildPlaySimilarAction())
             .build());
     }

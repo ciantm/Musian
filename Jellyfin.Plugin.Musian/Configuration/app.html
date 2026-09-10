@@ -823,6 +823,24 @@ var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
 var jmRefetchFn  = null;  // zero-arg fn returning Promise of next batch
 
+// Shared by jmPlayTrack's native branch, jmTryNativeRehydrate, and the
+// visibilitychange resync below — always clears any existing interval first
+// so re-calling it is safe (guards against a stray duplicate poller rather
+// than relying on callers to check window._nativePollInterval themselves).
+function jmStartNativePoll() {
+  if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
+  var _gen = jmGeneration;
+  window._nativePollInterval = setInterval(function() {
+    if (!window.NativeMedia || jmGeneration !== _gen) {
+      clearInterval(window._nativePollInterval);
+      window._nativePollInterval = null;
+      return;
+    }
+    var nativeIdx = window.NativeMedia.getNativeIndex();
+    if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
+  }, 150);
+}
+
 // If native is already playing something when this page loads (the WebView/
 // Activity got killed by the OS mid-drive — e.g. Android Auto + Maps running —
 // while MusicService, a foreground service, kept playing untouched), rehydrate
@@ -844,22 +862,32 @@ function jmTryNativeRehydrate() {
     jmNativePlaying = !!snap.playing;
     window._nativeStartIdx = 0;
     jmGeneration++;
-    var _gen = jmGeneration;
     jmNativeUpdateUI(jmPlayIdx);
     jmSetNativePlayState(jmNativePlaying);
-    if (window._nativePollInterval) clearInterval(window._nativePollInterval);
-    window._nativePollInterval = setInterval(function() {
-      if (!window.NativeMedia || jmGeneration !== _gen) {
-        clearInterval(window._nativePollInterval);
-        window._nativePollInterval = null;
-        return;
-      }
-      var nativeIdx = window.NativeMedia.getNativeIndex();
-      if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
-    }, 150);
+    jmStartNativePoll();
   } catch (e) {}
 }
 jmTryNativeRehydrate();
+
+// Resync with native when the app returns to the foreground. Chromium
+// throttles/pauses this page's JS timers (including jmStartNativePoll's
+// interval) while backgrounded, so a track change that happened natively
+// mid-drive can otherwise sit unresolved indefinitely — the notification/lock
+// screen (driven directly by native, not by this page's JS) shows the right
+// track the whole time, but this page doesn't until something pokes it.
+// Covers both the WebView surviving-but-throttled case (immediate index
+// resync + restart the poll) and the killed-and-recreated case
+// (jmTryNativeRehydrate, already safe to call repeatedly).
+document.addEventListener('visibilitychange', function() {
+  if (!window.NativeMedia || document.hidden) return;
+  jmTryNativeRehydrate();
+  if (!jmPlaylist.length) return;
+  if (window.NativeMedia.getNativeIndex) {
+    var idx = window.NativeMedia.getNativeIndex();
+    if (idx >= 0) jmNativeSyncIndex(idx);
+  }
+  jmStartNativePoll();
+});
 
 // Push a search recipe to native so it can independently refill the queue in the
 // background (WebView JS timers/evaluateJavascript are throttled once the screen
@@ -1087,7 +1115,6 @@ function jmPlayTrack(idx, gen) {
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   var url = JM.streamUrl(item);
   if (window.NativeMedia) {
-    if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
     window._nativeStartIdx = idx;
     window.NativeMedia.playTrack(url, item.Id, item.Name || '', artist);
     jmShowMoodTransition(item);
@@ -1096,16 +1123,7 @@ function jmPlayTrack(idx, gen) {
       var na = (nx.Artists && nx.Artists[0]) || nx.AlbumArtist || '';
       window.NativeMedia.queueNextTrack(JM.streamUrl(nx), nx.Id, nx.Name || '', na);
     }
-    var _pollGen = jmGeneration;
-    window._nativePollInterval = setInterval(function() {
-      if (!window.NativeMedia || jmGeneration !== _pollGen) {
-        clearInterval(window._nativePollInterval);
-        window._nativePollInterval = null;
-        return;
-      }
-      var nativeIdx = window.NativeMedia.getNativeIndex();
-      if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
-    }, 150);
+    jmStartNativePoll();
   } else {
     jmAudio.pause();
     jmAudio.src = url;
