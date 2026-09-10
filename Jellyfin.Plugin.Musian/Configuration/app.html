@@ -823,6 +823,44 @@ var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
 var jmRefetchFn  = null;  // zero-arg fn returning Promise of next batch
 
+// If native is already playing something when this page loads (the WebView/
+// Activity got killed by the OS mid-drive — e.g. Android Auto + Maps running —
+// while MusicService, a foreground service, kept playing untouched), rehydrate
+// jmPlaylist/UI from native's own queue instead of showing the idle wheel
+// screen. Jellyfin-only: native queue tracking only exists for that backend
+// (see jmPushNativeSpec below). Safe to call more than once (from both this
+// page-load call and MainActivity's onServiceConnected push) since it no-ops
+// once jmPlaylist is already populated.
+function jmTryNativeRehydrate() {
+  if (jmPlaylist.length || !window.NativeMedia || !window.NativeMedia.getQueueSnapshot) return;
+  if (JM.type !== 'jellyfin') return;
+  try {
+    var snap = JSON.parse(window.NativeMedia.getQueueSnapshot() || '{}');
+    if (!snap.queue || !snap.queue.length) return;
+    jmPlaylist = snap.queue.map(function(t) {
+      return { Id: t.id, Name: t.title, Artists: [t.artist], AlbumArtist: t.artist, Genres: [] };
+    });
+    jmPlayIdx = snap.currentIndex || 0;
+    jmNativePlaying = !!snap.playing;
+    window._nativeStartIdx = 0;
+    jmGeneration++;
+    var _gen = jmGeneration;
+    jmNativeUpdateUI(jmPlayIdx);
+    jmSetNativePlayState(jmNativePlaying);
+    if (window._nativePollInterval) clearInterval(window._nativePollInterval);
+    window._nativePollInterval = setInterval(function() {
+      if (!window.NativeMedia || jmGeneration !== _gen) {
+        clearInterval(window._nativePollInterval);
+        window._nativePollInterval = null;
+        return;
+      }
+      var nativeIdx = window.NativeMedia.getNativeIndex();
+      if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
+    }, 150);
+  } catch (e) {}
+}
+jmTryNativeRehydrate();
+
 // Push a search recipe to native so it can independently refill the queue in the
 // background (WebView JS timers/evaluateJavascript are throttled once the screen
 // locks or the app backgrounds — native has no such limitation). JS still owns

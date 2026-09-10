@@ -28,6 +28,13 @@ public class MainActivity extends BridgeActivity {
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
                     "if(typeof jmNativePrev==='function')jmNativePrev();", null)));
 
+            // Binding can complete after the WebView has already finished loading
+            // (or before) — try rehydration from both sides. jmTryNativeRehydrate()
+            // itself no-ops once jmPlaylist is already populated, so it's safe to
+            // fire from both this and app.html's own page-load call.
+            runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
+                "if(typeof jmTryNativeRehydrate==='function')jmTryNativeRehydrate();", null));
+
             mService.setOnPlayStateChangedListener(playing ->
                 runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
                     "if(typeof jmSetNativePlayState==='function')jmSetNativePlayState(" + playing + ");", null)));
@@ -137,6 +144,11 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public int getNativeIndex() {
             return mBound ? mService.getCurrentIndex() : -1;
+        }
+
+        @JavascriptInterface
+        public String getQueueSnapshot() {
+            return mBound ? mService.getQueueSnapshot() : "{}";
         }
 
         @JavascriptInterface

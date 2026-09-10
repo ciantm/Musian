@@ -54,6 +54,7 @@ public class MusicService extends MediaBrowserServiceCompat {
     private static final String ACT_PAUSE  = "musian.PAUSE";
     private static final String ACT_NEXT   = "musian.NEXT";
     private static final String ACT_PREV   = "musian.PREV";
+    private static final String ACTION_PLAY_SIMILAR = "com.musian.app.PLAY_SIMILAR";
 
     static final String PREFS      = "musian_prefs";
     static final String PREF_SERVER  = "server";
@@ -196,6 +197,9 @@ public class MusicService extends MediaBrowserServiceCompat {
                 }
                 fetchAndPlayForSearch(query == null ? "" : query);
             }
+            @Override public void onCustomAction(String action, Bundle extras) {
+                if (ACTION_PLAY_SIMILAR.equals(action)) playSimilar();
+            }
         });
         mSession.setPlaybackState(new PlaybackStateCompat.Builder()
             .setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f)
@@ -203,6 +207,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .addCustomAction(buildPlaySimilarAction())
             .build());
         mSession.setActive(true);
         setSessionToken(mSession.getSessionToken());
@@ -299,6 +304,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .addCustomAction(buildPlaySimilarAction())
             .build());
         // Must go foreground before the fetch, not after: if the phone screen is off
         // (the normal driving case), a plain background Thread can get frozen by the
@@ -334,6 +340,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .addCustomAction(buildPlaySimilarAction())
             .build());
         startForeground(NOTIF_ID, buildNotification("Loading…", "", true));
 
@@ -382,6 +389,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .addCustomAction(buildPlaySimilarAction())
             .build());
         startForeground(NOTIF_ID, buildNotification("Loading…", "", true));
 
@@ -477,6 +485,66 @@ public class MusicService extends MediaBrowserServiceCompat {
             + "&Genres=" + URLEncoder.encode(String.join("|", genres), "UTF-8")
             + "&api_key=" + token;
         return parseTrackItems(httpGet(urlStr, token), server, userId, token);
+    }
+
+    private PlaybackStateCompat.CustomAction buildPlaySimilarAction() {
+        return new PlaybackStateCompat.CustomAction.Builder(
+            ACTION_PLAY_SIMILAR, "Play Similar", R.drawable.ic_play_similar).build();
+    }
+
+    // Android Auto equivalent of app.html's jmSimilarBtn — deliberately simpler
+    // than the phone app's version (which resolves a mood/genre-zone origin via
+    // withResolvedGenres/deriveSearchOriginFromTrack): there's no WebView running
+    // during a drive to do that, and duplicating the GENRES-zone matching table
+    // natively would be a second source of truth to keep in sync. Instead this
+    // just reads the current track's own Genre tags from Jellyfin and reuses the
+    // existing fetchTracksByGenres — "more like this genre" rather than a full
+    // mood-aware match, but a legitimate similar-tracks result on its own.
+    // Failure paths here deliberately do nothing but leave the current track
+    // playing — unlike fetchAndPlayForAuto/Resume/Search, this fires while a
+    // track is already actively playing, so setAutoError() (STATE_ERROR +
+    // dropping foreground status) would be actively harmful here, not just
+    // unhelpful: it'd disrupt already-fine ongoing playback over a "couldn't
+    // queue up something extra" failure.
+    private void playSimilar() {
+        if (!BillingManager.isPremiumStatic(this)) return;
+        if (mCurrentIndex < 0 || mCurrentIndex >= mQueue.size()) return;
+        final String currentId = mQueue.get(mCurrentIndex)[0];
+
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        final String server = prefs.getString(PREF_SERVER, null);
+        final String userId = prefs.getString(PREF_USER_ID, null);
+        final String token  = prefs.getString(PREF_TOKEN, null);
+        if (server == null || userId == null || token == null) return;
+
+        new Thread(() -> {
+            try {
+                List<String> genres = fetchItemGenres(server, userId, token, currentId);
+                if (genres.isEmpty()) return;
+                List<String[]> tracks = fetchTracksByGenres(server, userId, token, genres, 25);
+                Set<String> exclude = new HashSet<>(mPlayedIds);
+                exclude.add(currentId);
+                List<String[]> filtered = new ArrayList<>();
+                for (String[] t : tracks) if (!exclude.contains(t[1])) filtered.add(t);
+                if (filtered.isEmpty()) filtered = tracks;
+                if (filtered.isEmpty()) return;
+                List<String[]> finalTracks = filtered;
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    clearQueueAhead();
+                    for (String[] t : finalTracks) queueNextTrack(t[0], t[1], t[2], t[3]);
+                });
+            } catch (Exception ignored) {}
+        }).start();
+    }
+
+    private List<String> fetchItemGenres(String server, String userId, String token, String itemId) throws Exception {
+        String url = server + "/Users/" + userId + "/Items/" + itemId
+            + "?Fields=Genres&api_key=" + token;
+        JSONObject obj = new JSONObject(httpGet(url, token));
+        JSONArray arr = obj.optJSONArray("Genres");
+        List<String> genres = new ArrayList<>();
+        if (arr != null) for (int i = 0; i < arr.length(); i++) genres.add(arr.getString(i));
+        return genres;
     }
 
     private List<String[]> parseTrackItems(String json, String server, String userId, String token) throws Exception {
@@ -772,6 +840,29 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     public int getCurrentIndex() { return mCurrentIndex; }
 
+    // Lets a freshly-loaded app.html (e.g. the WebView/Activity was killed by the
+    // OS mid-drive while this foreground service kept playing via Android Auto)
+    // rehydrate its jmPlaylist/UI from native state instead of showing the idle
+    // wheel screen. mQueue already carries everything JS needs per track other
+    // than the stream URL, which JS can rebuild itself from the id.
+    public String getQueueSnapshot() {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("currentIndex", mCurrentIndex);
+            o.put("playing", mPlayer != null && mPlayer.isPlaying());
+            JSONArray arr = new JSONArray();
+            for (String[] t : new ArrayList<>(mQueue)) {
+                JSONObject item = new JSONObject();
+                item.put("id", t[0]);
+                item.put("title", t[1]);
+                item.put("artist", t[2]);
+                arr.put(item);
+            }
+            o.put("queue", arr);
+        } catch (Exception ignored) {}
+        return o.toString();
+    }
+
     public void setOnTransitionListener(OnTransitionListener l)    { mTransitionListener = l; }
     public void setOnPrevListener(OnPrevListener l)                 { mPrevListener = l; }
     public void setOnPlayStateChangedListener(OnPlayStateChanged l) { mPlayStateListener = l; }
@@ -904,6 +995,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                 | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .addCustomAction(buildPlaySimilarAction())
             .build());
     }
 
