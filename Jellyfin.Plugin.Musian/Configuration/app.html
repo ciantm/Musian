@@ -250,7 +250,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}if(window.NativeMedia&&window.NativeMedia.clearCredentials){try{window.NativeMedia.clearCredentials();}catch(e){}}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.76.0</div>
+  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.77.0</div>
   <button id="jmPremiumBadge" style="display:none;margin:10px auto 0;background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:6px 14px;font-size:0.72em;font-weight:700;letter-spacing:0.02em;cursor:pointer;">Get Premium</button>
 </div>
 
@@ -1525,7 +1525,14 @@ function expandGenres(seeds) {
 function passesGenreZone(trackGenres, genres, lo, hi) {
   if (!genres || !genres.length) return true;
   if (lo == null || hi == null) {
-    return (trackGenres || []).some(function(g) {
+    // Plex's bulk list endpoints often omit the Genre tag array even on
+    // tracks that do have one set server-side (confirmed: ~1/3 of a sample
+    // omitted it despite `genre=`-filtered queries genuinely matching them).
+    // A missing tag list means "unknown", not "no genres" — don't fail a
+    // track for data we don't have; only the dominant-zone branch below
+    // (explicit genre lock) stays strict about it.
+    if (!trackGenres || !trackGenres.length) return true;
+    return trackGenres.some(function(g) {
       return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
     });
   }
@@ -1541,6 +1548,11 @@ function fetchTracksByGenres(genres, lo, hi) {
         '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
         .then(function(r){return r.json();})
         .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
+        // Plex's list endpoint often omits the Genre array even on tracks
+        // it just server-side matched on `genre=`, above — stamp the
+        // confirmed genre back on so normalizeTracks/passesGenreZone don't
+        // discard a match Plex already made.
+        .then(function(items){ items.forEach(function(t){ if (!t.Genre || !t.Genre.length) t.Genre = [{tag: g}]; }); return items; })
         .catch(function(){return [];});
     });
     return Promise.all(promises).then(function(results) {
