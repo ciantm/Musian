@@ -894,7 +894,16 @@ function jmTryNativeRehydrate(attemptsLeft) {
     if (window.NativeMedia && window.NativeMedia.debugLog) window.NativeMedia.debugLog('rehydrate EXCEPTION: ' + e + ' | stack=' + (e && e.stack));
   }
 }
-jmTryNativeRehydrate();
+// Deferred rather than called directly: this line runs partway through the
+// script's own top-to-bottom execution, before later `var`s (e.g. jmPlayedIds,
+// assigned further down) have been assigned — confirmed on-device via
+// exception logging: jmNativeUpdateUI's jmPlayedIds.push(...) threw
+// "Cannot read properties of undefined (reading 'push')" because jmPlayedIds
+// was still undefined (hoisted but not yet assigned) at this point. A
+// setTimeout(...,0) task only runs after the entire synchronous script has
+// finished, so every top-level var is guaranteed assigned by then — far more
+// robust than manually re-auditing every variable this call chain touches.
+setTimeout(function() { jmTryNativeRehydrate(); }, 0);
 
 // Resync with native when the app returns to the foreground. Chromium
 // throttles/pauses this page's JS timers (including jmStartNativePoll's
@@ -2531,6 +2540,12 @@ window.jmNativePrev = function() {
   jmPlayIdx = Math.max(0, jmPlayIdx - 1);
   jmPlayTrack(jmPlayIdx, jmGeneration);
 };
+// MainActivity's onServiceConnected pushes a redundant rehydration attempt
+// via evaluateJavascript (in case binding completes after this page has
+// already loaded) — that runs in global scope, so without this the
+// typeof-guarded lookup there always saw 'undefined' and silently no-op'd,
+// this whole time, regardless of the fix above.
+window.jmTryNativeRehydrate = jmTryNativeRehydrate;
 
 })();
 </script>
