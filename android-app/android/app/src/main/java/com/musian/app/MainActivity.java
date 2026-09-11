@@ -159,6 +159,11 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
+        public void debugLog(String msg) {
+            Log.d("MusianDebug", "JS: " + msg);
+        }
+
+        @JavascriptInterface
         public void saveCredentials(final String server, final String userId, final String token) {
             getSharedPreferences(MusicService.PREFS, MODE_PRIVATE).edit()
                 .putString(MusicService.PREF_SERVER,  server)

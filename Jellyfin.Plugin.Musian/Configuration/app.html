@@ -867,11 +867,13 @@ function jmStartNativePoll() {
 // Retry for a few seconds rather than accepting the first empty answer as
 // final; safe to keep calling since it no-ops once jmPlaylist is populated.
 function jmTryNativeRehydrate(attemptsLeft) {
+  if (window.NativeMedia && window.NativeMedia.debugLog) window.NativeMedia.debugLog('rehydrate enter playlistLen=' + jmPlaylist.length + ' type=' + JM.type + ' hasSnapFn=' + !!(window.NativeMedia && window.NativeMedia.getQueueSnapshot) + ' attemptsLeft=' + attemptsLeft);
   if (jmPlaylist.length || !window.NativeMedia || !window.NativeMedia.getQueueSnapshot) return;
   if (JM.type !== 'jellyfin') return;
   if (attemptsLeft === undefined) attemptsLeft = 15; // ~3s total at 200ms apart
   try {
     var snap = JSON.parse(window.NativeMedia.getQueueSnapshot() || '{}');
+    if (window.NativeMedia.debugLog) window.NativeMedia.debugLog('rehydrate snap=' + JSON.stringify(snap).slice(0, 200));
     if (!snap.queue || !snap.queue.length) {
       if (attemptsLeft > 0) setTimeout(function() { jmTryNativeRehydrate(attemptsLeft - 1); }, 200);
       return;
