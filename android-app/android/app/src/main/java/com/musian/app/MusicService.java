@@ -25,6 +25,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.media.MediaBrowserServiceCompat;
 import androidx.media.app.NotificationCompat.MediaStyle;
 import androidx.media3.common.MediaItem;
@@ -886,6 +887,19 @@ public class MusicService extends MediaBrowserServiceCompat {
         mArtist = artist;
         mPlayedIds.clear();
         mGeneration++;
+        // MainActivity only *binds* this service (BIND_AUTO_CREATE) — it never
+        // starts it. A bound-only service is torn down once its last client
+        // unbinds, which happens when the app's task is swiped away in Recents;
+        // startForeground() alone only raises notification priority, it doesn't
+        // change that bound-only lifecycle rule. Explicitly starting it here,
+        // right before startForeground() below (same method, so well within the
+        // 5-second window Android allows), keeps playback/queue-refill alive
+        // independent of MainActivity from this point on.
+        ContextCompat.startForegroundService(this, new Intent(this, MusicService.class));
+        // stopPlayback() deactivates the session; since this service commonly
+        // survives a "Stop" (see stopPlayback's comment), nothing else would
+        // ever reactivate it for a later play without this.
+        mSession.setActive(true);
         mPlayer.clearMediaItems();
         mPlayer.setMediaItem(MediaItem.fromUri(url));
         mPlayer.prepare();
@@ -937,10 +951,24 @@ public class MusicService extends MediaBrowserServiceCompat {
     public void pauseTrack()  { mPlayer.pause(); }
     public void resumeTrack() { mPlayer.play(); }
 
+    // stopSelf() here is frequently a no-op in practice: MainActivity binds with
+    // BIND_AUTO_CREATE and only unbinds in its own onDestroy(), which doesn't fire
+    // on ordinary backgrounding — so this service commonly survives a "Stop" with
+    // its binding intact. Without clearing state here too, mQueue/mCurrentIndex
+    // stay stale indefinitely and getQueueSnapshot() (used by app.html to rehydrate
+    // after being backgrounded/killed) would keep reporting a dead session as if
+    // it were live.
     public void stopPlayback() {
         mGeneration++;
         clearRefetchSpec();
+        mQueue.clear();
+        mPlayedIds.clear();
+        mCurrentIndex = 0;
+        mTitle = "";
+        mArtist = "";
         mPlayer.stop();
+        mPlayer.clearMediaItems();
+        updateQueue();
         mSession.setActive(false);
         stopForeground(true);
         stopSelf();
