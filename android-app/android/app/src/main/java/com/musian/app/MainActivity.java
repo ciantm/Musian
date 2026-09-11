@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 import com.musian.app.BillingManager;
 
@@ -49,6 +50,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Temporary diagnostic: lets chrome://inspect attach over adb to debug
+        // the native-rehydration race directly instead of guessing blind.
+        WebView.setWebContentsDebuggingEnabled(true);
         bridge.getWebView().addJavascriptInterface(new NativeMediaBridge(), "NativeMedia");
         bridge.getWebView().addJavascriptInterface(new NativeBillingBridge(), "NativeBilling");
         Intent svc = new Intent(this, MusicService.class);
