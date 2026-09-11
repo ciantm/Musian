@@ -888,7 +888,11 @@ function jmTryNativeRehydrate(attemptsLeft) {
     jmNativeUpdateUI(jmPlayIdx);
     jmSetNativePlayState(jmNativePlaying);
     jmStartNativePoll();
-  } catch (e) { console.error('[Musian] jmTryNativeRehydrate failed', e); }
+    if (window.NativeMedia.debugLog) window.NativeMedia.debugLog('rehydrate SUCCESS playlistLen=' + jmPlaylist.length + ' playIdx=' + jmPlayIdx);
+  } catch (e) {
+    console.error('[Musian] jmTryNativeRehydrate failed', e);
+    if (window.NativeMedia && window.NativeMedia.debugLog) window.NativeMedia.debugLog('rehydrate EXCEPTION: ' + e + ' | stack=' + (e && e.stack));
+  }
 }
 jmTryNativeRehydrate();
 
