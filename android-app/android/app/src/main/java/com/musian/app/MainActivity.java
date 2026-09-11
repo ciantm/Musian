@@ -6,6 +6,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
@@ -22,6 +23,7 @@ public class MainActivity extends BridgeActivity {
         public void onServiceConnected(ComponentName name, IBinder binder) {
             mService = ((MusicService.MusicBinder) binder).getService();
             mBound   = true;
+            Log.d("MusianDebug", "onServiceConnected mBound=true snapshotNow=" + mService.getQueueSnapshot());
 
             mService.setOnTransitionListener(() -> { /* JS polls via getNativeIndex() */ });
 
@@ -50,13 +52,16 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d("MusianDebug", "onCreate start t=" + System.currentTimeMillis());
         // Temporary diagnostic: lets chrome://inspect attach over adb to debug
         // the native-rehydration race directly instead of guessing blind.
         WebView.setWebContentsDebuggingEnabled(true);
         bridge.getWebView().addJavascriptInterface(new NativeMediaBridge(), "NativeMedia");
         bridge.getWebView().addJavascriptInterface(new NativeBillingBridge(), "NativeBilling");
+        Log.d("MusianDebug", "addJavascriptInterface done t=" + System.currentTimeMillis());
         Intent svc = new Intent(this, MusicService.class);
         bindService(svc, mConn, BIND_AUTO_CREATE);
+        Log.d("MusianDebug", "bindService called t=" + System.currentTimeMillis());
         mBilling = new BillingManager(this);
         mBilling.setListener(isPremium ->
             runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
@@ -152,7 +157,9 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public String getQueueSnapshot() {
-            return mBound ? mService.getQueueSnapshot() : "{}";
+            String result = mBound ? mService.getQueueSnapshot() : "{}";
+            Log.d("MusianDebug", "JS called getQueueSnapshot mBound=" + mBound + " result=" + result + " t=" + System.currentTimeMillis());
+            return result;
         }
 
         @JavascriptInterface
