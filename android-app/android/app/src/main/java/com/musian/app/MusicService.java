@@ -46,6 +46,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class MusicService extends MediaBrowserServiceCompat {
 
@@ -857,7 +859,28 @@ public class MusicService extends MediaBrowserServiceCompat {
     // rehydrate its jmPlaylist/UI from native state instead of showing the idle
     // wheel screen. mQueue already carries everything JS needs per track other
     // than the stream URL, which JS can rebuild itself from the id.
+    // WebView invokes @JavascriptInterface methods on a background thread, not
+    // the main thread — confirmed on-device via logging: mPlayer.isPlaying()
+    // (ExoPlayer enforces thread-affinity) was throwing every single call from
+    // here, silently swallowed by the catch below, leaving currentIndex set
+    // but playing/queue missing from the JSON entirely. getCurrentIndex()
+    // never hit this because it only reads a volatile int, never touching
+    // mPlayer itself. Marshal onto the main thread and block (briefly; this
+    // call itself is already running on a background thread here, so waiting
+    // on it can't deadlock the main thread).
     public String getQueueSnapshot() {
+        if (Looper.myLooper() == Looper.getMainLooper()) return getQueueSnapshotOnMainThread();
+        final String[] result = {"{}"};
+        final CountDownLatch latch = new CountDownLatch(1);
+        new Handler(Looper.getMainLooper()).post(() -> {
+            result[0] = getQueueSnapshotOnMainThread();
+            latch.countDown();
+        });
+        try { latch.await(2, TimeUnit.SECONDS); } catch (InterruptedException ignored) {}
+        return result[0];
+    }
+
+    private String getQueueSnapshotOnMainThread() {
         JSONObject o = new JSONObject();
         try {
             o.put("currentIndex", mCurrentIndex);
