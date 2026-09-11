@@ -6,7 +6,6 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.util.Log;
 import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
 import com.musian.app.BillingManager;
@@ -54,10 +53,6 @@ public class MainActivity extends BridgeActivity {
         bridge.getWebView().addJavascriptInterface(new NativeBillingBridge(), "NativeBilling");
         Intent svc = new Intent(this, MusicService.class);
         bindService(svc, mConn, BIND_AUTO_CREATE);
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
-            bridge.getWebView().evaluateJavascript(
-                "JSON.stringify({hasFn: typeof jmTryNativeRehydrate==='function', playlistLen: (typeof jmPlaylist!=='undefined'?jmPlaylist.length:'undef'), hasNM: !!window.NativeMedia, hasSnap: !!(window.NativeMedia&&window.NativeMedia.getQueueSnapshot)})",
-                value -> Log.d("MusianDebug", "delayed check result=" + value)), 4000);
         mBilling = new BillingManager(this);
         mBilling.setListener(isPremium ->
             runOnUiThread(() -> bridge.getWebView().evaluateJavascript(
@@ -153,14 +148,7 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public String getQueueSnapshot() {
-            String r = mBound ? mService.getQueueSnapshot() : "{}";
-            Log.d("MusianDebug", "getQueueSnapshot mBound=" + mBound + " result=" + r);
-            return r;
-        }
-
-        @JavascriptInterface
-        public void debugLog(String msg) {
-            Log.d("MusianDebug", "JS: " + msg);
+            return mBound ? mService.getQueueSnapshot() : "{}";
         }
 
         @JavascriptInterface
