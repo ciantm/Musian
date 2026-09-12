@@ -26,13 +26,14 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 #jmGenreLabelsTop, #jmGenreLabels { display:flex; width:100%; }
 #jmGenreLabelsTop { margin-bottom:4px; }
 #jmGenreLabels { margin-top:4px; }
-#jmGenreLabelsTop span, #jmGenreLabels span { flex:1; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+#jmGenreLabelsTop span, #jmGenreLabels span { flex:1; min-width:0; text-align:center; font-size:0.58em; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
 #jmPlayer { margin-top:16px; text-align:center; width:100%; max-width:420px; }
 .jm-btn { padding:10px 18px; border:none; border-radius:24px; font-size:0.9em; font-weight:700; cursor:pointer; color:rgba(255,255,255,0.5); }
 #jmBackBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
 #jmPauseBtn { background:rgba(255,255,255,0.07); margin-right:8px; }
 #jmSkipBtn  { background:rgba(255,255,255,0.07); margin-right:8px; }
-#jmStopBtn  { background:rgba(255,255,255,0.04); }
+#jmStopBtn  { background:rgba(255,255,255,0.04); margin-right:8px; }
+#jmSimilarBtn { background:rgba(255,255,255,0.04); }
 #jmSearch { width:100%; background:#1e1e1e; border:1px solid #333; border-radius:20px;
             color:#fff; font-size:0.85em; padding:9px 16px; outline:none; }
 #jmSearch:focus { border-color:#555; }
@@ -74,6 +75,82 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
     <text x="200" y="262" font-family="'Pinyon Script', Georgia, serif" font-size="147" fill="white" fill-opacity="0.75" text-anchor="middle" filter="url(#spSG)">M</text>
     <text x="204" y="318" font-family="sans-serif" font-size="22" font-weight="300" letter-spacing="16" fill="white" fill-opacity="0.48" text-anchor="middle">musian</text>
   </svg>
+</div>
+<div id="jmPremiumModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#161616;border:1px solid rgba(255,255,255,0.1);border-radius:16px;max-width:360px;width:100%;padding:24px;text-align:center;">
+    <div style="font-size:1.1em;font-weight:600;color:#fff;margin-bottom:4px;">Musian Premium</div>
+    <div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:18px;">Keep the music going.</div>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 4px;font-size:0.78em;color:rgba(255,255,255,0.82);text-align:left;">
+      <thead>
+        <tr style="color:rgba(255,255,255,0.45);font-size:0.9em;">
+          <th style="font-weight:500;padding:0 0 8px;">Feature</th>
+          <th style="font-weight:500;padding:0 0 8px;text-align:center;">Lite</th>
+          <th style="font-weight:500;padding:0 0 8px;text-align:center;color:#ffd700;">Premium</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Mood-wheel discovery</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Genre bar filter</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Single-track search</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Multi-server support</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Lock screen controls</td>
+          <td style="padding:7px 0;text-align:center;">&#10003;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Track queue</td>
+          <td style="padding:7px 0;text-align:center;">10</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">25, continuous</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Search by album/artist</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Resume last mood</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Play Similar</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.08);">
+          <td style="padding:7px 0;">Android Auto</td>
+          <td style="padding:7px 0;text-align:center;">&#8212;</td>
+          <td style="padding:7px 0;text-align:center;color:#ffd700;">&#10003;</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"></td>
+          <td style="padding:14px 0 0;text-align:center;">
+            <button id="jmPremiumBuyBtn" class="jm-btn" style="background:#ffd700;color:#111;width:100%;padding:8px 4px;font-size:0.82em;white-space:nowrap;">Unlock</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    <button id="jmPremiumCloseBtn" class="jm-btn" style="background:transparent;color:rgba(255,255,255,0.5);width:100%;padding:8px;font-size:0.82em;margin-top:14px;">Not now</button>
+  </div>
 </div>
 <div id="jmApp">
   <h2 style="font-size:1.92em;font-weight:300;margin:0 0 32px;text-align:center;"><span style="font-family:'Pinyon Script',Georgia,serif;font-size:1.15em;font-weight:400;letter-spacing:0;color:rgba(255,255,255,0.88);">Musian</span></h2>
@@ -161,6 +238,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
       <button id="jmPauseBtn" class="jm-btn">&#9646;&#9646;</button>
       <button id="jmSkipBtn"  class="jm-btn">&#9197;</button>
       <button id="jmStopBtn"  class="jm-btn">&#9209;</button>
+      <button id="jmSimilarBtn" class="jm-btn" title="Play Similar">&#8857;</button>
     </div>
   </div>
   <div id="jmPersistentPlay" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border-radius:24px;display:none;align-items:center;gap:10px;z-index:100;max-width:90vw;">
@@ -171,8 +249,9 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
   </div>
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
-  <a href="#" onclick="if(window.Capacitor){window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div style="margin-top:8px;font-size:0.65em;color:#333;text-align:center;">v3.1.61.0</div>
+  <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}if(window.NativeMedia&&window.NativeMedia.clearCredentials){try{window.NativeMedia.clearCredentials();}catch(e){}}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
+  <div id="jmVersionLine" style="margin-top:8px;font-size:0.65em;color:#555;text-align:center;">v3.1.90.0</div>
+  <button id="jmPremiumBadge" style="display:none;margin:10px auto 0;background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:6px 14px;font-size:0.72em;font-weight:700;letter-spacing:0.02em;cursor:pointer;">Get Premium</button>
 </div>
 
 <script>
@@ -238,7 +317,17 @@ var JM = {
     if (this.type === 'plex')
       return { 'Accept': 'application/json', 'X-Plex-Token': this.token };
     if (this.type === 'subsonic') return {};
-    return { 'X-Emby-Authorization':
+    // Must be the modern `Authorization` header, not the legacy
+    // `X-Emby-Authorization` one. Jellyfin 12 validates auth in
+    // AuthorizationMiddleware before the controller runs, and no longer parses
+    // X-Emby-Authorization at all — a request carrying it is treated exactly
+    // like one with no auth header and dies with 400 ("Error processing
+    // request"), or 401 on endpoints that simply require a token. Both look
+    // like a Musian bug from the client side but are entirely server-side
+    // rejects of the header *name*. The `MediaBrowser <k=v>` scheme below is
+    // the form Jellyfin 10.x and 12.x both accept, so this stays compatible
+    // with older servers (verified against 12.0: 200 with a valid token).
+    return { 'Authorization':
       'MediaBrowser Client="Musian",Device="Browser",DeviceId="jm1",Version="1.0"' +
       (this.token ? ',Token="' + this.token + '"' : '') };
   },
@@ -279,6 +368,12 @@ JM.init();
 if (window.NativeMedia && JM.token && JM.userId && JM.type !== 'plex' && JM.type !== 'subsonic') {
   NativeMedia.saveCredentials(JM.server, JM.userId, JM.token);
 }
+(function() {
+  var el = document.getElementById('jmVersionLine');
+  var names = { jellyfin: 'Jellyfin', plex: 'Plex', subsonic: 'Navidrome/Subsonic' };
+  var name = names[JM.type];
+  if (el && name) el.textContent = el.textContent + ' · ' + name;
+})();
 (function() {
   var splash = document.getElementById('jmSplash');
   if (!splash) return;
@@ -377,7 +472,16 @@ if (!JM.token) {
   jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' +
     new URLSearchParams({IncludeItemTypes:'Audio', Recursive:'true', Limit:'1'}),
     {headers: JM.headers()})
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      // Distinguish "the server rejected our credentials" from "we couldn't
+      // reach the server at all". Both used to land in the same catch below
+      // and report "Could not reach Jellyfin API", which sent every
+      // investigation after a network/DNS/origin problem when the real cause
+      // was a 401 (e.g. Jellyfin 12 rejecting our auth header outright).
+      if (r.status === 401 || r.status === 403) throw new Error('auth');
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    })
     .then(function(d) {
       var n = d.TotalRecordCount;
       if (n === 0 || n === undefined) {
@@ -387,8 +491,11 @@ if (!JM.token) {
         document.getElementById('jmStatus').textContent = n + ' audio tracks in library';
       }
     })
-    .catch(function() {
-      document.getElementById('jmStatus').textContent = 'Could not reach Jellyfin API.';
+    .catch(function(e) {
+      var msg = e && e.message === 'auth'
+        ? 'Signed in, but Jellyfin rejected the session — please log in again.'
+        : 'Could not reach Jellyfin API.';
+      document.getElementById('jmStatus').textContent = msg;
       document.getElementById('jmStatus').style.color = '#f88';
     });
 }
@@ -677,7 +784,11 @@ var jmMoodLabels = [];   // persistent label elements on the disc
       setStatus('Searching\u2026');
       setTrackCount(0);
       var genreG = jmGenreFilter, moodG = jmMoodGenres, moodT = jmMoodTags || [];
-      if (jmIsPremium()) jmRefetchFn = function() { return fetchTracksByTags(moodT, genreG, lo, hi).then(function(i) { return i.length ? i : fetchTracksByGenres(genreG, lo, hi); }); };
+      if (jmIsPremium()) jmRefetchFn = function() {
+        return fetchTracksByTags(moodT, genreG, lo, hi)
+          .then(function(i) { return i.length ? i : fetchTracksByGenres(genreG, lo, hi); })
+          .then(function(i) { return i.length ? i : fetchFallback(genreG); });
+      };
       jmPushNativeSpec(moodT, genreG, moodG);
       fetchTracksByTags(moodT, genreG, lo, hi)
         .then(function(items) { return items.length > 0 ? items : fetchTracksByGenres(genreG, lo, hi); })
@@ -707,7 +818,28 @@ function jmIsPremium() {
 }
 function jmOnPremiumChanged(isPremium) {
   // Next playlist load picks up the new status automatically
+  document.getElementById('jmPremiumBadge').style.display = isPremium ? 'none' : 'block';
 }
+
+// "Get Premium" badge + comparison modal — the only passive discovery point
+// for the paid tier; every other premium gate gets here too instead of
+// jumping straight to Google Play's checkout.
+function jmShowPremiumModal() {
+  document.getElementById('jmPremiumModal').style.display = 'flex';
+}
+function jmHidePremiumModal() {
+  document.getElementById('jmPremiumModal').style.display = 'none';
+}
+document.getElementById('jmPremiumBadge').style.display = jmIsPremium() ? 'none' : 'block';
+document.getElementById('jmPremiumBadge').addEventListener('click', jmShowPremiumModal);
+document.getElementById('jmPremiumCloseBtn').addEventListener('click', jmHidePremiumModal);
+document.getElementById('jmPremiumModal').addEventListener('click', function(e) {
+  if (e.target === this) jmHidePremiumModal();
+});
+document.getElementById('jmPremiumBuyBtn').addEventListener('click', function() {
+  jmHidePremiumModal();
+  if (window.NativeBilling) window.NativeBilling.purchase();
+});
 
 // ── Player ──────────────────────────────────────────────────────────────
 var jmPlaylist   = [];
@@ -718,6 +850,96 @@ var jmUserPaused = false;
 var jmMoodGenres = null; // set when a mood is tapped, null until then
 var jmAudio      = document.getElementById('jmAudio');
 var jmRefetchFn  = null;  // zero-arg fn returning Promise of next batch
+
+// Shared by jmPlayTrack's native branch, jmTryNativeRehydrate, and the
+// visibilitychange resync below — always clears any existing interval first
+// so re-calling it is safe (guards against a stray duplicate poller rather
+// than relying on callers to check window._nativePollInterval themselves).
+function jmStartNativePoll() {
+  if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
+  var _gen = jmGeneration;
+  window._nativePollInterval = setInterval(function() {
+    if (!window.NativeMedia || jmGeneration !== _gen) {
+      clearInterval(window._nativePollInterval);
+      window._nativePollInterval = null;
+      return;
+    }
+    var nativeIdx = window.NativeMedia.getNativeIndex();
+    if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
+  }, 150);
+}
+
+// If native is already playing something when this page loads (the WebView/
+// Activity got killed by the OS mid-drive — e.g. Android Auto + Maps running —
+// while MusicService, a foreground service, kept playing untouched), rehydrate
+// jmPlaylist/UI from native's own queue instead of showing the idle wheel
+// screen. Jellyfin-only: native queue tracking only exists for that backend
+// (see jmPushNativeSpec below).
+//
+// MainActivity.onCreate() calls bindService() at roughly the same time this
+// page starts loading, and there's no guaranteed order between "the service
+// finishes binding" and "this page finishes loading enough to run this
+// function" — confirmed on-device: with only a single attempt gated behind
+// window.NativeMedia existing, rehydration silently failed to restore a
+// genuinely still-playing session often enough to matter. window.NativeMedia
+// (the JS interface object) exists as soon as Capacitor injects it, well
+// before native's bindService() call actually completes, so its mere
+// presence doesn't mean getQueueSnapshot() has a real service to ask yet — an
+// early call can get a default/empty snapshot back before binding finishes.
+// Retry for a few seconds rather than accepting the first empty answer as
+// final; safe to keep calling since it no-ops once jmPlaylist is populated.
+function jmTryNativeRehydrate(attemptsLeft) {
+  if (jmPlaylist.length || !window.NativeMedia || !window.NativeMedia.getQueueSnapshot) return;
+  if (JM.type !== 'jellyfin') return;
+  if (attemptsLeft === undefined) attemptsLeft = 15; // ~3s total at 200ms apart
+  try {
+    var snap = JSON.parse(window.NativeMedia.getQueueSnapshot() || '{}');
+    if (!snap.queue || !snap.queue.length) {
+      if (attemptsLeft > 0) setTimeout(function() { jmTryNativeRehydrate(attemptsLeft - 1); }, 200);
+      return;
+    }
+    jmPlaylist = snap.queue.map(function(t) {
+      return { Id: t.id, Name: t.title, Artists: [t.artist], AlbumArtist: t.artist, Genres: [] };
+    });
+    jmPlayIdx = snap.currentIndex || 0;
+    jmNativePlaying = !!snap.playing;
+    window._nativeStartIdx = 0;
+    jmGeneration++;
+    jmNativeUpdateUI(jmPlayIdx);
+    jmSetNativePlayState(jmNativePlaying);
+    jmStartNativePoll();
+  } catch (e) { console.error('[Musian] jmTryNativeRehydrate failed', e); }
+}
+// Deferred rather than called directly: this line runs partway through the
+// script's own top-to-bottom execution, before later `var`s (e.g. jmPlayedIds,
+// assigned further down) have been assigned — confirmed on-device via
+// exception logging: jmNativeUpdateUI's jmPlayedIds.push(...) threw
+// "Cannot read properties of undefined (reading 'push')" because jmPlayedIds
+// was still undefined (hoisted but not yet assigned) at this point. A
+// setTimeout(...,0) task only runs after the entire synchronous script has
+// finished, so every top-level var is guaranteed assigned by then — far more
+// robust than manually re-auditing every variable this call chain touches.
+setTimeout(function() { jmTryNativeRehydrate(); }, 0);
+
+// Resync with native when the app returns to the foreground. Chromium
+// throttles/pauses this page's JS timers (including jmStartNativePoll's
+// interval) while backgrounded, so a track change that happened natively
+// mid-drive can otherwise sit unresolved indefinitely — the notification/lock
+// screen (driven directly by native, not by this page's JS) shows the right
+// track the whole time, but this page doesn't until something pokes it.
+// Covers both the WebView surviving-but-throttled case (immediate index
+// resync + restart the poll) and the killed-and-recreated case
+// (jmTryNativeRehydrate, already safe to call repeatedly).
+document.addEventListener('visibilitychange', function() {
+  if (!window.NativeMedia || document.hidden) return;
+  jmTryNativeRehydrate();
+  if (!jmPlaylist.length) return;
+  if (window.NativeMedia.getNativeIndex) {
+    var idx = window.NativeMedia.getNativeIndex();
+    if (idx >= 0) jmNativeSyncIndex(idx);
+  }
+  jmStartNativePoll();
+});
 
 // Push a search recipe to native so it can independently refill the queue in the
 // background (WebView JS timers/evaluateJavascript are throttled once the screen
@@ -945,7 +1167,6 @@ function jmPlayTrack(idx, gen) {
   var artist = (item.Artists && item.Artists[0]) || item.AlbumArtist || '';
   var url = JM.streamUrl(item);
   if (window.NativeMedia) {
-    if (window._nativePollInterval) { clearInterval(window._nativePollInterval); window._nativePollInterval = null; }
     window._nativeStartIdx = idx;
     window.NativeMedia.playTrack(url, item.Id, item.Name || '', artist);
     jmShowMoodTransition(item);
@@ -954,16 +1175,7 @@ function jmPlayTrack(idx, gen) {
       var na = (nx.Artists && nx.Artists[0]) || nx.AlbumArtist || '';
       window.NativeMedia.queueNextTrack(JM.streamUrl(nx), nx.Id, nx.Name || '', na);
     }
-    var _pollGen = jmGeneration;
-    window._nativePollInterval = setInterval(function() {
-      if (!window.NativeMedia || jmGeneration !== _pollGen) {
-        clearInterval(window._nativePollInterval);
-        window._nativePollInterval = null;
-        return;
-      }
-      var nativeIdx = window.NativeMedia.getNativeIndex();
-      if (nativeIdx >= 0) jmNativeSyncIndex(nativeIdx);
-    }, 150);
+    jmStartNativePoll();
   } else {
     jmAudio.pause();
     jmAudio.src = url;
@@ -1099,6 +1311,10 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGenreZoneLo = null;
   jmGenreZoneHi = null;
   jmRefetchFn = null;
+  // Actually stop native playback too — this button previously only reset the
+  // JS-side UI, leaving native (ExoPlayer, the notification, its queue) still
+  // actively playing the old session underneath the now-idle-looking screen.
+  if (window.NativeMedia && window.NativeMedia.clearSession) window.NativeMedia.clearSession();
   if (window.NativeMedia && window.NativeMedia.clearRefetchSpec) window.NativeMedia.clearRefetchSpec();
   if (window.NativeMedia && window.NativeMedia.clearResumeSpec) window.NativeMedia.clearResumeSpec();
   jmPlayedIds = [];
@@ -1115,6 +1331,31 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
     document.getElementById(id).querySelectorAll('span').forEach(function(s) {
       s.style.color = ''; s.style.fontWeight = '';
     });
+  });
+});
+
+// "Play Similar" — resets what's queued up next based on the currently
+// playing track, treated as a fresh search origin (same as tapping a search
+// result), without interrupting the track that's already playing. Premium only.
+document.getElementById('jmSimilarBtn').addEventListener('click', function() {
+  if (!jmPlaylist.length) return;
+  var item = jmPlaylist[jmPlayIdx];
+  if (!jmIsPremium()) {
+    setStatus('"Play Similar" is a premium feature');
+    jmShowPremiumModal();
+    return;
+  }
+  withResolvedGenres(item, function(g) {
+    var refetchFn = deriveSearchOriginFromTrack(item, g);
+    jmRefetchFn = refetchFn;
+    setStatus('Searching…');
+    refetchFn().then(function(more) {
+      var seen = {}; seen[item.Id] = true;
+      more = more.filter(function(t) { return !seen[t.Id]; });
+      if (!more.length) { setStatus('No similar tracks found.'); return; }
+      setTrackCount(more.length);
+      jmQueueAhead(more);
+    }).catch(function() { setStatus('Could not fetch tracks.'); });
   });
 });
 
@@ -1301,7 +1542,8 @@ function selectMoodPoint(valence, arousal, dotX, dotY) {
   var _gf = jmGenreFilter, _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
   if (jmIsPremium()) jmRefetchFn = function() {
     return blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
-      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); });
+      .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); })
+      .then(function(i) { return i.length ? i : fetchFallback(_gf); });
   };
   jmPushNativeSpec(moodTags, _gf, searchGenres);
 
@@ -1374,19 +1616,19 @@ function expandGenres(seeds) {
   return Object.keys(result);
 }
 
-// Admits a track into a genre-constrained search. When lo/hi describe a
-// widened multi-zone window (hi > lo — the ±1 neighbor widening from a
-// single-song search or a genre-bar double-tap), require the track's own
-// DOMINANT zone (bestGenreZoneIndex) to fall inside that window, instead of
-// admitting on any tag overlap. Measured against the real library: this
-// keeps 76.6% of the previously-admitted pool while dropping the Country-Rock-
-// tagged-but-Folk&Country-dominant false positives (e.g. a Kenny Rogers track
-// surfacing in a Rock search purely because "Country Rock" contains "Rock").
-// For a single tapped zone (hi === lo) or no window (lo/hi omitted — e.g.
-// fetchFallback's last-resort sample, which must stay maximally permissive),
-// keep the original permissive any-word-overlap test — a single-zone
-// dominant-only gate was already tried and reverted for gutting queue sizes
-// (see feedback_genre_hard_constraint.md).
+// Admits a track into a genre-constrained search. Whenever lo/hi describe an
+// active genre-zone lock (single-song/album/artist search, or a manual
+// genre-bar tap), require the track's own DOMINANT zone (bestGenreZoneIndex)
+// to fall inside that window — not just any tag overlap — so continuation
+// only pulls tracks whose own major genre matches the original search,
+// regardless of entry point. This replaced a permissive any-word-overlap
+// test that let compound tags admit dominantly-wrong-zone tracks (e.g. a
+// Kenny Rogers track tagged "Country Rock" surfacing in a Rock search purely
+// because the tag contains "Rock").
+//
+// lo/hi omitted entirely (undefined/null) means no genre-zone lock is active
+// at all — a pure mood search, or fetchFallback's last-resort "guarantee
+// something plays" sample — and stays maximally permissive on purpose.
 //
 // lo/hi are passed explicitly (a snapshot of jmGenreZoneLo/Hi taken when the
 // search was dispatched) rather than read live off the globals here, so a
@@ -1394,13 +1636,20 @@ function expandGenres(seeds) {
 // change which window an already-issued request gets filtered against.
 function passesGenreZone(trackGenres, genres, lo, hi) {
   if (!genres || !genres.length) return true;
-  if (lo != null && hi != null && hi > lo) {
-    var idx = bestGenreZoneIndex(trackGenres || []);
-    return idx >= lo && idx <= hi;
+  if (lo == null || hi == null) {
+    // Plex's bulk list endpoints often omit the Genre tag array even on
+    // tracks that do have one set server-side (confirmed: ~1/3 of a sample
+    // omitted it despite `genre=`-filtered queries genuinely matching them).
+    // A missing tag list means "unknown", not "no genres" — don't fail a
+    // track for data we don't have; only the dominant-zone branch below
+    // (explicit genre lock) stays strict about it.
+    if (!trackGenres || !trackGenres.length) return true;
+    return trackGenres.some(function(g) {
+      return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
+    });
   }
-  return (trackGenres || []).some(function(g) {
-    return genres.some(function(sg) { return genreWordMatch(g, sg) || genreWordMatch(sg, g); });
-  });
+  var idx = bestGenreZoneIndex(trackGenres || []);
+  return idx >= lo && idx <= hi;
 }
 
 function fetchTracksByGenres(genres, lo, hi) {
@@ -1411,6 +1660,11 @@ function fetchTracksByGenres(genres, lo, hi) {
         '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
         .then(function(r){return r.json();})
         .then(function(d){return (d.MediaContainer&&d.MediaContainer.Metadata)||[];})
+        // Plex's list endpoint often omits the Genre array even on tracks
+        // it just server-side matched on `genre=`, above — stamp the
+        // confirmed genre back on so normalizeTracks/passesGenreZone don't
+        // discard a match Plex already made.
+        .then(function(items){ items.forEach(function(t){ if (!t.Genre || !t.Genre.length) t.Genre = [{tag: g}]; }); return items; })
         .catch(function(){return [];});
     });
     return Promise.all(promises).then(function(results) {
@@ -1751,6 +2005,11 @@ function librarywideMoodSearch(tags, seedGenres, searchGenres, isElectronicZone,
         .then(function(i) { return jmSupplement(i, function() { return fetchTracksByGenres(seedGenres || searchGenres, lo, hi); }, 25); })
         .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(tags, seedGenres || searchGenres, lo, hi); }, 25); })
     : fetchTracksByGenres(seedGenres || searchGenres, lo, hi);
+  // Guarantee something plays: the dominant-zone gate can legitimately empty
+  // out (e.g. every remaining zone-matching track already played) — this is
+  // the ongoing "queue running low" refetch, not just the initial dispatch,
+  // so it needs the same last-resort fallback or playback just stops dead.
+  chain = chain.then(function(items) { return items.length ? items : fetchFallback(seedGenres || searchGenres); });
   if (isElectronicZone) return chain;
   return chain.then(function(items) { return items.filter(function(t) { return !isRemixTitle(t.Name); }); });
 }
@@ -1825,15 +2084,14 @@ function placeDotForMood(mood) {
 // Highlights the genre-bar zone that best matches the given raw genre tags,
 // and returns that zone's index — the "major genre" a track or mood should
 // rebase onto, rather than the track's own (often sprawling) tags. -1 if none.
-// Widens to the zone either side of the best match (same window a manual
-// double-tap on the genre bar produces) so a single-song search doesn't
-// collapse onto whichever few artists/albums sit in one narrow zone.
+// Locks onto that single zone only — testing showed widening to neighbor
+// zones let dominantly-wrong-zone tracks slip in via compound genre tags.
 function highlightGenreBarForGenres(genres) {
   var bestIdx = bestGenreZoneIndex(genres);
   var widened = [], lo = null, hi = null;
   if (bestIdx !== -1) {
     var n = GENRES.length;
-    lo = Math.max(0, bestIdx - 1); hi = Math.min(n - 1, bestIdx + 1);
+    lo = bestIdx; hi = bestIdx;
     var genreMap = {};
     GENRES.slice(lo, hi + 1).forEach(function(z) { z.genres.forEach(function(g) { genreMap[g] = true; }); });
     widened = Object.keys(genreMap);
@@ -1850,6 +2108,70 @@ function highlightGenreBarForGenres(genres) {
     });
   }
   return {idx: bestIdx, genres: widened, lo: lo, hi: hi};
+}
+
+// Shared "treat this track as a fresh search origin" setup — derives the
+// track's mood and locks the genre-bar to its major zone, exactly as if the
+// user had searched for it directly. Mutates the jmMood*/jmGenre* globals
+// and returns a refetch function for "find more tracks like this." Used by
+// selectSong (search box) and the "Play Similar" control (current track).
+function deriveSearchOriginFromTrack(item, g) {
+  // Real per-track Mood: tag first (e.g. AcousticBrainz's "Mood:Relaxed"),
+  // genre-only guess as fallback — same priority order as pool searches.
+  var mood = deriveTagMood(item) || findMoodForGenres(g);
+  var _tags = [], _genres = [];
+  if (mood) {
+    var nearest = getNearestTags(mood.x, mood.y, 5);
+    var tagMap = {}, genreMap = {};
+    nearest.forEach(function(t) {
+      tagMap[t.tag] = true;
+      (t.mood.genres || []).forEach(function(gg) { genreMap[gg] = true; });
+    });
+    _tags   = Object.keys(tagMap);
+    _genres = Object.keys(genreMap);
+    placeDotForMood(mood);
+  }
+  // Rebase onto the major genre zone the track lands in, not the track's own
+  // (often sprawling) raw tag list — same principle as the mood landing point above.
+  var zone = highlightGenreBarForGenres(g);
+  var majorIdx = zone.idx;
+  if (majorIdx !== -1) {
+    jmGenreFilter = zone.genres; jmGenreZoneIdx = majorIdx; jmGenreZoneLo = zone.lo; jmGenreZoneHi = zone.hi;
+  } else {
+    // Track's own genres don't score against any zone — don't let a
+    // genre lock from an earlier, unrelated selection leak into this
+    // search.
+    jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
+    var hl = document.getElementById('jmGenreHighlight');
+    if (hl) hl.style.display = 'none';
+    ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
+      document.getElementById(id).querySelectorAll('span').forEach(function(s) { s.style.color = ''; s.style.fontWeight = ''; });
+    });
+  }
+  var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
+  var isElectronicZone = majorIdx !== -1 && GENRES[majorIdx].name === 'Dance & Electronic';
+  jmMoodTags   = _tags;
+  jmMoodGenres = _genres;
+  var seedGenres = jmGenreFilter;
+  var _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
+  var refetchFn = function() { return librarywideMoodSearch(_tags, seedGenres, searchGenres, isElectronicZone, _lo, _hi); };
+  jmPushNativeSpec(_tags, seedGenres, searchGenres);
+  return refetchFn;
+}
+
+// Resolves a track's genres, fetching from its album first if the track
+// itself carries none (Jellyfin often puts genres on the album, not the
+// track) — shared by selectSong and the "Play Similar" control.
+function withResolvedGenres(item, cb) {
+  var genres = item.Genres || [];
+  if (!genres.length && JM.type === 'jellyfin' && item.AlbumId && JM.token && JM.userId) {
+    jmFetch(JM.server + '/Users/' + JM.userId + '/Items/' + item.AlbumId + '?Fields=Genres', {headers: JM.headers()})
+      .then(function(r) { return r.json(); })
+      .then(function(d) { cb(d.Genres || []); })
+      .catch(function() { cb([]); });
+  } else {
+    cb(genres);
+  }
 }
 
 (function() {
@@ -1896,6 +2218,24 @@ function highlightGenreBarForGenres(genres) {
       });
   }
 
+  // Used across all three backends so search suggestions rank exact matches
+  // first within each category (track/album/artist) regardless of whatever
+  // order the server's own search API happens to return — needed most for
+  // Plex, which ignores X-Plex-Container-Size on filtered `/all` queries
+  // (confirmed: a title= search capped at 4 returned all 119 library-wide
+  // matches) and doesn't rank exact matches first the way Jellyfin's
+  // SearchTerm does, so a one-word title like "Black" (Pearl Jam) could end
+  // up buried past whatever arbitrary slice made the final top-10.
+  function jmRankAndCap(items, q, getText, cap) {
+    var ql = q.toLowerCase();
+    items.forEach(function(it) {
+      var t = (getText(it) || '').toLowerCase();
+      it._jmRank = t === ql ? 0 : (t.indexOf(ql) === 0 ? 1 : 2);
+    });
+    items.sort(function(a, b) { return a._jmRank - b._jmRank; });
+    return items.slice(0, cap);
+  }
+
   function doSearch(q) {
     if (!JM.token) return;
     var moods = matchMoods(q);
@@ -1903,27 +2243,37 @@ function highlightGenreBarForGenres(genres) {
       var trackFilters = ['title', 'grandparentTitle', 'parentTitle'];
       var trackPromises = trackFilters.map(function(f) {
         return jmFetch(JM.server + '/library/sections/' + JM.sectionId +
-          '/all?type=10&X-Plex-Container-Size=4&' + f + '=' + encodeURIComponent(q) +
+          '/all?type=10&X-Plex-Container-Size=25&' + f + '=' + encodeURIComponent(q) +
           '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
           .then(function(r){return r.json();})
-          .then(function(d){return normalizeTracks((d.MediaContainer&&d.MediaContainer.Metadata)||[]);})
+          .then(function(d){
+            var items = (d.MediaContainer&&d.MediaContainer.Metadata)||[];
+            items = jmRankAndCap(items, q, function(t){ return t[f]; }, 6);
+            return normalizeTracks(items);
+          })
           .catch(function(){return [];});
       });
       var artistPromise = jmFetch(JM.server + '/library/sections/' + JM.sectionId +
-        '/all?type=8&X-Plex-Container-Size=3&title=' + encodeURIComponent(q) +
+        '/all?type=8&X-Plex-Container-Size=25&title=' + encodeURIComponent(q) +
         '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
         .then(function(r){return r.json();})
-        .then(function(d){return ((d.MediaContainer&&d.MediaContainer.Metadata)||[]).map(function(a){
-          return {_kind:'artist', Id:a.ratingKey, Name:a.title||a.title, _artistName:null};
-        });})
+        .then(function(d){
+          var items = jmRankAndCap((d.MediaContainer&&d.MediaContainer.Metadata)||[], q, function(a){ return a.title; }, 3);
+          return items.map(function(a){
+            return {_kind:'artist', Id:a.ratingKey, Name:a.title||a.title, _artistName:null};
+          });
+        })
         .catch(function(){return [];});
       var albumPromise = jmFetch(JM.server + '/library/sections/' + JM.sectionId +
-        '/all?type=9&X-Plex-Container-Size=3&title=' + encodeURIComponent(q) +
+        '/all?type=9&X-Plex-Container-Size=25&title=' + encodeURIComponent(q) +
         '&X-Plex-Token=' + JM.token, {headers:{'Accept':'application/json'}})
         .then(function(r){return r.json();})
-        .then(function(d){return ((d.MediaContainer&&d.MediaContainer.Metadata)||[]).map(function(a){
-          return {_kind:'album', Id:a.ratingKey, Name:a.title, _artistName:a.parentTitle||''};
-        });})
+        .then(function(d){
+          var items = jmRankAndCap((d.MediaContainer&&d.MediaContainer.Metadata)||[], q, function(a){ return a.title; }, 3);
+          return items.map(function(a){
+            return {_kind:'album', Id:a.ratingKey, Name:a.title, _artistName:a.parentTitle||''};
+          });
+        })
         .catch(function(){return [];});
       Promise.all(trackPromises.concat([artistPromise, albumPromise])).then(function(results) {
         var artists = results[results.length-2];
@@ -1932,7 +2282,7 @@ function highlightGenreBarForGenres(genres) {
         results.slice(0, trackPromises.length).forEach(function(items){ items.forEach(function(t){
           if(!seen[t.Id]){seen[t.Id]=true; merged.push(t);}
         });});
-        renderSuggestions(moods.concat(artists).concat(albums).concat(merged));
+        renderSuggestions(merged.concat(albums).concat(artists).concat(moods));
       });
       return;
     }
@@ -1942,14 +2292,14 @@ function highlightGenreBarForGenres(genres) {
         .then(function(r){return r.json();})
         .then(function(d){
           var sr = ((d['subsonic-response']||{}).searchResult3)||{};
-          var artists = (sr.artist||[]).map(function(a){
+          var artists = jmRankAndCap((sr.artist||[]).slice(), q, function(a){ return a.name; }, 3).map(function(a){
             return {_kind:'artist', Id:a.id, Name:a.name, _artistName:null};
           });
-          var albums = (sr.album||[]).map(function(a){
+          var albums = jmRankAndCap((sr.album||[]).slice(), q, function(a){ return a.name; }, 3).map(function(a){
             return {_kind:'album', Id:a.id, Name:a.name, _artistName:a.artist||''};
           });
-          var songs = normalizeTracks(sr.song||[]);
-          renderSuggestions(moods.concat(artists).concat(albums).concat(songs));
+          var songs = normalizeTracks(jmRankAndCap((sr.song||[]).slice(), q, function(s){ return s.title; }, 6));
+          renderSuggestions(songs.concat(albums).concat(artists).concat(moods));
         })
         .catch(function(){});
       return;
@@ -1957,10 +2307,16 @@ function highlightGenreBarForGenres(genres) {
     if (!JM.userId) return;
     jmFetch(JM.server + '/Users/' + JM.userId + '/Items?' + new URLSearchParams({
       SearchTerm: q, IncludeItemTypes: 'MusicArtist,MusicAlbum,Audio', Recursive: 'true',
-      Limit: '12', Fields: 'Genres,Tags,Artists,AlbumArtist,AlbumId'
+      Limit: '60', Fields: 'Genres,Tags,Artists,AlbumArtist,AlbumId'
     }), {headers: JM.headers()})
     .then(function(r) { return r.json(); })
-    .then(function(d) { renderSuggestions(moods.concat(d.Items || [])); })
+    .then(function(d) {
+      var items   = d.Items || [];
+      var tracks  = jmRankAndCap(items.filter(function(i){ return i.Type === 'Audio'; }),       q, function(i){ return i.Name; }, 6);
+      var albums  = jmRankAndCap(items.filter(function(i){ return i.Type === 'MusicAlbum'; }),  q, function(i){ return i.Name; }, 3);
+      var artists = jmRankAndCap(items.filter(function(i){ return i.Type === 'MusicArtist'; }), q, function(i){ return i.Name; }, 3);
+      renderSuggestions(tracks.concat(albums).concat(artists).concat(moods));
+    })
     .catch(function() {});
   }
 
@@ -2000,7 +2356,7 @@ function highlightGenreBarForGenres(genres) {
       } else {
         div.addEventListener('mousedown', function() {
           if (jmIsPremium()) { selectScope(item, kind); }
-          else if (window.NativeBilling) { window.NativeBilling.purchase(); suggest.style.display = 'none'; input.value = ''; }
+          else { jmShowPremiumModal(); suggest.style.display = 'none'; input.value = ''; }
         });
       }
       suggest.appendChild(div);
@@ -2022,7 +2378,7 @@ function highlightGenreBarForGenres(genres) {
     fetchScopePool(item, kind).then(function(tracks) {
       if (!tracks.length) { setStatus('No tracks found.'); return; }
       jmScopePool = tracks;
-      jmMoodTags = null; jmMoodGenres = null; jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
+      jmMoodTags = null; jmMoodGenres = null;
 
       // Show the mood dot right away for both albums and artists, same as a
       // single-track search — no need to wait for the pool to play out first.
@@ -2032,16 +2388,29 @@ function highlightGenreBarForGenres(genres) {
       var scopeMood = derivePoolMood(tracks);
       if (scopeMood) { placeDotForMood(scopeMood); jmMoodGenres = scopeMood.genres; }
 
+      // Rebase onto the pool's own major genre zone — same call as a
+      // single-song search — so continuation only pulls tracks whose own
+      // dominant genre matches this album/artist's, regardless of entry point.
+      var zone = highlightGenreBarForGenres(poolGenres(tracks));
+      if (zone.idx !== -1) {
+        jmGenreFilter = zone.genres; jmGenreZoneIdx = zone.idx; jmGenreZoneLo = zone.lo; jmGenreZoneHi = zone.hi;
+      } else {
+        jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
+      }
+      var zGenres = zone.genres, zLo = zone.lo, zHi = zone.hi;
+      function inZone(t) { return zone.idx === -1 || passesGenreZone(t.Genres, zGenres, zLo, zHi); }
+
       if (kind === 'album') {
         // Play in track order; when exhausted, transition to full-library mood search
         jmRefetchFn = function() { return transitionToLibraryWideMoodSearch(jmScopePool); };
         jmQueueAhead(tracks);
       } else {
-        // Artist: filter pool to the detected mood's genres, shuffle
-        var filtered = filterPoolByGenres(tracks, scopeMood ? scopeMood.genres : null);
+        // Artist: filter pool to tracks whose own dominant genre matches the
+        // artist's major zone, shuffle
+        var filtered = tracks.filter(inZone);
         if (filtered.length < 5) filtered = tracks;
         jmRefetchFn = function() {
-          var pool = filterPoolByGenres(jmScopePool, jmMoodGenres);
+          var pool = jmScopePool.filter(inZone);
           if (pool.length < 5) {
             // Artist's own catalog is exhausted — hand off to the library,
             // same as album does, instead of reshuffling the same pool forever.
@@ -2059,72 +2428,27 @@ function highlightGenreBarForGenres(genres) {
     input.value = '';
     if (jmScopePool) { document.getElementById('jmSearch').placeholder = 'Search song…'; }
     jmScopePool = null; jmScopeName = null;
-    var genres = item.Genres || [];
-    function proceed(g) {
-      // Real per-track Mood: tag first (e.g. AcousticBrainz's "Mood:Relaxed"),
-      // genre-only guess as fallback — same priority order as pool searches.
-      var mood = deriveTagMood(item) || findMoodForGenres(g);
-      var _tags = [], _genres = [];
-      if (mood) {
-        var nearest = getNearestTags(mood.x, mood.y, 5);
-        var tagMap = {}, genreMap = {};
-        nearest.forEach(function(t) {
-          tagMap[t.tag] = true;
-          (t.mood.genres || []).forEach(function(gg) { genreMap[gg] = true; });
-        });
-        _tags   = Object.keys(tagMap);
-        _genres = Object.keys(genreMap);
-        placeDotForMood(mood);
-      }
-      // Rebase onto the major genre zone the track lands in, not the track's own
-      // (often sprawling) raw tag list — same principle as the mood landing point above.
-      var zone = highlightGenreBarForGenres(g);
-      var majorIdx = zone.idx;
-      if (majorIdx !== -1) {
-        jmGenreFilter = zone.genres; jmGenreZoneIdx = majorIdx; jmGenreZoneLo = zone.lo; jmGenreZoneHi = zone.hi;
-      } else {
-        // Track's own genres don't score against any zone — don't let a
-        // genre lock from an earlier, unrelated selection leak into this
-        // search.
-        jmGenreFilter = null; jmGenreZoneIdx = null; jmGenreZoneLo = null; jmGenreZoneHi = null;
-        var hl = document.getElementById('jmGenreHighlight');
-        if (hl) hl.style.display = 'none';
-        ['jmGenreLabelsTop', 'jmGenreLabels'].forEach(function(id) {
-          document.getElementById(id).querySelectorAll('span').forEach(function(s) { s.style.color = ''; s.style.fontWeight = ''; });
-        });
-      }
-      var searchGenres = jmGenreFilter !== null ? jmGenreFilter : _genres;
-      var isElectronicZone = majorIdx !== -1 && GENRES[majorIdx].name === 'Dance & Electronic';
-      jmMoodTags   = _tags;
-      jmMoodGenres = _genres;
-      var seedGenres = jmGenreFilter;
-      var _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
-      var _refetchFn = function() { return librarywideMoodSearch(_tags, seedGenres, searchGenres, isElectronicZone, _lo, _hi); };
+    withResolvedGenres(item, function(g) {
+      var _refetchFn = deriveSearchOriginFromTrack(item, g);
       if (jmIsPremium()) {
-        // jmRefetchFn already knows how to find more tracks like this one \u2014 queue just the
-        // searched song now and let the normal low-queue trigger fetch the rest once it's
-        // actually playing, instead of blocking "up next" on a network round-trip.
+        // Play the searched song immediately rather than silently inserting it
+        // as "up next" behind whatever's already playing \u2014 searching for a
+        // specific song and tapping it should play that song now, the way
+        // every other media app's search works. jmRefetchFn already knows how
+        // to find more tracks like this one; the normal low-queue trigger
+        // fetches the rest once it's actually playing, instead of blocking
+        // this on a network round-trip.
         jmRefetchFn = _refetchFn;
-        jmPushNativeSpec(_tags, seedGenres, searchGenres);
-        jmQueueAhead([item]);
+        startPlayback([item]);
         return;
       }
-      jmPushNativeSpec(_tags, seedGenres, searchGenres);
       setStatus('Searching\u2026');
       _refetchFn().then(function(more) {
         var seen = {}; seen[item.Id] = true;
         var all = [item].concat(more.filter(function(t) { return !seen[t.Id]; })).slice(0, 10);
         startPlayback(all);
       }).catch(function() { startPlayback([item]); });
-    }
-    if (!genres.length && JM.type === 'jellyfin' && item.AlbumId && JM.token && JM.userId) {
-      jmFetch(JM.server + '/Users/' + JM.userId + '/Items/' + item.AlbumId + '?Fields=Genres', {headers: JM.headers()})
-        .then(function(r) { return r.json(); })
-        .then(function(d) { proceed(d.Genres || []); })
-        .catch(function() { proceed([]); });
-    } else {
-      proceed(genres);
-    }
+    });
   }
 })();
 
@@ -2180,8 +2504,8 @@ function highlightGenreBarForGenres(genres) {
   } else {
     // No genre-bar tap was saved (the last selection was mood-only) — derive
     // the major zone the same way a single-song search would, treating the
-    // recorded mood point as if it were the track: widen ±1 around the
-    // dominant zone of the mood's own associated genres.
+    // recorded mood point as if it were the track: lock onto the dominant
+    // zone of the mood's own associated genres.
     var zone = highlightGenreBarForGenres(jmMoodGenres);
     if (zone.idx !== -1) {
       jmGenreFilter = zone.genres;
@@ -2200,7 +2524,8 @@ function highlightGenreBarForGenres(genres) {
     var _gf = jmGenreFilter, _lo = jmGenreZoneLo, _hi = jmGenreZoneHi;
     if (jmIsPremium()) jmRefetchFn = function() {
       return blendMoodGenre(fetchTracksByTags(moodTags, _gf, _lo, _hi), fetchTracksByGenres(searchGenres, _lo, _hi))
-        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); });
+        .then(function(i) { return jmSupplement(i, function() { return fetchTracksByTitleWords(moodTags, _gf, _lo, _hi); }, 500); })
+        .then(function(i) { return i.length ? i : fetchFallback(_gf); });
     };
     jmPushNativeSpec(moodTags, _gf, searchGenres);
     setStatus('Searching…');
@@ -2231,6 +2556,12 @@ window.jmNativePrev = function() {
   jmPlayIdx = Math.max(0, jmPlayIdx - 1);
   jmPlayTrack(jmPlayIdx, jmGeneration);
 };
+// MainActivity's onServiceConnected pushes a redundant rehydration attempt
+// via evaluateJavascript (in case binding completes after this page has
+// already loaded) — that runs in global scope, so without this the
+// typeof-guarded lookup there always saw 'undefined' and silently no-op'd,
+// this whole time, regardless of the fix above.
+window.jmTryNativeRehydrate = jmTryNativeRehydrate;
 
 })();
 </script>

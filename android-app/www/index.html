@@ -156,8 +156,12 @@ button#jmPlexBtn:active { opacity:0.85; }
 
   function validateSavedAuth(saved) {
     if (saved.type === 'jellyfin' && saved.accessToken) {
+      // Modern `Authorization` header, not legacy `X-Emby-Authorization` —
+      // Jellyfin 12 no longer parses the latter at all, so this validator saw
+      // a 400 on every launch and reported a perfectly good saved session as
+      // "Session expired — please sign in again." See app.html's JM.headers().
       return fetchQuick(saved.serverUrl + '/Users/Me', { headers: {
-        'X-Emby-Authorization': 'MediaBrowser Client="Musian",Device="Musian",DeviceId="jm1",Version="1.0",Token="' + saved.accessToken + '"'
+        'Authorization': 'MediaBrowser Client="Musian",Device="Musian",DeviceId="jm1",Version="1.0",Token="' + saved.accessToken + '"'
       }}).then(function(r) { return r.ok; }).catch(function() { return false; });
     }
     if (saved.type === 'subsonic' && saved.username) {
@@ -414,7 +418,11 @@ button#jmPlexBtn:active { opacity:0.85; }
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Emby-Authorization': 'MediaBrowser Client="Musian",Device="Musian",DeviceId="jm1",Version="1.0"'
+        // Modern `Authorization` header — Jellyfin 12 rejects the legacy
+        // `X-Emby-Authorization` name in AuthorizationMiddleware before the
+        // controller ever checks the password, surfacing as a misleading
+        // "Server error (400)." instead of a wrong-password 401.
+        'Authorization': 'MediaBrowser Client="Musian",Device="Musian",DeviceId="jm1",Version="1.0"'
       },
       body: JSON.stringify({ Username: user, Pw: pass })
     }).then(function(r) {
