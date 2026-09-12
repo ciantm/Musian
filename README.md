@@ -41,17 +41,6 @@ Clicking near edges blends genres from adjacent moods automatically.
 
 ---
 
-## Configuration
-
-Go to **Dashboard → Plugins → Musian Settings** to:
-
-- Customise genre lists per quadrant (comma-separated, matching your library genre tags)
-- Adjust playlist size (default 30 tracks)
-- Adjust blend radius (how much adjacent-mood genres bleed in)
-- Toggle shuffle
-
----
-
 ## Requirements
 
 - Jellyfin **10.8** or later

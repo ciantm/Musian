@@ -57,15 +57,6 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 MenuIcon             = "music_note",
                 MenuSection          = "",
             },
-
-            // ── Admin settings page (Dashboard → Plugins → Musian Settings) ──
-            new PluginPageInfo
-            {
-                Name                 = "musianconfig",
-                DisplayName          = "Musian Settings",
-                EmbeddedResourcePath = $"{ns}.Configuration.configPage.html",
-                EnableInMainMenu     = false,
-            },
         ];
     }
 }
