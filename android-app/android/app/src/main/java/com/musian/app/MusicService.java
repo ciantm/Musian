@@ -115,6 +115,11 @@ public class MusicService extends MediaBrowserServiceCompat {
     private volatile boolean mRefilling = false; // mirrors jmFetching
     private volatile int mGeneration = 0;        // mirrors jmGeneration
 
+    // Guards against walking the whole queue when every track fails. Reset on each
+    // successful transition (see the onMediaItemTransition handler).
+    private static final int MAX_CONSECUTIVE_ERRORS = 3;
+    private volatile int mConsecutiveErrors = 0;
+
     // ── Binder ────────────────────────────────────────────────────────────────
 
     public class MusicBinder extends Binder {
@@ -169,6 +174,9 @@ public class MusicService extends MediaBrowserServiceCompat {
             }
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
+                // A track actually producing audio means the previous failures (if
+                // any) were transient, so allow skipping again.
+                if (isPlaying) mConsecutiveErrors = 0;
                 postNotification(mTitle, mArtist, isPlaying);
                 updateSession(isPlaying);
                 if (mPlayStateListener != null) mPlayStateListener.onPlayStateChanged(isPlaying);
@@ -178,11 +186,26 @@ public class MusicService extends MediaBrowserServiceCompat {
                 // Without this, a stream that fails to load (bad URL, network blip,
                 // unsupported container) leaves mSession stuck at STATE_BUFFERING
                 // forever — Android Auto and the in-app spinner then never resolve.
-                if (mPlayer.hasNextMediaItem()) {
+                //
+                // But skipping must not be unconditional. In v3.1.90.0 every stream
+                // 401'd (Jellyfin 12 dropped query-string auth) and this handler
+                // walked the entire queue in a fraction of a second, so playback
+                // looked like "the first song never plays" with no error shown.
+                // A credential/authorisation failure will fail for *every* item,
+                // so skipping is pointless — surface it and stop instead.
+                if (isAuthFailure(error)) {
+                    setAutoError("Sign-in expired — please sign in again");
+                    return;
+                }
+                if (mPlayer.hasNextMediaItem() && mConsecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
+                    mConsecutiveErrors++;
                     mPlayer.seekToNextMediaItem();
                     mPlayer.prepare();
                     mPlayer.play();
                 } else {
+                    // Either the queue is exhausted or *every* recent track failed --
+                    // in both cases looping further is pointless. Report rather than
+                    // silently going quiet.
                     setAutoError("Playback error");
                 }
             }
@@ -727,15 +750,38 @@ public class MusicService extends MediaBrowserServiceCompat {
         return arr.toString();
     }
 
+    /**
+     * Builds the modern Jellyfin Authorization header value.
+     *
+     * Jellyfin 12 no longer honours the legacy `X-Emby-Token` header or the
+     * `api_key` query parameter, so every authenticated request — JSON API,
+     * audio stream and artwork — must use this form.
+     *
+     * Kept in one place deliberately: this value had to be changed once already
+     * (see v3.1.91.0) and was duplicated across several call sites, so a missed
+     * copy would silently 401. Do not inline it again.
+     */
+    private static String authHeader(String token) {
+        return "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"";
+    }
+
+    /**
+     * True when a playback failure was caused by bad/expired credentials or an
+     * outright HTTP rejection, rather than a transient network or codec problem.
+     *
+     * Such failures repeat identically for every track, so the player error
+     * handler must not skip to the next item — that just burns through the queue
+     * silently (exactly what happened when Jellyfin 12 began rejecting streams).
+     */
+    private static boolean isAuthFailure(androidx.media3.common.PlaybackException error) {
+        int code = error.errorCode;
+        return code == androidx.media3.common.PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
+            || code == androidx.media3.common.PlaybackException.ERROR_CODE_IO_NO_PERMISSION;
+    }
+
     private String httpGet(String urlStr, String token) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
-        // Modern `Authorization: MediaBrowser ...` header. Jellyfin 12 no longer
-        // honours the legacy `X-Emby-Token` header (nor the `api_key` query
-        // parameter), so native background queue-refill silently 401'd on every
-        // call and playback ran dry instead of refilling. Same root cause as
-        // app.html's JM.headers() fix.
-        conn.setRequestProperty("Authorization",
-            "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
+        conn.setRequestProperty("Authorization", authHeader(token));
         conn.setConnectTimeout(30000);
         conn.setReadTimeout(30000);
         BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -937,8 +983,7 @@ public class MusicService extends MediaBrowserServiceCompat {
             String token = getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_TOKEN, null);
             if (token != null && !token.isEmpty()) {
                 Map<String, String> headers = new HashMap<>();
-                headers.put("Authorization",
-                    "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
+                headers.put("Authorization", authHeader(token));
                 http.setDefaultRequestProperties(headers);
             }
             return http.createDataSource();
@@ -1121,8 +1166,7 @@ public class MusicService extends MediaBrowserServiceCompat {
                 // now authenticates the same way everything else does.)
                 String url = server + "/Items/" + id + "/Images/Primary?maxHeight=256&quality=90";
                 HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                conn.setRequestProperty("Authorization",
-                    "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
+                conn.setRequestProperty("Authorization", authHeader(token));
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(15000);
                 Bitmap bmp = BitmapFactory.decodeStream(conn.getInputStream());

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Jellyfin.Plugin.Musian.Api;
 
 /// <summary>
-/// Serves the Musian standalone app and sidebar injection script.
+/// Serves the Musian standalone app page.
 /// </summary>
 [ApiController]
 [Route("Musian")]
@@ -32,14 +32,4 @@ public class PageController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ContentResult GetApp()
         => Content(GetResource("app.html"), "text/html");
-
-    /// <summary>
-    /// Serves the sidebar injection script at /Musian/sidebar.js.
-    /// Loaded globally via config.json to add nav item for all users.
-    /// </summary>
-    [HttpGet("sidebar.js")]
-    [Produces("application/javascript")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public ContentResult GetSidebarJs()
-        => Content(GetResource("sidebar.js"), "application/javascript");
 }

@@ -34,7 +34,6 @@
   <ItemGroup>
     <EmbeddedResource Include="Configuration\moodPicker.html" />
     <EmbeddedResource Include="Configuration\app.html" />
-    <EmbeddedResource Include="Configuration\sidebar.js" />
   </ItemGroup>
 
 </Project>
