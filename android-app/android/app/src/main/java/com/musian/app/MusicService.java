@@ -30,7 +30,12 @@ import androidx.media.MediaBrowserServiceCompat;
 import androidx.media.app.NotificationCompat.MediaStyle;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
+import androidx.media3.datasource.DataSource;
+import androidx.media3.datasource.DefaultDataSource;
+import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.exoplayer.source.MediaSource;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -132,7 +137,9 @@ public class MusicService extends MediaBrowserServiceCompat {
         super.onCreate();
         createChannel();
 
-        mPlayer = new ExoPlayer.Builder(this).build();
+        mPlayer = new ExoPlayer.Builder(this)
+            .setMediaSourceFactory(buildMediaSourceFactory())
+            .build();
         mPlayer.setAudioAttributes(
             new androidx.media3.common.AudioAttributes.Builder()
                 .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -909,22 +916,47 @@ public class MusicService extends MediaBrowserServiceCompat {
     public void setOnPrevListener(OnPrevListener l)                 { mPrevListener = l; }
     public void setOnPlayStateChangedListener(OnPlayStateChanged l) { mPlayStateListener = l; }
 
-    // Builds a MediaItem that authenticates with the modern Authorization header.
-    // Jellyfin 12 rejects credentials in the query string (`api_key` /
-    // `X-Emby-Token` both 401), so the token has to travel as a header — which
-    // is exactly what ExoPlayer's per-item request headers are for, and why
-    // native playback needs a different fix from the web <audio> element
-    // (which cannot set headers at all). Works on Jellyfin 10.x and 12.x alike.
+    // Builds the media source factory whose HTTP data source attaches the
+    // Jellyfin Authorization header to every stream request.
+    //
+    // Why not per-item headers: media3 1.3.1's MediaItem.Builder has no header
+    // API — only setUri(String)/setUri(Uri) — and `setRequestHeaders` only
+    // arrived in a later release (checked against the 1.3.1 class files). So the
+    // header goes on the data source factory instead.
+    //
+    // The token is read from SharedPreferences inside createDataSource() rather
+    // than captured once, so it stays correct no matter whether saveCredentials()
+    // runs before or after this service starts.
+    private MediaSource.Factory buildMediaSourceFactory() {
+        DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
+            .setConnectTimeoutMs(30000)
+            .setReadTimeoutMs(30000);
+        // DefaultHttpDataSource is stateful per-instance, so hand out a fresh one
+        // per request with the current token attached.
+        DataSource.Factory lazyAuth = () -> {
+            String token = getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_TOKEN, null);
+            if (token != null && !token.isEmpty()) {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Authorization",
+                    "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
+                http.setDefaultRequestProperties(headers);
+            }
+            return http.createDataSource();
+        };
+        return new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, lazyAuth));
+    }
+
+    // Builds a MediaItem for a track. No headers here: media3 1.3.1's
+    // MediaItem.Builder has no per-item header API (setRequestHeaders arrived in
+    // a later release — verified against the 1.3.1 class files). The
+    // Authorization header is applied player-wide instead, via the data source
+    // factory configured in onCreate. That is sufficient because one player
+    // instance only ever serves the single signed-in user's token.
     private MediaItem authedMediaItem(String url, String id) {
-        String token = getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_TOKEN, null);
-        MediaItem.Builder b = new MediaItem.Builder().setUri(url).setMediaId(id == null ? "" : id);
-        if (token != null && !token.isEmpty()) {
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Authorization",
-                "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
-            b.setUri(url, headers);
-        }
-        return b.build();
+        return new MediaItem.Builder()
+            .setUri(url)
+            .setMediaId(id == null ? "" : id)
+            .build();
     }
 
     public void playTrack(String url, String id, String title, String artist) {
