@@ -16,3 +16,12 @@ Thumbs.db
 ## Rider / VS Code ##
 .idea/
 .vscode/
+
+## Local test server data ##
+# A stray Navidrome database turned up in the repo root once (from local
+# testing). It holds user records, so never let one be committed.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
