@@ -250,7 +250,7 @@ body { background:#111; color:#fff; font-family:sans-serif; min-height:100vh; ov
 
   <div id="jmTrackCount" style="display:none;margin-top:8px;font-size:0.78em;color:#555;text-align:center;"></div>
   <a href="#" onclick="if(window.Capacitor){try{localStorage.removeItem('jm_auth');}catch(e){}if(window.NativeMedia&&window.NativeMedia.clearCredentials){try{window.NativeMedia.clearCredentials();}catch(e){}}window.location.href='index.html';}else{history.back();}return false;" style="margin-top:32px;color:#555;font-size:0.8em;text-decoration:none;">&#8592; Back</a>
-  <div id="jmVersionLine" style="margin-top:8px;font-size:0.65em;color:#555;text-align:center;">v3.1.90.0</div>
+  <div id="jmVersionLine" style="margin-top:8px;font-size:0.65em;color:#555;text-align:center;">v3.1.91.0</div>
   <button id="jmPremiumBadge" style="display:none;margin:10px auto 0;background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:6px 14px;font-size:0.72em;font-weight:700;letter-spacing:0.02em;cursor:pointer;">Get Premium</button>
 </div>
 
@@ -361,9 +361,56 @@ var JM = {
   artUrl: function(item) {
     if (this.type !== 'jellyfin') return null;
     var id = typeof item === 'object' ? item.Id : item;
-    return this.server + '/Items/' + id + '/Images/Primary?maxHeight=160&quality=90&api_key=' + this.token;
+    // No `?api_key=`: this URL is fetched with an Authorization header by
+    // jmAuthedImageUrl, which also rewrites it back to the legacy form if the
+    // server turns out to be an older Jellyfin that needs it.
+    return this.server + '/Items/' + id + '/Images/Primary?maxHeight=160&quality=90';
   }
 };
+
+// ── Authenticated artwork ───────────────────────────────────────────────────
+// `?api_key=` in an <img src> still happens to work on Jellyfin 12 (unlike for
+// streams), but it is the same legacy mechanism that was already removed for
+// API routes, and it puts the token in URLs that end up in logs. Images can no
+// more send an Authorization header than <audio> can, so we fetch them with the
+// header and hand back a blob: URL — the same trick jmLoadAudioSource uses.
+//
+// Results are cached by URL so scrolling a grid of 50 thumbnails fetches each
+// image once, and so repeated track changes don't re-download the same art.
+// Only used for Jellyfin (`?api_key=`); Plex/Subsonic art keeps its own scheme.
+var jmArtCache = {};        // url -> objectURL (may be null while in flight)
+var jmArtPending = {};      // url -> [callback, ...]
+var jmArtSetToken = 0;      // guards against slow art resolving after a track change
+function jmAuthedImageUrl(url, cb) {
+  if (!url || JM.type !== 'jellyfin' || !JM.token) { cb(url || null); return; }
+  if (Object.prototype.hasOwnProperty.call(jmArtCache, url)) { cb(jmArtCache[url]); return; }
+  if (jmArtPending[url]) { jmArtPending[url].push(cb); return; }
+  jmArtPending[url] = [cb];
+  function finish(result) {
+    jmArtCache[url] = result;
+    var waiting = jmArtPending[url] || [];
+    delete jmArtPending[url];
+    waiting.forEach(function(fn) { try { fn(result); } catch(e) {} });
+  }
+  fetch(url, { headers: JM.headers() })
+    .then(function(r) {
+      // Old servers (<=10.x) reject the header but accept the query string, so
+      // fall back to the original URL rather than showing no art at all.
+      if (r.status === 401 || r.status === 403) throw new Error('legacy');
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.blob();
+    })
+    .then(function(blob) { finish(URL.createObjectURL(blob)); })
+    .catch(function(e) {
+      // Rebuild the legacy `?api_key=` form rather than reusing `url` — `url`
+      // no longer carries the token, so passing it through would 401 again.
+      if (e && e.message === 'legacy') {
+        finish(url + (url.indexOf('?') >= 0 ? '&' : '?') + 'api_key=' + encodeURIComponent(JM.token));
+      } else {
+        finish(null);
+      }
+    });
+}
 JM.init();
 if (window.NativeMedia && JM.token && JM.userId && JM.type !== 'plex' && JM.type !== 'subsonic') {
   NativeMedia.saveCredentials(JM.server, JM.userId, JM.token);
@@ -994,8 +1041,23 @@ function jmUpdateMediaSession(item) {
     title:  item.Name  || 'Musian',
     artist: artist,
     album:  item.Album || '',
-    artwork: JM.type === 'jellyfin' ? [{ src: JM.server + '/Items/' + item.Id + '/Images/Primary?maxHeight=256&quality=90&api_key=' + JM.token, sizes: '256x256', type: 'image/jpeg' }] : []
+    artwork: []
   });
+  // Artwork is resolved asynchronously (authenticated blob fetch), so attach it
+  // once ready. blob: URLs are absolute, which is what MediaMetadata requires.
+  if (JM.type === 'jellyfin' && JM.token) {
+    var artUrl = JM.server + '/Items/' + item.Id + '/Images/Primary?maxHeight=256&quality=90';
+    var md = navigator.mediaSession.metadata;
+    jmAuthedImageUrl(artUrl, function(resolved) {
+      if (!resolved || navigator.mediaSession.metadata !== md) return;
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: item.Name || 'Musian', artist: artist, album: item.Album || '',
+          artwork: [{ src: resolved, sizes: '256x256', type: 'image/jpeg' }]
+        });
+      } catch(e) {}
+    });
+  }
   navigator.mediaSession.playbackState = 'playing';
   navigator.mediaSession.setActionHandler('play', function() {
     jmAudio.play().catch(function() {});
@@ -1044,8 +1106,15 @@ function jmSetNowPlayingArt(item) {
   var url = item ? JM.artUrl(item) : null;
   if (url) {
     el.onerror = function() { el.style.display = 'none'; jmSetArtZoom(false); };
-    el.src = url;
     el.style.display = 'block';
+    // Resolve through the authenticated blob loader (see jmAuthedImageUrl).
+    // Guarded so a slow resolve can't overwrite art from a newer track.
+    var token = ++jmArtSetToken;
+    jmAuthedImageUrl(url, function(resolved) {
+      if (token !== jmArtSetToken) return;   // a newer track won the race
+      if (resolved) { el.src = resolved; el.style.display = 'block'; }
+      else { el.style.display = 'none'; jmSetArtZoom(false); }
+    });
   } else {
     el.style.display = 'none';
     jmSetArtZoom(false);
@@ -1077,8 +1146,11 @@ function jmUpdatePersistentBar(item) {
     var artUrl = JM.artUrl(item);
     if (artUrl) {
       art.onerror = function() { art.style.display = 'none'; };
-      art.src = artUrl;
       art.style.display = 'block';
+      jmAuthedImageUrl(artUrl, function(resolved) {
+        if (resolved) { art.src = resolved; art.style.display = 'block'; }
+        else { art.style.display = 'none'; }
+      });
     } else {
       art.style.display = 'none';
     }
@@ -1118,6 +1190,67 @@ function jmUpdateUpNext(idx) {
   } else {
     upNextEl.style.display = 'none';
   }
+}
+
+// Loads a track into the <audio> element.
+//
+// Jellyfin 12 rejects credentials passed in the query string (`api_key` and
+// `X-Emby-Token` both 401), and an <audio src="..."> cannot send request
+// headers — unlike ExoPlayer on Android, which we fixed by attaching the header
+// to the MediaItem instead. So on web we fetch the stream ourselves with the
+// modern Authorization header, then hand the <audio> element a blob: URL, which
+// needs no credentials of its own.
+//
+// Falls back to the plain query-string URL when the fetch fails for a
+// non-auth reason, so older Jellyfin (<=10.x) servers — where ?api_key= is
+// still the working mechanism — keep playing. Order matters: try authenticated
+// first, since that is the one that works on 12.x.
+var jmAudioBlobUrl = null;
+var jmAudioUseLegacyQuery = false;
+function jmReleaseAudioBlob() {
+  if (jmAudioBlobUrl) { try { URL.revokeObjectURL(jmAudioBlobUrl); } catch(e) {} jmAudioBlobUrl = null; }
+}
+function jmLoadAudioSource(url, item, gen) {
+  function playFrom(src) {
+    if (gen !== undefined && gen !== jmGeneration) return;
+    jmAudio.src = src;
+    jmAudio.play().catch(function() {});
+  }
+  // Already learned this server wants the legacy form — don't re-pay the cost.
+  if (jmAudioUseLegacyQuery || JM.type !== 'jellyfin' || !JM.token) {
+    jmReleaseAudioBlob();
+    playFrom(url);
+    return;
+  }
+  var ctrl = new AbortController();
+  var tid = setTimeout(function() { ctrl.abort(); }, 30000);
+  fetch(url, { headers: JM.headers(), signal: ctrl.signal })
+    .then(function(r) {
+      // 401/403 => this server genuinely wants the legacy URL, not a header.
+      if (r.status === 401 || r.status === 403) throw new Error('legacy');
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.blob();
+    })
+    .then(function(blob) {
+      clearTimeout(tid);
+      if (gen !== undefined && gen !== jmGeneration) return;
+      jmReleaseAudioBlob();
+      jmAudioBlobUrl = URL.createObjectURL(blob);
+      playFrom(jmAudioBlobUrl);
+    })
+    .catch(function(e) {
+      clearTimeout(tid);
+      if (gen !== undefined && gen !== jmGeneration) return;
+      if (e && e.message === 'legacy') {
+        // Remember once, so subsequent tracks skip the doomed header attempt.
+        jmAudioUseLegacyQuery = true;
+        playFrom(url);
+      } else {
+        // Network/abort/parse problem — let the <audio> element try the plain
+        // URL and surface its own error, rather than failing silently here.
+        playFrom(url);
+      }
+    });
 }
 
 function jmPlayTrack(idx, gen) {
@@ -1178,8 +1311,7 @@ function jmPlayTrack(idx, gen) {
     jmStartNativePoll();
   } else {
     jmAudio.pause();
-    jmAudio.src = url;
-    jmAudio.play().catch(function() {});
+    jmLoadAudioSource(url, item, gen);
   }
   document.getElementById('jmSearch').placeholder = (artist ? artist + ' \u2014 ' : '') + item.Name;
   document.getElementById('jmControls').style.display = 'block';
@@ -1270,6 +1402,16 @@ jmAudio.addEventListener('error', function() {
   if (jmGeneration === 0 || !jmPlaylist.length) return;
   var code = jmAudio.error ? jmAudio.error.code : '?';
   var msg  = jmAudio.error ? jmAudio.error.message : '';
+  // MEDIA_ERR_SRC_NOT_SUPPORTED (4) is what a rejected stream looks like: the
+  // browser got no usable media back. On Jellyfin 12 that is most often an auth
+  // failure (401 on the stream URL). Previously this fell through to the
+  // auto-skip below, so a queue where every track 401'd just flashed by and
+  // looked like "the first song never plays" rather than a credentials problem.
+  if (code === 4) {
+    console.error('[Musian] stream rejected (src not supported / not authorized):', jmAudio.currentSrc, msg);
+    setStatus('Could not play this track \u2014 the server rejected the stream.');
+    return;
+  }
   setStatus('Track error (code ' + code + (msg ? ': ' + msg : '') + ') — skipping\u2026');
   jmPlayIdx++;
   jmPlayTrack(jmPlayIdx, jmGeneration);
@@ -1296,6 +1438,7 @@ document.getElementById('jmStopBtn').addEventListener('click', function() {
   jmGeneration++;
   jmUserPaused = false;
   jmAudio.pause(); jmAudio.src = '';
+  jmReleaseAudioBlob();
   jmPlaylist = [];
   document.getElementById('jmSearch').placeholder = 'Search song\u2026';
   document.getElementById('jmControls').style.display = 'none';

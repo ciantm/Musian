@@ -44,7 +44,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -486,7 +488,6 @@ public class MusicService extends MediaBrowserServiceCompat {
         if (genres != null && !genres.isEmpty()) {
             urlStr += "&Genres=" + URLEncoder.encode(String.join("|", genres), "UTF-8");
         }
-        urlStr += "&api_key=" + token;
         return parseTrackItems(httpGet(urlStr, token), server, userId, token);
     }
 
@@ -496,8 +497,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         String urlStr = server + "/Users/" + userId + "/Items"
             + "?IncludeItemTypes=Audio&Recursive=true&SortBy=Random&Limit=" + limit
             + "&Fields=MediaSources"
-            + "&Genres=" + URLEncoder.encode(String.join("|", genres), "UTF-8")
-            + "&api_key=" + token;
+            + "&Genres=" + URLEncoder.encode(String.join("|", genres), "UTF-8");
         return parseTrackItems(httpGet(urlStr, token), server, userId, token);
     }
 
@@ -553,7 +553,7 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     private List<String> fetchItemGenres(String server, String userId, String token, String itemId) throws Exception {
         String url = server + "/Users/" + userId + "/Items/" + itemId
-            + "?Fields=Genres&api_key=" + token;
+            + "?Fields=Genres";
         JSONObject obj = new JSONObject(httpGet(url, token));
         JSONArray arr = obj.optJSONArray("Genres");
         List<String> genres = new ArrayList<>();
@@ -722,7 +722,13 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     private String httpGet(String urlStr, String token) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
-        conn.setRequestProperty("X-Emby-Token", token);
+        // Modern `Authorization: MediaBrowser ...` header. Jellyfin 12 no longer
+        // honours the legacy `X-Emby-Token` header (nor the `api_key` query
+        // parameter), so native background queue-refill silently 401'd on every
+        // call and playback ran dry instead of refilling. Same root cause as
+        // app.html's JM.headers() fix.
+        conn.setRequestProperty("Authorization",
+            "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
         conn.setConnectTimeout(30000);
         conn.setReadTimeout(30000);
         BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -793,7 +799,6 @@ public class MusicService extends MediaBrowserServiceCompat {
         if (genres != null && !genres.isEmpty()) {
             url.append("&Genres=").append(URLEncoder.encode(joinPipe(genres), "UTF-8"));
         }
-        url.append("&api_key=").append(token);
         return parseItems(httpGet(url.toString(), token), server, userId, token);
     }
 
@@ -803,7 +808,6 @@ public class MusicService extends MediaBrowserServiceCompat {
         if (genres != null && !genres.isEmpty()) {
             url.append("&Genres=").append(URLEncoder.encode(joinPipe(genres), "UTF-8"));
         }
-        url.append("&api_key=").append(token);
         return parseItems(httpGet(url.toString(), token), server, userId, token);
     }
 
@@ -820,6 +824,10 @@ public class MusicService extends MediaBrowserServiceCompat {
         return out;
     }
 
+    // No credentials in the URL on purpose. Jellyfin 12 rejects both `api_key`
+    // and `X-Emby-Token` in a query string; ExoPlayer sends the modern
+    // Authorization header instead (see playTrack/queueNextTrack below).
+    // Leaving the token out of the URL also keeps it out of logs and history.
     private String buildStreamUrl(String server, String id, String userId, String token) {
         return server + "/Audio/" + id + "/universal"
             + "?UserId=" + userId
@@ -827,8 +835,7 @@ public class MusicService extends MediaBrowserServiceCompat {
             + "&Container=mp3,aac,m4a,flac,ogg,opus,webma,webm,wav"
             + "&AudioCodec=aac,mp3,flac,opus,vorbis"
             + "&TranscodingContainer=mp3"
-            + "&TranscodingProtocol=http"
-            + "&api_key=" + token;
+            + "&TranscodingProtocol=http";
     }
 
     private String joinPipe(List<String> parts) {
@@ -902,6 +909,24 @@ public class MusicService extends MediaBrowserServiceCompat {
     public void setOnPrevListener(OnPrevListener l)                 { mPrevListener = l; }
     public void setOnPlayStateChangedListener(OnPlayStateChanged l) { mPlayStateListener = l; }
 
+    // Builds a MediaItem that authenticates with the modern Authorization header.
+    // Jellyfin 12 rejects credentials in the query string (`api_key` /
+    // `X-Emby-Token` both 401), so the token has to travel as a header — which
+    // is exactly what ExoPlayer's per-item request headers are for, and why
+    // native playback needs a different fix from the web <audio> element
+    // (which cannot set headers at all). Works on Jellyfin 10.x and 12.x alike.
+    private MediaItem authedMediaItem(String url, String id) {
+        String token = getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_TOKEN, null);
+        MediaItem.Builder b = new MediaItem.Builder().setUri(url).setMediaId(id == null ? "" : id);
+        if (token != null && !token.isEmpty()) {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Authorization",
+                "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
+            b.setUri(url, headers);
+        }
+        return b.build();
+    }
+
     public void playTrack(String url, String id, String title, String artist) {
         mCurrentIndex = 0;
         mQueue.clear();
@@ -924,7 +949,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         // ever reactivate it for a later play without this.
         mSession.setActive(true);
         mPlayer.clearMediaItems();
-        mPlayer.setMediaItem(MediaItem.fromUri(url));
+        mPlayer.setMediaItem(authedMediaItem(url, id));
         mPlayer.prepare();
         mPlayer.play();
         setNowPlaying(id, title, artist);
@@ -934,7 +959,7 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     public void queueNextTrack(String url, String id, String title, String artist) {
         mQueue.add(new String[]{id, title, artist});
-        mPlayer.addMediaItem(MediaItem.fromUri(url));
+        mPlayer.addMediaItem(authedMediaItem(url, id));
         updateQueue();
     }
 
@@ -1058,9 +1083,14 @@ public class MusicService extends MediaBrowserServiceCompat {
         final int gen = ++mArtGeneration;
         new Thread(() -> {
             try {
-                String url = server + "/Items/" + id + "/Images/Primary?maxHeight=256&quality=90&api_key=" + token;
+                // Header auth, not `?api_key=` — the query parameter is rejected
+                // by Jellyfin 12 for API routes. (The image route still tolerates
+                // the query param today, but relying on that is fragile, so this
+                // now authenticates the same way everything else does.)
+                String url = server + "/Items/" + id + "/Images/Primary?maxHeight=256&quality=90";
                 HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                conn.setRequestProperty("X-Emby-Token", token);
+                conn.setRequestProperty("Authorization",
+                    "MediaBrowser Client=\"Musian\",Device=\"Android\",DeviceId=\"jm1\",Version=\"1.0\",Token=\"" + token + "\"");
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(15000);
                 Bitmap bmp = BitmapFactory.decodeStream(conn.getInputStream());
